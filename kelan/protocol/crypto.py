@@ -9,8 +9,6 @@ Replaces kelan-crypto Rust crate entirely.
 """
 import os
 import hashlib
-import hmac
-import struct
 from dataclasses import dataclass
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import (
@@ -21,7 +19,7 @@ from cryptography.hazmat.primitives.asymmetric.x25519 import (
 )
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
-from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives import hashes
 from cryptography.exceptions import InvalidSignature
 
 

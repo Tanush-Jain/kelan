@@ -1,5 +1,4 @@
 """Tests for Sentinel anomaly detection."""
-import pytest
 from kelan.sentinel.detector import SentinelDetector
 
 
@@ -21,7 +20,6 @@ class TestSentinel:
         assert a["pattern"] == "sybil_attack"
 
     def test_flood_detected_high_rate(self):
-        import time
         # Simulate 60 connections in < 1 second
         a = {}
         for _ in range(60):

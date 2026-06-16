@@ -1,6 +1,5 @@
 """Unit tests for the AITP handshake protocol."""
 import json
-import time
 import pytest
 from kelan.protocol.handshake import HandshakeManager, HandshakeError, Phase, PendingSession
 from kelan.protocol.crypto import ed25519_generate, ed25519_sign, x25519_generate

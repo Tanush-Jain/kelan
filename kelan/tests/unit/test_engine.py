@@ -1,7 +1,7 @@
 """Tests for HybridTrustEngine — mocks Ollama."""
 import asyncio
 import pytest
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 from kelan.ai.engine import HybridTrustEngine, CircuitBreaker, CBState, _fallback
 from kelan.ai.ollama_client import TrustVerdict, Verdict, OllamaClient
 

@@ -1,5 +1,4 @@
 """Unit tests for Kelan crypto identity and KEM wrappers."""
-import pytest
 from kelan.crypto.identity import generate_keypair, sign, verify
 from kelan.crypto.kem import mlkem_keygen, mlkem_encap, mlkem_decap
 

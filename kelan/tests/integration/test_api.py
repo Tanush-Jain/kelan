@@ -1,7 +1,7 @@
 """Integration tests for FastAPI endpoints — mocks Ollama."""
 import pytest
 import pytest_asyncio
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 from httpx import AsyncClient, ASGITransport
 
 from kelan.ai.ollama_client import TrustVerdict, Verdict, OllamaClient
@@ -17,7 +17,6 @@ def anyio_backend():
 @pytest_asyncio.fixture
 async def client():
     """Create test client with mocked Ollama."""
-    from kelan.api import server as srv
     import kelan.api.server as s
 
     # Ensure DB is initialized for integration endpoints

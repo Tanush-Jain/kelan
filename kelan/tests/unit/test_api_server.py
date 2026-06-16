@@ -1,16 +1,14 @@
 """Unit tests for FastAPI server endpoints and lifecycle."""
-import os
 from typing import Any
 import pytest
-import pytest_asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
-from fastapi import WebSocketDisconnect, HTTPException
+from fastapi import WebSocketDisconnect
 from httpx import AsyncClient, ASGITransport
 
 from kelan.ai.ollama_client import TrustVerdict, Verdict
 from kelan.protocol.handshake import HandshakeError
 from kelan.api.server import (
-    app, lifespan, _on_verdict, ws_agent, _ws_clients, _verdict_buf
+    app, lifespan, _on_verdict, ws_agent, _ws_clients
 )
 
 @pytest.fixture(scope="module")

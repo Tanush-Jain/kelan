@@ -629,7 +629,8 @@ async def websocket_logs(websocket: WebSocket):
 async def trigger_attack():
     """Triggers the attack simulation suite in the background."""
     try:
-        import sys, subprocess
+        import sys
+        import subprocess
         python_bin = sys.executable
         script_path = "scripts/run_attacks.py"
         subprocess.Popen(

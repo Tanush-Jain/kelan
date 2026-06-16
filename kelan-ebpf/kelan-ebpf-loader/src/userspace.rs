@@ -7,7 +7,6 @@ use std::num::NonZeroU32;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
-
 pub struct BpfEnforcer {
     permits: Arc<DashMap<u64, SessionPermit>>,
     stats: Arc<UserspaceStats>,
@@ -51,7 +50,7 @@ impl BpfEnforcer {
             let iface = interface_name.to_string();
             let tx_clone = tx.clone();
             let stats_clone = stats.clone();
-            
+
             Some(tokio::task::spawn_blocking(move || {
                 Self::capture_loop(iface, tx_clone, stats_clone)
             }))
@@ -62,9 +61,7 @@ impl BpfEnforcer {
         // Spawn async processing loop
         let p_clone = permits.clone();
         let s_clone = stats.clone();
-        tokio::spawn(async move {
-            Self::processing_loop(rx, p_clone, s_clone).await
-        });
+        tokio::spawn(async move { Self::processing_loop(rx, p_clone, s_clone).await });
 
         Ok(Self {
             permits,
@@ -135,7 +132,8 @@ impl BpfEnforcer {
                 .open()
             {
                 // Rate limiter: 100k packets per sec max to save CPU
-                let limiter = RateLimiter::direct(Quota::per_second(NonZeroU32::new(100_000).unwrap()));
+                let limiter =
+                    RateLimiter::direct(Quota::per_second(NonZeroU32::new(100_000).unwrap()));
 
                 while let Ok(packet) = cap.next_packet() {
                     if limiter.check().is_ok() {
@@ -180,7 +178,9 @@ impl BpfEnforcer {
                             .duration_since(std::time::UNIX_EPOCH)
                             .unwrap_or_default()
                             .as_secs();
-                        if permit.verdict != 0 && (permit.expires_at == 0 || permit.expires_at > now) {
+                        if permit.verdict != 0
+                            && (permit.expires_at == 0 || permit.expires_at > now)
+                        {
                             stats.packets_passed.fetch_add(1, Ordering::Relaxed);
                         } else {
                             stats.packets_dropped.fetch_add(1, Ordering::Relaxed);
@@ -201,7 +201,8 @@ impl BpfEnforcer {
             .as_secs();
 
         let before = self.permits.len();
-        self.permits.retain(|_, p| p.expires_at == 0 || p.expires_at > now);
+        self.permits
+            .retain(|_, p| p.expires_at == 0 || p.expires_at > now);
         let removed = before.saturating_sub(self.permits.len());
 
         if removed > 0 {

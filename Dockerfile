@@ -11,6 +11,7 @@ COPY kelan-ebpf/kelan-ebpf-loader/Cargo.toml ./kelan-ebpf/kelan-ebpf-loader/
 # Build deps only (cache layer)
 RUN mkdir -p kelan-ebpf/kelan-ebpf-loader/src && \
     echo "fn main() {}" > kelan-ebpf/kelan-ebpf-loader/src/main.rs && \
+    touch kelan-ebpf/kelan-ebpf-loader/src/lib.rs && \
     cargo build --release 2>/dev/null || true
 
 # Copy full source and build

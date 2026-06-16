@@ -6,7 +6,7 @@ Run: .venv/bin/python -m pytest -x --tb=short -q
 import asyncio
 import json
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch, PropertyMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 
 # ── helpers ────────────────────────────────────────────────────────────────────
@@ -58,7 +58,6 @@ class TestOllamaClientSessionLeak:
     async def test_get_client_returns_shared_instance(self):
         """_get_client() must return the same object on every call — no new clients."""
         from kelan.ai.ollama_client import OllamaClient
-        import httpx
 
         c = OllamaClient(endpoint="http://localhost:11434", model="qwen2.5:3b")
         mock = _mock_httpx_client()

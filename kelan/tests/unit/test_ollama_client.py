@@ -2,7 +2,7 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
-from kelan.ai.ollama_client import OllamaClient, Verdict, TrustVerdict
+from kelan.ai.ollama_client import OllamaClient, Verdict
 
 @pytest.mark.asyncio
 async def test_ollama_ping_success():

@@ -1,6 +1,5 @@
 """Tests for Ollama response parser — no Ollama needed."""
-import pytest
-from kelan.ai.ollama_client import _parse, Verdict, TrustVerdict
+from kelan.ai.ollama_client import _parse, Verdict
 
 
 class TestParser:

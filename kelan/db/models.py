@@ -1,5 +1,6 @@
 """SQLAlchemy async ORM models."""
-import time, uuid
+import time
+import uuid
 from sqlalchemy import Column, String, Float, Integer, Boolean, Text, Index
 from sqlalchemy.orm import DeclarativeBase
 

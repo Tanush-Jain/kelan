@@ -6,7 +6,6 @@ import secrets
 from pathlib import Path
 from rich.console import Console
 from rich.panel import Panel
-from rich.table import Table
 
 # Add project root to sys.path
 sys.path.append(str(Path(__file__).parent.parent))
@@ -36,7 +35,7 @@ async def test_clean_enroll(client, base_url):
     resp = await client.post(f"{base_url}/api/enroll", json=payload)
     if resp.status_code == 200:
         data = resp.json()
-        console.print(f"[bold green]✓ Accepted: Clean enrollment succeeded![/bold green]")
+        console.print("[bold green]✓ Accepted: Clean enrollment succeeded![/bold green]")
         console.print(f"  [bold]Verdict:[/bold] {data.get('verdict')} | [bold]Reason:[/bold] {data.get('reason')} | [bold]Permit Token:[/bold] {data.get('permit_token')}")
     else:
         console.print(f"[bold red]✗ Rejected (HTTP {resp.status_code}): {resp.text}[/bold red]")

@@ -193,7 +193,8 @@ class OllamaClient:
         return r.json().get("response", "").strip()
 
     def _cache_key(self, session: dict) -> str:
-        import hashlib, json
+        import hashlib
+        import json
         key_data = {
             "entity_id": session.get("entity_id", ""),
             "anomalies": session.get("anomalies", {}),

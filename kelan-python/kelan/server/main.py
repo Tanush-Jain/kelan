@@ -17,14 +17,12 @@ import asyncio
 import os
 import time
 import uuid
-from collections import deque
 from contextlib import asynccontextmanager
 from typing import Optional
 
 import structlog
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 
 from ..config import get_settings
 from ..ai.engine import HybridTrustEngine
@@ -35,7 +33,7 @@ from ..enforcement.ebpf_bridge import EbpfBridge
 from ..simulation.engine import SimulationEngine
 from .models import (
     EnrollRequest, HandshakeRequest, XdpDropReport,
-    HealthResponse, EnrollResponse, StatsResponse,
+    HealthResponse, EnrollResponse,
 )
 
 log = structlog.get_logger()

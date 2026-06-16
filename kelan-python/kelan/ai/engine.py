@@ -8,7 +8,6 @@ Architecture:
   3. If OPEN / error → fall back to deterministic rule engine
   4. Broadcast verdict to all connected WebSocket agents
 """
-import asyncio
 import time
 from enum import Enum
 from typing import Callable, Awaitable

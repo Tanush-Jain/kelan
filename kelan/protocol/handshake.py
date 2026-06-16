@@ -21,7 +21,6 @@ from .crypto import (
     ed25519_verify, is_valid_ed25519_sig,
     x25519_generate, x25519_exchange,
     kem_encapsulate, derive_session_key,
-    hkdf_derive,
 )
 
 

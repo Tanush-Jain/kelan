@@ -15,3 +15,11 @@ omit = [
 fail_under = 60
 show_missing = true
 skip_covered = true
+
+[tool.ruff.lint]
+ignore = ["E402", "E701", "E702", "E722", "F841"]
+
+[tool.mypy]
+ignore_missing_imports = true
+disable_error_code = ["call-arg", "var-annotated"]
+

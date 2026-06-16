@@ -11,7 +11,6 @@ from rich.table import Table
 # Add project root to sys.path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from kelan.config import get_settings
 
 console = Console()
 

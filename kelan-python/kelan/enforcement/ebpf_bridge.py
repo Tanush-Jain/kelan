@@ -8,7 +8,6 @@ import asyncio
 import json
 import os
 import socket
-import struct
 import time
 from typing import Optional
 import structlog

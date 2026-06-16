@@ -26,23 +26,29 @@ impl EbpfLoader {
             "eBPF XDP not available on this platform. \
              Software enforcement active."
         );
-        Ok(Self { interface: interface.to_string() })
+        Ok(Self {
+            interface: interface.to_string(),
+        })
     }
-    
-    pub fn is_kernel_enforcing(&self) -> bool { false }
-    pub fn interface(&self) -> &str { &self.interface }
-    
-    pub fn permit_session(
-        &self, _: u64, _: u32, _: u32, _: u64
-    ) -> Result<(), String> { Ok(()) }
-    
-    pub fn deny_ip(
-        &self, _: u32, _: u64
-    ) -> Result<(), String> { Ok(()) }
-    
-    pub fn cleanup_expired(
-        &self, _: u64
-    ) -> Result<u32, String> { Ok(0) }
+
+    pub fn is_kernel_enforcing(&self) -> bool {
+        false
+    }
+    pub fn interface(&self) -> &str {
+        &self.interface
+    }
+
+    pub fn permit_session(&self, _: u64, _: u32, _: u32, _: u64) -> Result<(), String> {
+        Ok(())
+    }
+
+    pub fn deny_ip(&self, _: u32, _: u64) -> Result<(), String> {
+        Ok(())
+    }
+
+    pub fn cleanup_expired(&self, _: u64) -> Result<u32, String> {
+        Ok(0)
+    }
 }
 
 #[repr(C)]

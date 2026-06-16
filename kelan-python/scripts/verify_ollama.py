@@ -59,7 +59,7 @@ async def main():
     
     try:
         verdict = await client.evaluate_session(dummy_session)
-        console.print(f"[bold green]✓ Inference Success![/bold green]")
+        console.print("[bold green]✓ Inference Success![/bold green]")
         console.print(Panel(
             f"[bold]Verdict:[/bold] {verdict.verdict.value}\n"
             f"[bold]Confidence:[/bold] {verdict.confidence}\n"
