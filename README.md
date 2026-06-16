@@ -9,7 +9,7 @@
 
 [![CI](https://github.com/Kelan-Security/kelan-core/actions/workflows/ci.yml/badge.svg)](https://github.com/Kelan-Security/kelan-core/actions/workflows/ci.yml)
 [![Security Audit](https://github.com/Kelan-Security/kelan-core/actions/workflows/ci.yml/badge.svg?event=push)](https://github.com/Kelan-Security/kelan-core/actions/workflows/ci.yml)
-[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Rust](https://img.shields.io/badge/Rust-1.77+-orange.svg)](https://www.rust-lang.org)
 [![Python](https://img.shields.io/badge/Python-3.10--3.12-blue.svg)](https://python.org)
 [![Ollama](https://img.shields.io/badge/AI-Ollama%20%2B%20Gemma-green.svg)](https://ollama.com)
@@ -310,7 +310,7 @@ Areas we need help with:
 
 ## License
 
-Kelan Core is licensed under the Apache License 2.0.
+Kelan Core is licensed under the MIT License.
 See the LICENSE file for details.
 
 ---
