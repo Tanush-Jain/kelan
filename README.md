@@ -310,7 +310,8 @@ Areas we need help with:
 
 ## License
 
-Kelan Core is licensed under the Apache License 2.0.
+Kelan Core is licensed under the Apache License 2.0.  
+Copyright 2026 Kelan Security. Owner & Author: [Tanush Jain](https://github.com/Tanush-Jain).  
 See the LICENSE file for details.
 
 ---
@@ -327,7 +328,8 @@ Pre-print available after acceptance.
 
 <div align="center">
 
-Built with ❤️ by [Kelan Security](https://github.com/Kelan-Security)
+Built with ❤️ by [Kelan Security](https://github.com/Kelan-Security)  
+**Owner & Author:** [Tanush Jain](https://github.com/Tanush-Jain)
 
 ⭐ Star us on GitHub if Kelan helps you — it directly helps the project grow
 
