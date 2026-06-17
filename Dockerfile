@@ -1,6 +1,10 @@
 # ── Stage 1: Rust builder ────────────────────────────────────────────────────
 FROM rust:slim AS rust-builder
 
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpcap-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /build
 
 # Cache dependencies
@@ -40,6 +44,7 @@ FROM python:3.12-slim AS runtime
 # Install runtime dependencies (including curl for HEALTHCHECK)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
+    libpcap0.8 \
     && rm -rf /var/lib/apt/lists/*
 
 # Security: non-root user
