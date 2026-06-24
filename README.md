@@ -1,4 +1,4 @@
-# Kelan Security — AITP
+# AITP - A product by Kelan Security
 
 <div align="center">
 
