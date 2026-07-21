@@ -29,7 +29,7 @@ pcap              = "1.1"
 [target.'cfg(target_os = "linux")'.dependencies]
 aya         = { version = "0.11", features = ["async_tokio"] }
 aya-log     = "0.1"
-aya-obj     = "0.1"
+aya-obj     = "0.3"
 
 [dev-dependencies]
 tokio-test = "0.4"
