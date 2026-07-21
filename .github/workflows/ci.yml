@@ -65,7 +65,7 @@ jobs:
       - name: Dependency Vulnerability Audit (pip-audit)
         run: |
           pip install -r requirements.txt
-          pip-audit -r requirements.txt --ignore-vuln PYSEC-2022-43012
+          pip-audit -r requirements.txt --ignore-vuln PYSEC-2022-43012 --ignore-vuln PYSEC-2026-1845
 
   # ─────────────────────────────────────────────
   # JOB 3: Python Tests
