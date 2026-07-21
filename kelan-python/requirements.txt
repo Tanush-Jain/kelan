@@ -12,5 +12,5 @@ argon2-cffi==23.1.0
 slowapi==0.1.9
 structlog==24.2.0
 httpx==0.27.0
-cryptography>=46.0.0
+cryptography>=49.0.0
 python-multipart>=0.0.20
