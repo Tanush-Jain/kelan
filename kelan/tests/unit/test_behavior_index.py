@@ -12,7 +12,6 @@ from kelan.agentbound import (
     BehaviorIndexAggregator,
     get_daily_summary_payload,
     run_agentbound_monitor,
-    transmit_stats_stub,
 )
 
 

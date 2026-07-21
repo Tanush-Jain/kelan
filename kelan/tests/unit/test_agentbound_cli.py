@@ -8,7 +8,7 @@ import tempfile
 from pathlib import Path
 import pytest
 
-from kelan.agentbound import run_agentbound_monitor, scan_agent_processes
+from kelan.agentbound import run_agentbound_monitor
 
 
 @pytest.mark.asyncio

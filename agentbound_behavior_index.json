@@ -2,17 +2,17 @@
   "date": "2026-07-21",
   "summary": {
     "unknown": {
-      "total_events": 13,
-      "in_scope_events": 13,
+      "total_events": 15,
+      "in_scope_events": 15,
       "out_of_scope_events": 0,
       "categories": {
-        "none": 13
+        "none": 15
       },
       "action_types": {
-        "file_access": 13
+        "file_access": 15
       },
       "confidence_buckets": {
-        "high": 13
+        "high": 15
       }
     }
   }

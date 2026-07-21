@@ -54,6 +54,3 @@ jobs:
           cache-to: type=gha,mode=max
           # provenance=false avoids unknown/unknown arch in GHCR for single-platform images
           provenance: false
-          build-args: |
-            VCS_REF=${{ github.sha }}
-            BUILD_DATE=${{ github.run_started_at }}

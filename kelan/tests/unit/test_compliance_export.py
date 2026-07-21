@@ -3,11 +3,9 @@
 import json
 import tempfile
 from pathlib import Path
-import pytest
 
 from kelan.agentbound import (
     append_json_line,
-    compute_entry_hash,
     generate_compliance_report,
     get_eu_ai_act_article_mappings,
     verify_hash_chain,

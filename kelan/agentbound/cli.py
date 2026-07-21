@@ -42,7 +42,7 @@ def _emit_claude_code_plugin_hint() -> None:
         )
 
 from kelan.sentinel.detector import SentinelDetector
-from .intent_extractor import AgentIntent, extract_intent, read_proc_environ
+from .intent_extractor import extract_intent, read_proc_environ
 from .behavior_engine import BehaviorEngine, BehaviorVerdict
 
 log = structlog.get_logger()

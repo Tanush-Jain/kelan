@@ -8,7 +8,6 @@ Given a discovered agent process PID, extracts declared intent by inspecting:
 """
 
 from __future__ import annotations
-import os
 import re
 from dataclasses import dataclass, field
 from pathlib import Path

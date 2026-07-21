@@ -223,7 +223,10 @@ impl ExecveProbe {
     pub fn attach() -> anyhow::Result<Self> {
         let events = Arc::new(DashMap::new());
         tracing::info!("Attached execve process spawn probe");
-        Ok(Self { active: true, events })
+        Ok(Self {
+            active: true,
+            events,
+        })
     }
 
     pub fn capture_spawn(&self, binary: &str, pid: u32) {

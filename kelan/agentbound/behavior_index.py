@@ -12,11 +12,9 @@ GUARANTEES:
 
 from __future__ import annotations
 import json
-import re
-import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 import structlog
 
 log = structlog.get_logger()
@@ -48,7 +46,7 @@ def categorize_path(path_str: str) -> str:
         return "system-binary"
         
     # User workspace or temp directories
-    if any(k in p for k in ("/home/", "/tmp/", "/var/tmp/", "/app/")):
+    if any(k in p for k in ("/home/", "/tmp/", "/var/tmp/", "/app/")):  # nosec B108
         return "user-workspace"
 
     return "other"
@@ -133,16 +131,22 @@ class BehaviorIndexAggregator:
         if data.get("date") != today:
             data = {"date": today, "summary": {}}
 
-        summary = data.setdefault("summary", {})
-        atype = anon_event["agent_type"]
-        entry = summary.setdefault(atype, {
-            "total_events": 0,
-            "in_scope_events": 0,
-            "out_of_scope_events": 0,
-            "categories": {},
-            "action_types": {},
-            "confidence_buckets": {},
-        })
+        summary = data.get("summary")
+        if not isinstance(summary, dict):
+            summary = {}
+            data["summary"] = summary
+
+        atype = str(anon_event.get("agent_type", "unknown"))
+        if atype not in summary or not isinstance(summary[atype], dict):
+            summary[atype] = {
+                "total_events": 0,
+                "in_scope_events": 0,
+                "out_of_scope_events": 0,
+                "categories": {},
+                "action_types": {},
+                "confidence_buckets": {},
+            }
+        entry: dict[str, Any] = summary[atype]
 
         entry["total_events"] += 1
         if anon_event["in_scope"]:

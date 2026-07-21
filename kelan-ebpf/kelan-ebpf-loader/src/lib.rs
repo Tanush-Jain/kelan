@@ -91,7 +91,11 @@ impl ScopeDeclaration {
             intent,
             trust_score,
             verdict,
-            expires_at: if ttl_seconds > 0 { now + ttl_seconds } else { 0 },
+            expires_at: if ttl_seconds > 0 {
+                now + ttl_seconds
+            } else {
+                0
+            },
             _pad: [0u8; 4],
         }
     }

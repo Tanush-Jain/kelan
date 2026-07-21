@@ -5,7 +5,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from kelan.agentbound import AgentIntent, extract_intent, read_proc_environ, probe_task_files
+from kelan.agentbound import AgentIntent, extract_intent, probe_task_files
 
 
 def test_intent_extractor_mock_agent_process():
