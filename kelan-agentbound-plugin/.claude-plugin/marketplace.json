@@ -1,0 +1,68 @@
+{
+  "name": "kelan-agentbound",
+  "displayName": "Kelan AgentBound Plugin Marketplace",
+  "description": "Kelan AgentBound — monitor AI agent execution behavior with eBPF probes, detect behavioral drift, and generate compliance audit reports.",
+  "homepage": "https://github.com/Tanush-Jain/kelan",
+  "repository": "https://github.com/Tanush-Jain/kelan",
+  "owner": {
+    "name": "Tanush Jain",
+    "email": "kernalsecurity@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "kelan-agentbound",
+      "displayName": "Kelan AgentBound",
+      "description": "Attach sentinel eBPF probes to any AI agent process, classify file / network / exec events against declared scope, and export EU AI Act-aligned audit logs.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Tanush Jain",
+        "email": "kernalsecurity@gmail.com"
+      },
+      "category": "security",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/Tanush-Jain/kelan.git",
+        "path": "kelan-agentbound-plugin",
+        "ref": "main"
+      },
+      "relevance": {
+        "topic": "AI agent security & compliance",
+        "signals": {
+          "cli": [
+            "kelan",
+            "claude",
+            "cursor",
+            "aider",
+            "codex"
+          ],
+          "filesRead": [
+            "**/.claude/**",
+            "**/CLAUDE.md",
+            "**/.cursor/**",
+            "**/agentbound_audit.jsonl",
+            "**/.agent-config*"
+          ],
+          "cwd": [
+            "**/agents/**",
+            "**/ai-agents/**",
+            "**/llm-tools/**"
+          ],
+          "manifestDeps": [
+            {
+              "file": "requirements.*\\.txt$",
+              "pattern": "anthropic|openai|langchain|litellm|ollama"
+            },
+            {
+              "file": "pyproject\\.toml$",
+              "pattern": "anthropic|openai|langchain|litellm"
+            },
+            {
+              "file": "package\\.json$",
+              "pattern": "@anthropic-ai|openai|langchain"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

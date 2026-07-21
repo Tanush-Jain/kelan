@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   build:
-    name: Build Docker Image
+    name: Build & Push Docker Image
     runs-on: ubuntu-latest
 
     steps:
@@ -33,6 +33,7 @@ jobs:
             type=ref,event=pr
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix=sha-,format=short
 
       - name: Log in to GHCR
         if: github.event_name != 'pull_request'
@@ -43,7 +44,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and Push
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           push: ${{ github.event_name != 'pull_request' }}
@@ -51,6 +52,8 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          # provenance=false avoids unknown/unknown arch in GHCR for single-platform images
+          provenance: false
           build-args: |
-            BUILD_DATE=${{ github.event.repository.updated_at }}
             VCS_REF=${{ github.sha }}
+            BUILD_DATE=${{ github.run_started_at }}

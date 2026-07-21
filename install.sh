@@ -22,7 +22,7 @@ fail() { echo -e "${RED}[✗]${NC} $1"; exit 1; }
 echo ""
 echo -e "${BOLD}╔══════════════════════════════════════╗${NC}"
 echo -e "${BOLD}║    KELAN SECURITY — INSTALLER        ║${NC}"
-echo -e "${BOLD}║    Adaptive Intent Transport Protocol ║${NC}"
+echo -e "${BOLD}║          Kelan AgentBound Security            ║${NC}"
 echo -e "${BOLD}╚══════════════════════════════════════╝${NC}"
 echo ""
 

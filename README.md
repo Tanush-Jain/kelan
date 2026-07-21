@@ -1,24 +1,17 @@
-# AITP - A product by Kelan Security
+# Kelan — AI Agent Security Platform
 
 <div align="center">
 
-<img 
-  src="https://github.com/user-attachments/assets/80b1d269-2b8a-4221-8c12-afdbccae6b3e"
-  alt="Kelan Security"
-  width="250"
-/>
+[![CI](https://github.com/Tanush-Jain/kelan/actions/workflows/ci.yml/badge.svg)](https://github.com/Tanush-Jain/kelan/actions/workflows/ci.yml)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![eBPF](https://img.shields.io/badge/eBPF-XDP-orange.svg)](https://ebpf.io/)
+[![ML-KEM-768](https://img.shields.io/badge/PQ_Crypto-ML--KEM--768-purple.svg)](https://csrc.nist.gov/Pubs/FIPS/203/final)
+[![MCP](https://img.shields.io/badge/MCP-stdio-green.svg)](https://modelcontextprotocol.io)
 
-**Adaptive Intent Transport Protocol**  
-*Zero-Trust Network Security with Local AI + eBPF Enforcement*
+**Agent behavior monitoring & security — powered by eBPF, local AI, and post-quantum crypto.**
 
-[![CI](https://github.com/Kelan-Security/kelan-core/actions/workflows/ci.yml/badge.svg)](https://github.com/Kelan-Security/kelan-core/actions/workflows/ci.yml)
-[![Security Audit](https://github.com/Kelan-Security/kelan-core/actions/workflows/ci.yml/badge.svg?event=push)](https://github.com/Kelan-Security/kelan-core/actions/workflows/ci.yml)
-[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
-[![Rust](https://img.shields.io/badge/Rust-1.77+-orange.svg)](https://www.rust-lang.org)
-[![Python](https://img.shields.io/badge/Python-3.10--3.12-blue.svg)](https://python.org)
-[![Ollama](https://img.shields.io/badge/AI-Ollama%20%2B%20Gemma-green.svg)](https://ollama.com)
-
-[**Website**](https://kelansecurity.vercel.app/) · [**Quick Start**](#quick-start) · [**Architecture**](#architecture) · [**Docs**](docs/) · [**Contributing**](docs/CONTRIBUTING.md)
+[**Quick Start**](#quick-start) · [**AgentBound**](#kelan-agentbound) · [**Architecture**](#architecture) · [**MCP Plugin**](#mcp--claude-code-plugin) · [**Docs**](docs/) · [**Contributing**](docs/CONTRIBUTING.md)
 
 </div>
 
@@ -26,40 +19,171 @@
 
 ## What is Kelan?
 
-Kelan is an open-source **zero-trust security layer** that runs entirely on your infrastructure. It combines:
+Kelan is an open-source **AI agent security platform** that runs entirely on your own infrastructure. It monitors what AI agents actually do at the kernel level — file access, network connections, process spawns — and flags anything that falls outside the agent's declared scope.
 
-- **eBPF/XDP kernel enforcement** (Rust) : packet-level traffic control at line rate, no kernel modules
-- **Local AI trust evaluation** (Python + Ollama) : every connection scored by a local LLM, no cloud calls
-- **Post-quantum cryptography**: ML-KEM-768 + Ed25519 + X25519 handshakes
-- **AITP protocol** : Adaptive Intent Transport Protocol, session aware trust scoring
+Two integrated layers:
 
-**Nothing leaves your network. No SaaS. No telemetry. Your keys, your data.**
+| Layer | What it does |
+|---|---|
+| **Kelan AgentBound** | eBPF probes watch any running agent (Claude Code, Cursor, Aider, Codex…) and correlate kernel events against the agent's declared intent using a local LLM |
+| **Kelan Core** | Zero-trust network enforcement — ML-KEM-768 post-quantum handshakes, XDP packet-level control, local AI trust scoring for every connection |
+
+**Nothing leaves your machine. No SaaS. No telemetry by default. Your keys, your data.**
+
+---
+
+## Kelan AgentBound
+
+AgentBound is Kelan's **monitor-only** AI agent security layer. It answers one question in real time:
+
+> *Is my AI agent doing what it said it would do?*
+
+### How it works
+
+```
+Agent process (Claude, Cursor, Aider…)
+        │
+        ▼ eBPF probes (openat, connect, execve)
+┌───────────────────────────────────────────────┐
+│              SentinelDetector                  │
+│  kernel event → kind + details + timestamp     │
+└───────────────────┬───────────────────────────┘
+                    │
+        ┌───────────▼────────────┐
+        │     IntentExtractor     │
+        │  /proc/<pid>/environ    │
+        │  .claude/ CLAUDE.md     │
+        │  → declared_paths       │
+        │  → agent_type           │
+        └───────────┬────────────┘
+                    │
+        ┌───────────▼────────────┐
+        │   HybridCorrelation     │
+        │   Engine (Ollama +      │
+        │   local skill library)  │
+        │  → in_scope? reason     │
+        │    confidence           │
+        └───────────┬────────────┘
+                    │
+        ┌───────────▼────────────┐
+        │  Hash-chained JSONL     │
+        │  audit log              │
+        │  + live terminal table  │
+        └────────────────────────┘
+```
+
+### Run it
+
+```bash
+# Monitor all detected agent processes
+kelan bound
+
+# Target a specific PID
+kelan bound --pid 4392
+
+# One-shot snapshot + exit
+kelan bound --once
+
+# Generate EU AI Act compliance export
+kelan bound --export-compliance
+
+# Opt in to sharing anonymized daily statistics
+kelan bound --share-stats
+```
+
+Live output:
+
+```
+PID      | AGENT TYPE      | LAST ACTION                    | IN-SCOPE?  | REASON
+---------|-----------------|--------------------------------|------------|-------
+4392     | claude-code     | file_access:/etc/ssh/config    | NO (FLAGGED)| restricted_sensitive_path
+4392     | claude-code     | network_connect:api.openai.com | YES        | within declared network scope
+```
+
+Every event is appended to `agentbound_audit.jsonl` with SHA-256 hash-chaining for tamper detection.
+
+### What it monitors
+
+| Probe | Kernel hook | What it catches |
+|---|---|---|
+| `openat` / `open` | file access | reads to `~/.ssh/`, `~/.aws/`, `/etc/shadow`, paths outside declared scope |
+| `connect` | network | connections to hosts outside the agent's declared network scope |
+| `execve` | process spawn | subprocesses the agent wasn't declared to run |
+
+### Compliance export
+
+```bash
+kelan bound --export-compliance
+# → agentbound_compliance_export.json
+# → agentbound_compliance_export.md
+```
+
+Produces an **EU AI Act Article 12**-aligned document: total sessions monitored, divergence event breakdown, hash-chain integrity status, and per-category statistics.
 
 ---
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    KELAN SECURITY STACK                  │
-│                                                          │
-│  ┌─────────────┐    ┌──────────────┐    ┌────────────┐  │
-│  │  eBPF/XDP   │    │  AI Trust    │    │  AITP      │  │
-│  │  Enforcer   │◄──►│  Evaluator   │◄──►│  Protocol  │  │
-│  │  (Rust)     │    │  (Ollama)    │    │  Server    │  │
-│  └─────────────┘    └──────────────┘    └────────────┘  │
-│         │                  │                  │          │
-│  Kernel XDP           Local LLM          FastAPI +       │
-│  packet filter        (gemma3)           SQLite          │
-│  (no kernel mod)      no cloud           port 3000       │
-└─────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│                         KELAN PLATFORM                            │
+│                                                                    │
+│  ┌──────────────────────────────────┐   ┌──────────────────────┐  │
+│  │        AgentBound Layer           │   │    Core Network      │  │
+│  │                                   │   │    Security Layer    │  │
+│  │  eBPF Probes → SentinelDetector   │   │                      │  │
+│  │  IntentExtractor (/proc)          │   │  eBPF/XDP Enforcer   │  │
+│  │  HybridCorrelationEngine          │   │  (Rust, line-rate)   │  │
+│  │  BehaviorIndex (opt-in stats)     │   │                      │  │
+│  │  ComplianceExport (EU AI Act)     │   │  AI Trust Evaluator  │  │
+│  │  MCP Server (stdio transport)     │   │  (Ollama, local)     │  │
+│  └──────────────────────────────────┘   │                      │  │
+│                                          │  PQ Crypto           │  │
+│  Exposed as MCP tools to any agent:      │  ML-KEM-768          │  │
+│  start_monitoring · get_divergence_events│  Ed25519 · X25519    │  │
+│  get_session_summary · stop_monitoring   └──────────────────────┘  │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
 **Key properties:**
-- Kernel level enforcement -> can't be bypassed by userspace processes
-- Local AI onl -> zero external API calls, works air-gapped
-- Post-quantum ready -> safe against Harvest Now, Decrypt Later attacks
-- Session-aware —> trust scores evolve over connection lifetime
+- **Kernel-level visibility** — eBPF probes can't be bypassed by the agent being monitored
+- **Local AI only** — Ollama (gemma3 or compatible) runs on your machine; no external API calls
+- **Post-quantum ready** — ML-KEM-768 + Ed25519 + X25519 handshakes, safe against harvest-now-decrypt-later
+- **Monitor-only by default** — AgentBound never blocks, kills, or throttles. Observe first.
+
+---
+
+## MCP & Claude Code Plugin
+
+Kelan AgentBound ships as a **standalone MCP server** (stdio transport). Any MCP-capable host can invoke it without modification.
+
+### Install in Claude Code
+
+```bash
+/plugin marketplace add https://github.com/Tanush-Jain/kelan.git
+/plugin install kelan-agentbound@kelan-agentbound
+```
+
+### Available MCP tools
+
+| Tool | What it does |
+|---|---|
+| `start_monitoring(agent_pid_or_name)` | Attach eBPF probes; returns `session_id` |
+| `get_divergence_events(session_id)` | Return classified events since last call |
+| `get_session_summary(session_id)` | Aggregate stats for the session |
+| `stop_monitoring(session_id)` | Detach probes, close session |
+
+### Supported hosts
+
+| Host | Manifest location |
+|---|---|
+| Claude Code | [`kelan-agentbound-plugin/`](kelan-agentbound-plugin/) |
+| Gemini CLI | [`gemini-extension.json`](gemini-extension.json) |
+| Antigravity | [`plugins/kelan-agentbound/`](plugins/kelan-agentbound/) |
+| Grok Build | [`grok-plugin/`](grok-plugin/) |
+| ChatGPT / Codex | See [`docs/chatgpt-submission.md`](docs/chatgpt-submission.md) |
+
+All five manifests point at the same `kelan-agentbound-mcp/server.py` and `kelan-agentbound-skill/SKILL.md` — no duplication.
 
 ---
 
@@ -67,22 +191,22 @@ Kelan is an open-source **zero-trust security layer** that runs entirely on your
 
 ### Prerequisites
 
-| Requirement | Version | Install |
-|-------------|---------|---------|
+| Requirement | Version | Notes |
+|---|---|---|
 | Python | 3.10–3.12 | `brew install python@3.12` |
 | Rust | 1.77+ | `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \| sh` |
 | Ollama | Latest | `brew install ollama` |
-| Linux kernel | 5.10+ (for eBPF) | Required for enforcement node |
+| Linux kernel | 5.10+ | Required for eBPF probes |
 
-### Install (one command)
+### Install
 
 ```bash
-git clone https://github.com/Kelan-Security/kelan-core.git
-cd kelan-core
+git clone https://github.com/Tanush-Jain/kelan.git
+cd Kelan
 bash install.sh
 ```
 
-This sets up your Python venv, installs all dependencies, builds Rust components, and verifies Ollama.
+Sets up Python venv, installs all dependencies, builds Rust components, and verifies Ollama.
 
 ### Configure
 
@@ -99,47 +223,11 @@ bash launch.sh --prod   # production (Docker Compose)
 bash launch.sh --stop   # stop everything
 ```
 
-Kelan starts on `http://localhost:3000`. Check `GET /health` to verify.
+Core API starts on `http://localhost:3000`. Verify with `GET /health`.
 
 ---
 
-## Core Concepts
-
-### AITP : Adaptive Intent Transport Protocol
-
-Every network session goes through intent classification before data flows:
-
-```
-Client → AITP Handshake → AI Trust Score → [ALLOW / DENY / THROTTLE] → Session
-```
-
-Trust scores are computed locally using gemma3 running in Ollama. The model evaluates:
-- Packet timing patterns
-- Protocol anomalies
-- Session history
-- Behavioral fingerprinting
-
-### eBPF/XDP Enforcement
-
-The Rust layer attaches to your network interface at the XDP hook point — the earliest possible packet processing stage. Packets from untrusted sessions are dropped before they reach the kernel TCP stack.
-
-```bash
-# Attach enforcer to interface (requires root/CAP_NET_ADMIN)
-sudo ./target/release/kelan-ebpf-loader --iface eth0
-```
-
-### Post-Quantum Crypto
-
-Every AITP handshake uses:
-- **ML-KEM-768** (CRYSTALS-Kyber) for key encapsulation
-- **Ed25519** for authentication signatures
-- **X25519** for ephemeral Diffie-Hellman
-
-Safe against both current and future quantum adversaries.
-
----
-
-## API Reference
+## Core Network Security API
 
 ### Health
 
@@ -168,117 +256,88 @@ Content-Type: application/json
 }
 ```
 
-### Session Status
-
-```http
-GET /api/v1/sessions/{session_id}
-→ { "session_id": "...", "trust_score": 0.87, "packets": 142, "created_at": "..." }
-```
-
-Full API docs: [`docs/`](docs/) or run `bash launch.sh` and open `http://localhost:3000/docs`
-
----
-
-## Attack Simulation
-
-Test Kelan's detection with the included simulation scripts:
-
-```bash
-# Full attack simulation suite
-bash scripts/simulate_attacks.sh
-
-# Throttled (slower, easier to observe in logs)
-bash scripts/simulate_attacks_throttled.sh
-```
-
-Simulates: port scans, SYN floods, protocol confusion attacks, behavioral anomalies.
-
----
-
-## Deployment
-
-### Development (local)
-
-```bash
-bash launch.sh
-```
-
-### Production (Docker)
-
-```bash
-docker-compose -f docker-compose.prod.yml up -d
-```
-
-### Production (systemd)
-
-```bash
-sudo cp kelan.service /etc/systemd/system/
-sudo systemctl enable --now kelan
-sudo systemctl status kelan
-```
-
-Full deployment guide: [`docs/PRODUCTION_DEPLOYMENT.md`](docs/PRODUCTION_DEPLOYMENT.md)
-
-### Kali Linux (attack testing node)
-
-See [`docs/KALI_MAC_CONNECTION_GUIDE.md`](docs/KALI_MAC_CONNECTION_GUIDE.md)
+Full API docs: run `bash launch.sh` and open `http://localhost:3000/docs`
 
 ---
 
 ## Repository Structure
 
 ```
-kelan-core/
-├── install.sh                  ← Run once on fresh clone
-├── launch.sh                   ← Daily driver: start/stop everything
+Kelan/
+├── install.sh                        ← Run once on fresh clone
+├── launch.sh                         ← Start / stop everything
 │
-├── kelan-ebpf/                 ← Rust: XDP/eBPF kernel programs
-├── kelan-ebpf-loader/          ← Rust: userspace eBPF loader
+├── kelan/                            ← Core Python package
+│   ├── agentbound/                   ← AgentBound monitoring layer
+│   │   ├── cli.py                    ← `kelan bound` entry point
+│   │   ├── intent_extractor.py       ← /proc environ + scope extraction
+│   │   ├── behavior_engine.py        ← LLM correlation engine
+│   │   ├── behavior_index.py         ← Opt-in anonymized statistics
+│   │   ├── compliance_export.py      ← EU AI Act export
+│   │   └── skill_loader.py           ← 754-skill security library loader
+│   ├── sentinel/
+│   │   └── detector.py               ← eBPF event receiver & classifier
+│   ├── protocol/                     ← Post-quantum handshake (ML-KEM-768)
+│   └── ai/                           ← Ollama client + hybrid engine
 │
-├── src/ or kelan_server/       ← Python: FastAPI + AI trust evaluator
-│   ├── main.py
-│   ├── aitp/                   ← Protocol implementation
-│   ├── ai/                     ← Ollama integration
-│   └── crypto/                 ← PQ crypto layer
+├── kelan-agentbound-mcp/
+│   └── server.py                     ← Standalone MCP server (stdio)
 │
-├── scripts/                    ← Internal shell scripts
-│   ├── start.sh
-│   ├── stop.sh
-│   ├── start_all.sh
-│   ├── simulate_attacks.sh
-│   └── simulate_attacks_throttled.sh
+├── kelan-agentbound-skill/
+│   └── SKILL.md                      ← Canonical agent skill definition
 │
-├── docs/                       ← All documentation
-│   ├── KALI_MAC_CONNECTION_GUIDE.md
+├── kelan-agentbound-plugin/          ← Claude Code plugin
+│   ├── .claude-plugin/
+│   │   ├── plugin.json
+│   │   └── marketplace.json
+│   └── plugin/
+│       ├── skills/                   ← symlink → kelan-agentbound-skill/
+│       ├── agents/
+│       ├── hooks/
+│       └── mcp/                      ← symlink → kelan-agentbound-mcp/
+│
+├── plugins/kelan-agentbound/         ← Antigravity plugin
+├── gemini-extension.json             ← Gemini CLI extension
+├── grok-plugin/                      ← Grok Build plugin
+│
+├── kelan-ebpf/                       ← Rust: XDP/eBPF kernel programs
+├── kelan-ebpf-loader/                ← Rust: userspace eBPF loader
+│
+├── docs/
+│   ├── chatgpt-submission.md         ← ChatGPT / Codex submission guide
 │   ├── PRODUCTION_DEPLOYMENT.md
-│   ├── CONTRIBUTING.md
-│   └── ...
+│   └── CONTRIBUTING.md
 │
-├── docker-compose.yml          ← Dev compose
-├── docker-compose.prod.yml     ← Production compose
-├── docker-compose.monitoring.yml ← Grafana/Prometheus
-│
-├── .env.example                ← Copy to .env and configure
-└── README.md
+├── docker-compose.yml                ← Dev compose
+├── docker-compose.prod.yml           ← Production compose
+└── .env.example                      ← Copy to .env and configure
+```
+
+---
+
+## Attack Simulation
+
+```bash
+# Full suite: port scans, SYN floods, protocol confusion, behavioral anomalies
+bash scripts/simulate_attacks.sh
+
+# Throttled — easier to observe in logs
+bash scripts/simulate_attacks_throttled.sh
 ```
 
 ---
 
 ## Security
 
-AITP is an Agentic Security Platform and we take its own security seriously.
-
-- All secrets must be in `.env` (gitignored) — never hardcoded
-- Pre-commit hooks block accidental secret commits
-- GitHub Actions run TruffleHog on every push
-- `cargo audit` + `pip-audit` run weekly via Dependabot
-
-**Found a vulnerability?** Please do NOT open a public issue. Email `security@kelan.io` with:
+Found a vulnerability? **Do not open a public issue.**  
+Email `kernalsecurity@gmail.com` with:
 - Description of the vulnerability
 - Steps to reproduce
 - Potential impact
 
-We respond within 48 hours and will credit you in the release notes.
+We respond within 48 hours and credit reporters in release notes.
+
+All secrets must be in `.env` (gitignored). Pre-commit hooks block accidental secret commits. GitHub Actions run TruffleHog and `pip-audit` on every push.
 
 ---
 
@@ -286,43 +345,44 @@ We respond within 48 hours and will credit you in the release notes.
 
 See [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md) for the full guide.
 
-**Quick version:**
-1. Fork → branch (`git checkout -b feat/your-feature`)
-2. Make changes → add tests
-3. `cargo test && pytest` must pass
-4. PR → we review within 72 hours
+```bash
+# Quick version
+git checkout -b feat/your-feature
+# make changes, add tests
+cargo test && pytest   # both must pass
+# open PR
+```
 
 Areas we need help with:
-- [ ] Windows Subsystem for Linux (WSL2) support
+- [ ] Windows / WSL2 support for AgentBound
 - [ ] Additional LLM backends (llama.cpp, vLLM)
-- [ ] Grafana dashboard templates
+- [ ] Grafana dashboard templates for agent behavior metrics
 - [ ] Kubernetes deployment manifests
-- [ ] Integration tests
+- [ ] Integration tests for the MCP server
 
 ---
 
 ## Roadmap
 
 | Version | Target | Focus |
-|---------|--------|-------|
-| v2.0 | Q3 2026 | Python rewrite, stable API, OSS launch |
-| v2.1 | Q4 2026 | Kubernetes operator, multi-node |
-| v2.2 | Q1 2027 | GUI dashboard, alert integrations |
-| v3.0 | Q2 2027 | Distributed enforcement mesh |
+|---|---|---|
+| v0.1 | Q3 2026 | AgentBound MVP — monitor-only, MCP server, 5-platform distribution |
+| v0.2 | Q4 2026 | Agent Behavior Index public dashboard, Kubernetes operator |
+| v0.3 | Q1 2027 | GUI dashboard, alert integrations (PagerDuty, Slack) |
+| v1.0 | Q2 2027 | Distributed enforcement mesh, LSM enforcement mode |
 
 ---
 
 ## License
 
-Kelan Core is licensed under the Apache License 2.0.  
-Copyright 2026 Kelan Security. Owner & Author: [Tanush Jain](https://github.com/Tanush-Jain).  
-See the LICENSE file for details.
+Licensed under the **Apache License 2.0**.  
+Copyright 2026 Tanush Jain — see [LICENSE](LICENSE) for details.
 
 ---
 
 ## IEEE Publication
 
-Kelan's AITP protocol is the subject of a paper submitted to **IEEE CNS 2026**:
+The underlying protocol is the subject of a paper submitted to **IEEE CNS 2026**:
 
 > *"AITP: Adaptive Intent Transport Protocol for Zero-Trust Network Security with Local AI Enforcement"*
 
@@ -332,9 +392,8 @@ Pre-print available after acceptance.
 
 <div align="center">
 
-Built with ❤️ by [Kelan Security](https://github.com/Kelan-Security)  
-**Owner & Author:** [Tanush Jain](https://github.com/Tanush-Jain)
+Built by [Tanush Jain](https://github.com/Tanush-Jain) · [kernalsecurity@gmail.com](mailto:kernalsecurity@gmail.com)
 
-⭐ Star us on GitHub if Kelan helps you — it directly helps the project grow
+⭐ Star the repo if Kelan helps you — it directly supports the project
 
 </div>

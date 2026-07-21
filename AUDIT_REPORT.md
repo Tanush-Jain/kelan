@@ -1,7 +1,7 @@
 # AITP Codebase Security & Architectural Audit Report
 
 **Date:** July 21, 2026  
-**Repository:** `/home/wop/startup/kelan-core` (`Kelan-Security/kelan-core`)  
+**Repository:** `https://github.com/Tanush-Jain/kelan` (`Tanush-Jain/Kelan`)  
 **Scope:** Comprehensive pre-pivot codebase audit (Rust crates, eBPF probes, AI evaluation contract, process inspection, and audit logging).
 
 ---
@@ -47,8 +47,8 @@ Every eBPF probe in the repository was identified via workspace-wide grep/analys
 
 | Probe Type | Function / Symbol Name | Target Event / Hook Point | Source File & Line |
 | :--- | :--- | :--- | :--- |
-| **`XDP`** (`#[xdp]`) | `pub fn kelan_xdp(ctx: XdpContext) -> u32` | Ingress network interface packets (UDP port 9999) | [main.rs:82](file:///home/wop/startup/kelan-core/kelan-ebpf/kelan-ebpf-program/src/main.rs#L82) |
-| **`XDP`** (`SEC("xdp")`) | `int aitp_xdp_filter(struct xdp_md *ctx)` | Ingress network interface packets (C implementation) | [xdp_filter.bpf.c:112](file:///home/wop/startup/kelan-core/aitp-ebpf/src/xdp_filter.bpf.c#L112) |
+| **`XDP`** (`#[xdp]`) | `pub fn kelan_xdp(ctx: XdpContext) -> u32` | Ingress network interface packets (UDP port 9999) | [main.rs:82](https://github.com/Tanush-Jain/kelan/blob/main/kelan-ebpf/kelan-ebpf-program/src/main.rs#L82) |
+| **`XDP`** (`SEC("xdp")`) | `int aitp_xdp_filter(struct xdp_md *ctx)` | Ingress network interface packets (C implementation) | [xdp_filter.bpf.c:112](https://github.com/Tanush-Jain/kelan/blob/main/aitp-ebpf/src/xdp_filter.bpf.c#L112) |
 
 * **Tracepoints (`#[tracepoint]`)**: 0 present.
 * **Kprobes (`#[kprobe]` / `#[kretprobe]`)**: 0 present.
@@ -87,8 +87,8 @@ Verified by inspecting `kelan/ai/ollama_client.py`, `kelan/ai/engine.py`, and `k
   * `latency_ms`: Float inference latency in milliseconds.
   * `from_cache`: Boolean indicating whether evaluation was short-circuited by the SHA-256 anomaly pattern cache.
 
-### 2. "Trust Drift" Scoring Mechanism
-* **Current Mechanism:** There is **no dynamic or continuous mathematical trust drift algorithm** (such as sliding exponential decay or vector drift models).
+### 2. "Behavioral Drift" Scoring Mechanism
+* **Current Mechanism:** There is **no dynamic or continuous mathematical behavioral drift algorithm** (such as sliding exponential decay or vector drift models).
 * **Score Calculation:** Trust scores are statically assigned integer values (range `0` to `255`, default `128`) in `kelan/api/server.py`:
   * `ALLOW` verdict $\rightarrow$ `180`
   * `MONITOR` verdict $\rightarrow$ `100`
@@ -101,11 +101,11 @@ Verified by inspecting `kelan/ai/ollama_client.py`, `kelan/ai/engine.py`, and `k
 
 Verified by searching for process inspection patterns across Python and Rust source code.
 
-* **Unused Dependencies:** `psutil==6.1.0` is pinned in [requirements.txt:33](file:///home/wop/startup/kelan-core/requirements.txt#L33), but is currently **not imported or used anywhere in application code**.
+* **Unused Dependencies:** `psutil==6.1.0` is pinned in [requirements.txt:33](https://github.com/Tanush-Jain/kelan/blob/main/requirements.txt#L33), but is currently **not imported or used anywhere in application code**.
 * **Subprocess Execution & Subprocess PID Tracking:**
-  * [kelan/enforcement/ebpf_bridge.py:34](file:///home/wop/startup/kelan-core/kelan/enforcement/ebpf_bridge.py#L34): Uses `asyncio.create_subprocess_exec` to spawn `target/release/kelan-ebpf-loader` and tracks `self._proc.pid`.
-  * [kelan/enforcement/ebpf_bridge.py:60](file:///home/wop/startup/kelan-core/kelan/enforcement/ebpf_bridge.py#L60): Uses `asyncio.create_subprocess_exec("bpftool", "map", "dump", ...)` to read BPF map packet statistics.
-  * [aitp-sdk/src/server.rs:570](file:///home/wop/startup/kelan-core/aitp-sdk/src/server.rs#L570) & [client.rs:477](file:///home/wop/startup/kelan-core/aitp-sdk/src/client.rs#L477): Invokes `std::process::id()` for logging current process PID.
+  * [kelan/enforcement/ebpf_bridge.py:34](https://github.com/Tanush-Jain/kelan/blob/main/kelan/enforcement/ebpf_bridge.py#L34): Uses `asyncio.create_subprocess_exec` to spawn `target/release/kelan-ebpf-loader` and tracks `self._proc.pid`.
+  * [kelan/enforcement/ebpf_bridge.py:60](https://github.com/Tanush-Jain/kelan/blob/main/kelan/enforcement/ebpf_bridge.py#L60): Uses `asyncio.create_subprocess_exec("bpftool", "map", "dump", ...)` to read BPF map packet statistics.
+  * [aitp-sdk/src/server.rs:570](https://github.com/Tanush-Jain/kelan/blob/main/aitp-sdk/src/server.rs#L570) & [client.rs:477](https://github.com/Tanush-Jain/kelan/blob/main/aitp-sdk/src/client.rs#L477): Invokes `std::process::id()` for logging current process PID.
 * **Target Process Environment / Memory / CLI Inspection:** **Zero active code** reads `/proc/$PID/mem`, `/proc/$PID/environ`, `/proc/$PID/cmdline`, or uses `ptrace`. Target process inspection is currently non-existent.
 
 ---

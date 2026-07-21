@@ -1,0 +1,27 @@
+{
+  "name": "kelan-agentbound",
+  "displayName": "Kelan AgentBound",
+  "description": "eBPF-powered AI agent behavior monitoring. Attaches sentinel probes to any agent process, classifies file/network/exec events against the agent's declared scope, and exports EU AI Act-aligned audit logs — all monitor-only, zero enforcement.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Tanush Jain",
+    "email": "kernalsecurity@gmail.com"
+  },
+  "homepage": "https://github.com/Tanush-Jain/kelan",
+  "repository": "https://github.com/Tanush-Jain/kelan",
+  "license": "Apache-2.0",
+  "keywords": [
+    "agent-security",
+    "ebpf",
+    "ai-safety",
+    "behavioral-monitoring",
+    "eu-ai-act",
+    "compliance",
+    "mcp"
+  ],
+  "category": "security",
+  "strict": true,
+  "dependencies": [
+    "audit-logger"
+  ]
+}

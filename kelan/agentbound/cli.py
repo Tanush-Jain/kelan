@@ -22,6 +22,25 @@ from pathlib import Path
 from typing import Optional
 import structlog
 
+
+def _emit_claude_code_plugin_hint() -> None:
+    """
+    Emit a Claude Code plugin discovery hint to stderr.
+
+    Only runs when invoked inside a Claude Code session (CLAUDECODE env var is
+    set). The hint is stripped from tool output by Claude Code before the
+    model sees it — zero token cost, zero noise for human users.
+
+    Format: <claude-code-hint v="1" type="plugin" value="name@marketplace" />
+    See Section 3 of the Claude Code Plugin spec.
+    """
+    if os.environ.get("CLAUDECODE") or os.environ.get("CLAUDE_CODE_CHILD_SESSION"):
+        print(
+            '<claude-code-hint v="1" type="plugin" value="kelan-agentbound@kelan-agentbound" />',
+            file=sys.stderr,
+            flush=True,
+        )
+
 from kelan.sentinel.detector import SentinelDetector
 from .intent_extractor import AgentIntent, extract_intent, read_proc_environ
 from .behavior_engine import BehaviorEngine, BehaviorVerdict
@@ -93,9 +112,34 @@ def _render_terminal_table(rows: list[dict]) -> None:
 
 
 def append_json_line(log_path: Path | str, event_data: dict) -> None:
-    """Append a single audit event record to JSON-lines audit file."""
+    """Append a single audit event record with SHA-256 hash-chaining to JSON-lines audit file."""
+    from .compliance_export import compute_entry_hash, GENESIS_HASH
+
     p = Path(log_path)
     p.parent.mkdir(parents=True, exist_ok=True)
+
+    prev_hash = GENESIS_HASH
+    if p.exists() and p.stat().st_size > 0:
+        try:
+            lines = p.read_text(encoding="utf-8").strip().splitlines()
+            if lines:
+                last_obj = json.loads(lines[-1])
+                prev_hash = last_obj.get("entry_hash", GENESIS_HASH)
+        except Exception:
+            prev_hash = GENESIS_HASH
+
+    event_data["prev_hash"] = prev_hash
+    event_data["entry_hash"] = compute_entry_hash(
+        prev_hash=prev_hash,
+        timestamp=float(event_data.get("timestamp", 0.0)),
+        pid=int(event_data.get("pid", 0)),
+        agent_type=str(event_data.get("agent_type", "")),
+        action=str(event_data.get("action", "")),
+        in_scope=bool(event_data.get("in_scope", True)),
+        reason=str(event_data.get("reason", "")),
+        confidence=float(event_data.get("confidence", 0.0)),
+    )
+
     with open(p, "a", encoding="utf-8") as f:
         f.write(json.dumps(event_data) + "\n")
 
@@ -105,16 +149,24 @@ async def run_agentbound_monitor(
     log_path: Path | str = "agentbound_audit.jsonl",
     once: bool = False,
     target_pid: Optional[int] = None,
+    share_stats: bool = False,
 ) -> list[dict]:
     """
     Main monitor loop for kelan bound.
     
     Monitor-only execution: scans PIDs, extracts intent, correlates events, prints live table,
     and appends JSON-lines audit log.
+    
+    NOTE: Telemetry/anonymization code runs ONLY if share_stats=True. Default OFF.
     """
     detector = SentinelDetector()
     engine = BehaviorEngine()
     processed_records: list[dict] = []
+
+    aggregator = None
+    if share_stats:
+        from .behavior_index import BehaviorIndexAggregator
+        aggregator = BehaviorIndexAggregator()
 
     while True:
         pids = [target_pid] if target_pid else scan_agent_processes()
@@ -147,7 +199,18 @@ async def run_agentbound_monitor(
             processed_records.append(record)
             append_json_line(log_path, record)
 
+            # Process telemetry ONLY if share_stats is explicitly True
+            if share_stats and aggregator:
+                from .behavior_index import anonymize_event
+                anon = anonymize_event(record)
+                aggregator.record_anonymized_event(anon)
+
         _render_terminal_table(table_rows)
+
+        if share_stats:
+            from .behavior_index import get_daily_summary_payload, transmit_stats_stub
+            payload = get_daily_summary_payload()
+            transmit_stats_stub(payload)
 
         if once:
             break
@@ -159,6 +222,11 @@ async def run_agentbound_monitor(
 
 def main(argv: Optional[list[str]] = None) -> None:
     """CLI entry point for kelan bound."""
+    # Emit plugin discovery hint when running inside Claude Code.
+    # Strategic placement: at CLI entry so it fires on --help exploration
+    # and on every normal invocation (one-time install prompt shown once).
+    _emit_claude_code_plugin_hint()
+
     parser = argparse.ArgumentParser(
         prog="kelan bound",
         description="Kelan AgentBound — Monitor-Only Agent Security CLI",
@@ -167,16 +235,42 @@ def main(argv: Optional[list[str]] = None) -> None:
     parser.add_argument("--log-file", "-l", type=str, default="agentbound_audit.jsonl", help="Output JSON-lines log path")
     parser.add_argument("--once", action="store_true", help="Run one iteration and exit")
     parser.add_argument("--pid", "-p", type=int, default=None, help="Target specific agent PID")
+    parser.add_argument("--share-stats", action="store_true", help="Opt-in to sharing anonymized daily Agent Behavior Index statistics")
+    parser.add_argument("--show-my-stats", action="store_true", help="Print local anonymized Agent Behavior Index daily summary and exit")
+    parser.add_argument("--export-compliance", action="store_true", help="Generate EU AI Act compliance export document (JSON and Markdown)")
 
     args = parser.parse_args(argv)
 
-    print(f"Starting Kelan AgentBound Monitor (log: {args.log_file})...")
+    if args.export_compliance:
+        from .compliance_export import generate_compliance_report
+        dict_report, md_report = generate_compliance_report(args.log_file)
+        
+        json_out = Path("agentbound_compliance_export.json")
+        md_out = Path("agentbound_compliance_export.md")
+        json_out.write_text(json.dumps(dict_report, indent=2), encoding="utf-8")
+        md_out.write_text(md_report, encoding="utf-8")
+        
+        print("\n=== EU AI ACT COMPLIANCE EXPORT GENERATED ===")
+        print(f"JSON Export:     {json_out.resolve()}")
+        print(f"Markdown Export: {md_out.resolve()}")
+        print(f"Integrity:       {dict_report['hash_chain_status']['message']}")
+        return
+
+    if args.show_my_stats:
+        from .behavior_index import get_daily_summary_payload
+        payload = get_daily_summary_payload()
+        print("\n=== LOCAL ANONYMIZED AGENT BEHAVIOR INDEX SUMMARY ===")
+        print(json.dumps(payload, indent=2))
+        return
+
+    print(f"Starting Kelan AgentBound Monitor (log: {args.log_file}, share-stats: {args.share_stats})...")
     try:
         asyncio.run(run_agentbound_monitor(
             interval=args.interval,
             log_path=args.log_file,
             once=args.once,
             target_pid=args.pid,
+            share_stats=args.share_stats,
         ))
     except KeyboardInterrupt:
         print("\nAgentBound Monitor stopped.")

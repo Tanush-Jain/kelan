@@ -1,0 +1,12 @@
+{
+  "name": "kelan-agentbound",
+  "version": "0.1.0",
+  "description": "Kelan AgentBound — eBPF-powered agent behavior monitoring, behavioral drift detection, and EU AI Act-aligned compliance exports.",
+  "mcpServers": {
+    "kelan-agentbound": {
+      "command": "python",
+      "args": ["${extensionPath}/../kelan-agentbound-mcp/server.py"],
+      "cwd": "${extensionPath}/.."
+    }
+  }
+}

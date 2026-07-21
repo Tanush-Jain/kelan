@@ -1,8 +1,7 @@
 """Central configuration — reads .env only, zero hardcoded secrets."""
 from functools import lru_cache
-from pydantic import Field, field_validator, model_validator
+from pydantic import AliasChoices, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -13,9 +12,9 @@ class Settings(BaseSettings):
     )
 
     # ── Server ─
-    http_port: int          = Field(3000,             validation_alias="ALIBI_HTTP_PORT")
-    host:      str          = Field("0.0.0.0",        validation_alias="ALIBI_HOST")  # nosec B104
-    debug:     bool         = Field(False,             validation_alias="ALIBI_DEBUG")
+    http_port: int          = Field(3000,             validation_alias=AliasChoices("KELAN_HTTP_PORT", "AITP_HTTP_PORT"))
+    host:      str          = Field("0.0.0.0",        validation_alias=AliasChoices("KELAN_HOST", "AITP_HOST"))  # nosec B104
+    debug:     bool         = Field(False,             validation_alias=AliasChoices("KELAN_DEBUG", "AITP_DEBUG"))
 
     # ── Database 
     DATA_DIR: str = Field("data", alias="DATA_DIR")

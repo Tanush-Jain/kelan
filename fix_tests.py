@@ -1,6 +1,9 @@
 import re
 
-with open('/Users/wopsy/programming/Project/kelan-core/aitp-server/tests/integration_tests.rs', 'r') as f:
+import os as _os
+_REPO_ROOT = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
+_TARGET = _os.path.join(_REPO_ROOT, 'aitp-server', 'tests', 'integration_tests.rs')
+with open(_TARGET, 'r') as f:
     text = f.read()
 
 # Replace block 1: SERVER_INIT and ensure_server_running -> spawn_test_server
@@ -74,6 +77,6 @@ text = text.replace("kelan_base_url()", "kelan_base_url(port)")
 # 5. get_auth_token().await -> get_auth_token(port).await
 text = text.replace("get_auth_token().await", "get_auth_token(port).await")
 
-with open('/Users/wopsy/programming/Project/kelan-core/aitp-server/tests/integration_tests.rs', 'w') as f:
+with open(_TARGET, 'w') as f:
     f.write(text)
 

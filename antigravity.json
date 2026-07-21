@@ -1,7 +1,7 @@
 {
-  "python.defaultInterpreterPath": "/opt/homebrew/bin/python3",
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
   "python.analysis.extraPaths": [
-    "/Users/wopsy/Library/Python/3.14/lib/python/site-packages"
+    "${workspaceFolder}"
   ],
   "python.analysis.exclude": [
     "**/kelan-python/.venv/**"

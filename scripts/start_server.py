@@ -14,7 +14,7 @@ def print_banner(settings):
        ██▄▄█ █▄▄▄█ █    █▄▄▄█ █ ▄  █   ▄▄▄▄█ █▄▄▄█ █   █ █▄▄▄█ 
        █   █ █▄▄▄▄ █▄▄▄ █   █ █▄██▄█   █▄▄▄▄ █     █▄▄▄█ █▄▄▄▄ 
     ═══════════════════════════════════════════════════════════
-                    Adaptive Intent Transport Protocol
+                    Kelan AgentBound Security Platform
                              Python Engine v4.0
     ═══════════════════════════════════════════════════════════
     [HOST]        {settings.host}

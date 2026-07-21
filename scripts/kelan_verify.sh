@@ -1,5 +1,6 @@
 #!/bin/bash
-cd /home/wop/startup/kelan-core
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$REPO_ROOT"
 source .env 2>/dev/null
 export $(cat .env | grep -v '^#' | grep -v '^$' | xargs) 2>/dev/null
 
@@ -196,6 +197,6 @@ if [ $fail -eq 0 ]; then
   echo "  Dashboard is live."
 else
   echo "  Fix the ❌ items above, then re-run:"
-  echo "  bash /home/wop/startup/kelan-core/scripts/kelan_verify.sh"
+  echo "  bash $REPO_ROOT/scripts/kelan_verify.sh"
 fi
 echo ""

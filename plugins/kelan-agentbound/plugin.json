@@ -1,0 +1,6 @@
+{
+  "$schema": "https://antigravity.google/schemas/v1/plugin.json",
+  "name": "kelan-agentbound",
+  "version": "0.1.0",
+  "description": "Kelan AgentBound — eBPF-powered AI agent behavior monitoring. Attach probes to any agent process, classify behavioral drift against declared scope, and export EU AI Act-aligned audit logs."
+}

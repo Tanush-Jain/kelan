@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "kelan-agentbound": {
+      "command": "python",
+      "args": ["../../kelan-agentbound-mcp/server.py"],
+      "cwd": "${pluginRoot}/../.."
+    }
+  }
+}

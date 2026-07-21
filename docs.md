@@ -144,9 +144,9 @@ After=network.target
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/home/wop/startup/kelan-core
-ExecStart=/home/wop/startup/kelan-core/target/release/aitp-server
-EnvironmentFile=/home/wop/startup/kelan-core/.env
+WorkingDirectory=/opt/kelan
+ExecStart=/opt/kelan/target/release/aitp-server
+EnvironmentFile=/opt/kelan/.env
 Restart=on-failure
 LimitNOFILE=65536
 

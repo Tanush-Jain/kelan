@@ -1,7 +1,7 @@
 {
   "pythonVersion": "3.12",
   "pythonPlatform": "Linux",
-  "venvPath": "/home/wop/startup/kelan-core",
+  "venvPath": ".",
   "venv": ".venv",
   "exclude": [
     ".venv",

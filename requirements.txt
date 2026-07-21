@@ -4,6 +4,7 @@ uvicorn[standard]==0.32.1
 websockets==13.1
 python-multipart==0.0.20
 starlette==1.3.1
+jinja2==3.1.6
 
 # ══ HTTP / Async 
 httpx[asyncio]==0.28.1
