@@ -8,7 +8,7 @@
       "name": "kelan-agentbound",
       "displayName": "Kelan AgentBound",
       "description": "Local, kernel-level (eBPF) monitor verifying AI coding agent intentions.",
-      "source": "./plugins/kelan-agentbound"
+      "source": "./"
     }
   ]
 }

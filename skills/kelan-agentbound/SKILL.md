@@ -1,5 +1,5 @@
 ---
-name: agentbound-monitoring
+name: kelan-agentbound
 description: Monitor agent execution behavior, flag unauthorized file access or process spawns outside declared scope, and generate audit reports using Kelan AgentBound eBPF probes.
 tags:
   - security

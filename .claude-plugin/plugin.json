@@ -1,0 +1,9 @@
+{
+  "name": "kelan-agentbound",
+  "version": "1.0.0",
+  "description": "Local, kernel-level (eBPF) monitor that verifies what an AI coding agent actually did against its declared intent.",
+  "author": {
+    "name": "Tanush Jain",
+    "email": "brandwopio76@gmail.com"
+  }
+}
