@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "kelan-agentbound": {
+      "command": "python",
+      "args": [
+        "${workspaceRoot}/kelan-agentbound-mcp/server.py"
+      ],
+      "env": {}
+    }
+  }
+}

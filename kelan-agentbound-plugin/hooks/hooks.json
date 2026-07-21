@@ -1,0 +1,32 @@
+{
+  "hooks": [
+    {
+      "event": "session:start",
+      "description": "Remind users that AgentBound monitoring is available for this session.",
+      "action": {
+        "type": "message",
+        "message": "💡 Kelan AgentBound is installed. Run `kelan bound --once` to audit this agent session, or ask me to start monitoring."
+      },
+      "condition": {
+        "env": "CLAUDECODE"
+      }
+    },
+    {
+      "event": "tool:post",
+      "tool": "Write",
+      "description": "Flag writes to sensitive system paths so the user can verify intent.",
+      "condition": {
+        "pathGlob": [
+          "/etc/**",
+          "~/.ssh/**",
+          "~/.aws/**",
+          "~/.gnupg/**"
+        ]
+      },
+      "action": {
+        "type": "warning",
+        "message": "⚠️  AgentBound: write to sensitive path detected — this event will be flagged in the audit log if `kelan bound` is running."
+      }
+    }
+  ]
+}
