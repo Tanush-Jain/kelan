@@ -1,26 +1,24 @@
 # ── Stage 1: Rust builder ────────────────────────────────────────────────────
-FROM rust:slim AS rust-builder
+FROM rust:1.80-slim AS rust-builder
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpcap-dev \
+    pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /build
 
-# Cache dependencies
 COPY Cargo.toml Cargo.lock* ./
 COPY kelan-ebpf/Cargo.toml ./kelan-ebpf/
 COPY kelan-ebpf/kelan-ebpf-loader/Cargo.toml ./kelan-ebpf/kelan-ebpf-loader/
 
-# Build deps only (cache layer)
 RUN mkdir -p kelan-ebpf/kelan-ebpf-loader/src && \
     echo "fn main() {}" > kelan-ebpf/kelan-ebpf-loader/src/main.rs && \
     touch kelan-ebpf/kelan-ebpf-loader/src/lib.rs && \
-    cargo build --release 2>/dev/null || true
+    cargo build --release --workspace 2>/dev/null || true
 
-# Copy full source and build
 COPY . .
-RUN cargo build --release
+RUN cargo build --release --workspace
 
 # ── Stage 2: Python builder ───────────────────────────────────────────────────
 FROM python:3.12-slim AS python-builder
@@ -34,36 +32,33 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libffi-dev \
     && rm -rf /var/lib/apt/lists/*
 
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
 COPY requirements.txt .
-RUN pip install --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt --target=/build/deps
+RUN pip install --upgrade pip wheel && \
+    pip install --no-cache-dir -r requirements.txt
 
 # ── Stage 3: Runtime ──────────────────────────────────────────────────────────
 FROM python:3.12-slim AS runtime
 
-# Install runtime dependencies (including curl for HEALTHCHECK)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     libpcap0.8 \
     && rm -rf /var/lib/apt/lists/*
 
-# Security: non-root user
 RUN groupadd -r kelan && useradd -r -g kelan kelan
 
 WORKDIR /app
 
-# Copy Python deps
-COPY --from=python-builder /build/deps /app/deps
-ENV PYTHONPATH=/app/deps
+COPY --from=python-builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 
-# Copy Rust binary
 COPY --from=rust-builder /build/target/release/kelan-ebpf-loader /usr/local/bin/
 RUN chmod +x /usr/local/bin/kelan-ebpf-loader
 
-# Copy application code (exclude secrets)
 COPY --chown=kelan:kelan . .
 
-# Remove any accidentally included secrets
 RUN rm -f .env .env.* *.log
 
 USER kelan
