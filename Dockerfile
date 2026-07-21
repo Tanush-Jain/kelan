@@ -1,5 +1,5 @@
 # ── Stage 1: Rust builder ────────────────────────────────────────────────────
-FROM rust:1.80-slim AS rust-builder
+FROM rust:slim AS rust-builder
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpcap-dev \
