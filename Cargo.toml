@@ -30,7 +30,7 @@ ed25519-dalek    = { version = "2", features = ["rand_core", "pkcs8"] }
 x25519-dalek     = { version = "2", features = ["static_secrets"] }
 sha2             = "0.10"
 sha3 = "0.10"
-rand = "0.8"
+rand = "0.9"
 zeroize = "1"
 axum = "0.8"
 prometheus = { version = "0.13", default-features = false }
