@@ -1,1 +1,0 @@
-../../../../kelan-agentbound-skill/SKILL.md

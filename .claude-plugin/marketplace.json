@@ -1,21 +1,14 @@
 {
-  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
   "name": "kelan-marketplace",
   "owner": {
-    "name": "Tanush Jain",
-    "email": "brandwopio76@gmail.com"
-  },
-  "metadata": {
-    "description": "Kelan Security's Claude Code plugins",
-    "version": "0.1.0"
+    "name": "Tanush Jain"
   },
   "plugins": [
     {
       "name": "kelan-agentbound",
-      "description": "Local, kernel-level (eBPF) monitor that verifies what an AI coding agent actually did against what it declared it would do.",
-      "source": "./kelan-agentbound-plugin",
-      "version": "0.1.0",
-      "category": "security"
+      "displayName": "Kelan AgentBound",
+      "description": "Local, kernel-level (eBPF) monitor verifying AI coding agent intentions.",
+      "source": "./plugins/kelan-agentbound"
     }
   ]
 }
