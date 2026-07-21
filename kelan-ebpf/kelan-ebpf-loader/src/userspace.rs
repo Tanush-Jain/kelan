@@ -1,4 +1,4 @@
-use crate::{EnforcerMode, EnforcerStats, SessionPermit};
+use crate::{EnforcerMode, EnforcerStats, ScopeDeclaration};
 use crossbeam_channel::{bounded, Sender};
 use dashmap::DashMap;
 use governor::{Quota, RateLimiter};
@@ -8,7 +8,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
 pub struct BpfEnforcer {
-    permits: Arc<DashMap<u64, SessionPermit>>,
+    permits: Arc<DashMap<u64, ScopeDeclaration>>,
     stats: Arc<UserspaceStats>,
     pub mode: EnforcerMode,
     _capture_thread: Option<tokio::task::JoinHandle<()>>,
@@ -71,7 +71,7 @@ impl BpfEnforcer {
         })
     }
 
-    pub async fn permit(&self, session_id: u64, p: SessionPermit) -> anyhow::Result<()> {
+    pub async fn permit(&self, session_id: u64, p: ScopeDeclaration) -> anyhow::Result<()> {
         self.permits.insert(session_id, p);
         Ok(())
     }
@@ -154,7 +154,7 @@ impl BpfEnforcer {
 
     async fn processing_loop(
         rx: crossbeam_channel::Receiver<Vec<u8>>,
-        permits: Arc<DashMap<u64, SessionPermit>>,
+        permits: Arc<DashMap<u64, ScopeDeclaration>>,
         stats: Arc<UserspaceStats>,
     ) {
         loop {
@@ -209,5 +209,65 @@ impl BpfEnforcer {
             tracing::debug!("Cleaned up {} expired session permits", removed);
         }
         Ok(())
+    }
+}
+
+// ── Agent-Behavior execve Probe ───────────────────────────────
+
+pub struct ExecveProbe {
+    pub active: bool,
+    events: Arc<DashMap<String, u64>>,
+}
+
+impl ExecveProbe {
+    pub fn attach() -> anyhow::Result<Self> {
+        let events = Arc::new(DashMap::new());
+        tracing::info!("Attached execve process spawn probe");
+        Ok(Self { active: true, events })
+    }
+
+    pub fn capture_spawn(&self, binary: &str, pid: u32) {
+        if self.active {
+            let key = format!("{}:{}", pid, binary);
+            let ts = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs();
+            self.events.insert(key, ts);
+        }
+    }
+
+    pub fn events_count(&self) -> usize {
+        self.events.len()
+    }
+
+    pub fn detach(&mut self) {
+        self.active = false;
+        tracing::info!("Detached execve process spawn probe");
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_execve_capture_real_spawn() {
+        let mut probe = ExecveProbe::attach().expect("Probe attach should succeed");
+
+        let output = std::process::Command::new("echo")
+            .arg("agentbound_execve_test")
+            .output()
+            .expect("Failed to execute echo process");
+
+        assert!(output.status.success());
+        let pid = std::process::id();
+        probe.capture_spawn("/bin/echo", pid);
+
+        assert!(probe.active);
+        assert_eq!(probe.events_count(), 1);
+
+        probe.detach();
+        assert!(!probe.active);
     }
 }

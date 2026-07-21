@@ -9,11 +9,11 @@ use aya_bpf::{
     programs::XdpContext,
 };
 
-// ── Shared session permit (written by userspace via PERMIT_MAP) ──────────────
+// ── Shared scope declaration (written by userspace via PERMIT_MAP) ────────────
 
 #[repr(C)]
 #[derive(Clone, Copy)]
-pub struct SessionPermit {
+pub struct ScopeDeclaration {
     pub source_entity_prefix: [u8; 8],
     pub dest_entity_prefix:   [u8; 8],
     pub intent:     u16,
@@ -55,9 +55,9 @@ const TIME_WINDOW_NS:   u64 = 1_000_000_000;
 
 // ── BPF maps ─────────────────────────────────────────────────────────────────
 
-/// Session permit map — written by userspace trust engine on Allow verdict
+/// Scope declaration map — written by userspace trust engine on Allow verdict
 #[map]
-static PERMIT_MAP: HashMap<u64, SessionPermit> = HashMap::with_max_entries(65536, 0);
+static PERMIT_MAP: HashMap<u64, ScopeDeclaration> = HashMap::with_max_entries(65536, 0);
 
 /// Per-CPU packet stats (index meanings):
 ///   0 = total IP packets seen

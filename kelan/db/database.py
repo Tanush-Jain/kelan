@@ -14,10 +14,7 @@ async def init_db():
     os.makedirs("data", exist_ok=True)
     cfg = get_settings()
     
-    # Ensure the connection string is: "sqlite+aiosqlite:///data/aitp.db"
-    db_url = cfg.database_url
-    if not db_url or ("sqlite" in db_url and ":memory:" not in db_url):
-        db_url = "sqlite+aiosqlite:///data/aitp.db"
+    db_url = cfg.database_url or "sqlite+aiosqlite:///data/kelan.db"
 
     _engine = create_async_engine(
         db_url,

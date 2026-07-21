@@ -13,9 +13,9 @@ class Settings(BaseSettings):
     )
 
     # ── Server ─
-    http_port: int          = Field(3000,             alias="AITP_HTTP_PORT")
-    host:      str          = Field("0.0.0.0",        alias="AITP_HOST")  # nosec B104
-    debug:     bool         = Field(False,             alias="AITP_DEBUG")
+    http_port: int          = Field(3000,             validation_alias="ALIBI_HTTP_PORT")
+    host:      str          = Field("0.0.0.0",        validation_alias="ALIBI_HOST")  # nosec B104
+    debug:     bool         = Field(False,             validation_alias="ALIBI_DEBUG")
 
     # ── Database 
     DATA_DIR: str = Field("data", alias="DATA_DIR")

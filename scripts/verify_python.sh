@@ -56,7 +56,7 @@ fi
 # Check 1.3 All dependencies installed
 DEPS_MISSING=""
 for dep in fastapi sqlalchemy uvicorn pytest httpx pydantic cryptography; do
-  if ! ${VENV_BIN:+$VENV_BIN/}pip show "$dep" >/dev/null 2>&1; then
+  if ! ${VENV_BIN:+$VENV_BIN/}python -c "import $dep" >/dev/null 2>&1; then
     DEPS_MISSING="$DEPS_MISSING $dep"
   fi
 done
@@ -153,6 +153,16 @@ for area in stats verdicts handshake xdp enroll pq; do
   fi
 done
 if [ -z "$FIX_ERRS" ]; then
+  wait_for_server() {
+    local port=$1
+    for i in {1..30}; do
+      if curl -sf http://localhost:$port/api/health >/dev/null 2>&1; then
+        return 0
+      fi
+      sleep 0.3
+    done
+    return 1
+  }
   pass "All 6 fix areas (stats, verdicts, handshake, xdp, enroll, pq) verified by tests"
 else
   fail "Fix areas verification" "Some fix areas failed tests:$FIX_ERRS"
@@ -169,7 +179,7 @@ if ! curl -sf http://localhost:3000/api/health >/dev/null 2>&1; then
   ${VENV_BIN:+$VENV_BIN/}uvicorn kelan.server:app --host 0.0.0.0 --port 3000 >/tmp/kelan-verify-server-3000.log 2>&1 &
   SERVER_PID=$!
   SERVER_STARTED=1
-  sleep 3
+  wait_for_server 3000
 fi
 
 # Check 3.1 GET /api/health
@@ -213,7 +223,7 @@ fi
 # Check 3.5 POST /api/enroll (without kem_public_key, REQUIRE_PQ=false)
 REQUIRE_PQ=false OLLAMA_ENDPOINT=http://invalid:11434 ${VENV_BIN:+$VENV_BIN/}uvicorn kelan.server:app --host 0.0.0.0 --port 3011 >/tmp/kelan-verify-server-311.log 2>&1 &
 PID_3011=$!
-sleep 3
+wait_for_server 3011
 ENROLL_3011=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:3011/api/enroll -H "Content-Type: application/json" -d '{"entity_id":"test-3011","intent":"Relay authenticated IoT telemetry data from production sensor 3011 every 10 seconds"}')
 kill $PID_3011 2>/dev/null || true
 if [ "$ENROLL_3011" -eq 200 ] || [ "$ENROLL_3011" -eq 201 ]; then
@@ -225,7 +235,7 @@ fi
 # Check 3.6 POST /api/enroll (without kem_public_key, REQUIRE_PQ=true)
 REQUIRE_PQ=true ${VENV_BIN:+$VENV_BIN/}uvicorn kelan.server:app --host 0.0.0.0 --port 3002 >/tmp/kelan-verify-server-3002.log 2>&1 &
 PID_3002=$!
-sleep 3
+wait_for_server 3002
 ENROLL_3002=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:3002/api/enroll -H "Content-Type: application/json" -d '{"entity_id":"test-3002","intent":"INIT_ENROL"}')
 kill $PID_3002 2>/dev/null || true
 if [ "$ENROLL_3002" -eq 403 ]; then
@@ -295,8 +305,13 @@ fi
 
 # Check 4.2 All tables exist:
 DB_TABLES=$(${VENV_BIN:+$VENV_BIN/}python -c "
-import sqlite3, os
-db = os.getenv('DATABASE_URL','').replace('sqlite+aiosqlite:///','').replace('sqlite:///','')
+from kelan.database import init_db
+from kelan.config import get_settings
+import sqlite3, os, asyncio
+asyncio.run(init_db())
+cfg = get_settings()
+db_url = cfg.database_url or 'data/aitp.db'
+db = db_url.replace('sqlite+aiosqlite:///','').replace('sqlite:///','')
 conn = sqlite3.connect(db)
 tables = conn.execute(
   \"SELECT name FROM sqlite_master WHERE type IN ('table', 'view')\"
@@ -360,7 +375,7 @@ fi
 # Check 5.3 Circuit breaker activates on Ollama failure:
 OLLAMA_ENDPOINT=http://invalid:11434 ${VENV_BIN:+$VENV_BIN/}uvicorn kelan.server:app --host 0.0.0.0 --port 3003 >/tmp/kelan-verify-server-3003.log 2>&1 &
 PID_3003=$!
-sleep 3
+wait_for_server 3003
 EVAL_3003=$(curl -s -X POST http://localhost:3003/api/trust/evaluate -H "Content-Type: application/json" -d '{"entity_id":"v-003","intent":"health_check","session_id":"s-003","anomalies":[]}')
 VERDICT_3003=$(echo "$EVAL_3003" | ${VENV_BIN:+$VENV_BIN/}python -c "import sys, json; print(json.load(sys.stdin).get('verdict', ''))")
 kill $PID_3003 2>/dev/null || true

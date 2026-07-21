@@ -43,3 +43,21 @@ class TestSentinel:
             a = self.s.analyze("bruteforce", "AUTH_ATTEMPT", source_ip="1.2.3.4")
         assert "failed_auth_attempts" in a
         assert a["pattern"] == "brute_force"
+
+    def test_file_access_restricted_path_detected(self):
+        res = self.s.record_file_access("agent-1", "/etc/ssh/sshd_config")
+        assert res.get("out_of_scope_file_access") is True
+        events = self.s.recent(1)
+        assert events[0]["kind"] == "out_of_scope_file_access"
+
+    def test_file_access_outside_declared_scope_detected(self):
+        res = self.s.record_file_access("agent-1", "/var/data/secret.json", declared_scope=["/app/data/"])
+        assert res.get("out_of_scope_file_access") is True
+
+    def test_network_connect_outside_scope_detected(self):
+        res = self.s.record_network_connect("agent-1", "untrusted-site.com", 443, declared_scope=["api.internal.org"])
+        assert res.get("out_of_scope_network_connect") is True
+
+    def test_process_spawn_outside_scope_detected(self):
+        res = self.s.record_process_exec("agent-1", "/bin/nc", ["-e", "/bin/sh"], declared_scope=["/usr/bin/python3"])
+        assert res.get("out_of_scope_process_spawn") is True

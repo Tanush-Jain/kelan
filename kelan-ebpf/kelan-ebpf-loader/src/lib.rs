@@ -2,7 +2,7 @@
 // On Linux without bpf-linker, this is the active enforcement mode.
 // On non-Linux (macOS, Windows), it is always the enforcement mode.
 pub mod userspace;
-pub use userspace::BpfEnforcer;
+pub use userspace::{BpfEnforcer, ExecveProbe};
 
 #[cfg(target_os = "linux")]
 mod linux;
@@ -53,7 +53,7 @@ impl EbpfLoader {
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, Default)]
-pub struct SessionPermit {
+pub struct ScopeDeclaration {
     pub source_entity_prefix: [u8; 8],
     pub dest_entity_prefix: [u8; 8],
     pub intent: u16,
@@ -64,9 +64,9 @@ pub struct SessionPermit {
 }
 
 #[cfg(target_os = "linux")]
-unsafe impl aya::Pod for SessionPermit {}
+unsafe impl aya::Pod for ScopeDeclaration {}
 
-impl SessionPermit {
+impl ScopeDeclaration {
     pub fn new(
         source_entity_id: &[u8; 32],
         dest_entity_id: &[u8; 32],
@@ -75,23 +75,24 @@ impl SessionPermit {
         verdict: u8,
         ttl_seconds: u64,
     ) -> Self {
-        let mut src = [0u8; 8];
-        let mut dst = [0u8; 8];
-        src.copy_from_slice(&source_entity_id[..8]);
-        dst.copy_from_slice(&dest_entity_id[..8]);
+        let mut src_prefix = [0u8; 8];
+        let mut dst_prefix = [0u8; 8];
+        src_prefix.copy_from_slice(&source_entity_id[..8]);
+        dst_prefix.copy_from_slice(&dest_entity_id[..8]);
+
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
 
         Self {
-            source_entity_prefix: src,
-            dest_entity_prefix: dst,
+            source_entity_prefix: src_prefix,
+            dest_entity_prefix: dst_prefix,
             intent,
             trust_score,
             verdict,
-            expires_at: std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_secs()
-                + ttl_seconds,
-            _pad: [0; 4],
+            expires_at: if ttl_seconds > 0 { now + ttl_seconds } else { 0 },
+            _pad: [0u8; 4],
         }
     }
 }
@@ -118,7 +119,7 @@ pub enum EnforcerMode {
 #[async_trait::async_trait]
 pub trait NetworkEnforcer: Send + Sync {
     async fn attach(&self, interface: &str) -> anyhow::Result<()>;
-    async fn permit(&self, session_id: u64, permit: SessionPermit) -> anyhow::Result<()>;
+    async fn permit(&self, session_id: u64, permit: ScopeDeclaration) -> anyhow::Result<()>;
     async fn revoke(&self, session_id: u64) -> anyhow::Result<()>;
     async fn revoke_entity(&self, entity_id_prefix: &[u8; 8]) -> anyhow::Result<u32>;
     async fn stats(&self) -> anyhow::Result<EnforcerStats>;

@@ -49,77 +49,60 @@ class TrustVerdict:
         return self.verdict == Verdict.ALLOW and self.confidence >= 0.5
 
 
+def _make_verdict_dict(d: dict, raw: str) -> TrustVerdict:
+    v = str(d.get("verdict", "MONITOR")).upper()
+    c = float(d.get("confidence", 0.5))
+    r = str(d.get("reason", d.get("reasoning", "")))[:120]
+    verdict = Verdict(v) if v in Verdict.__members__ else Verdict.MONITOR
+    
+    # Fallback if reason is empty
+    if not r:
+        if verdict == Verdict.ALLOW:
+            r = "clean session, no anomalies detected"
+        elif verdict == Verdict.MONITOR:
+            r = "suspicious pattern detected"
+        else:
+            r = "malicious pattern detected"
+            
+    return TrustVerdict(
+        verdict    = Verdict.MONITOR if c < 0.5 else verdict,
+        confidence = max(0.0, min(1.0, c)),
+        reason     = r,
+        raw        = raw,
+    )
+
+
 def _parse(raw: str) -> TrustVerdict:
     """Three-strategy parser for Ollama's response."""
     text = raw.strip()
 
-    # ── Strategy 1: direct JSON 
+    # ── Strategy 1: direct / block JSON 
     for candidate in [text, text.split("```json")[-1].split("```")[0].strip()]:
         try:
-            d = json.loads(candidate)
-            v = str(d.get("verdict", "MONITOR")).upper()
-            c = float(d.get("confidence", 0.5))
-            r = str(d.get("reason", d.get("reasoning", "")))[:120]
-            verdict = Verdict(v) if v in Verdict.__members__ else Verdict.MONITOR
-            
-            # Fallback if reason is empty
-            if not r:
-                if verdict == Verdict.ALLOW:
-                    r = "clean session, no anomalies detected"
-                elif verdict == Verdict.MONITOR:
-                    r = "suspicious pattern detected"
-                else:
-                    r = "malicious pattern detected"
-            
-            return TrustVerdict(
-                verdict    = Verdict.MONITOR if c < 0.5 else verdict,
-                confidence = max(0.0, min(1.0, c)),
-                reason     = r,
-                raw        = raw,
-            )
+            return _make_verdict_dict(json.loads(candidate), raw)
         except Exception:
             pass
 
-    # ── Strategy 2: regex JSON extraction ────────────────────
+    # ── Strategy 2: regex extraction ────────────────────
     for pat in [
-        r'\{[^{}]*?"verdict"\s*:\s*"[^"]*"[^{}]*?"confidence"\s*:\s*[\d.]+[^{}]*\}',
+        r'\{[^{}]*?"verdict"\s*:\s*"[^"]*"[^{}]*?"confidence"\s*:\s*[\d.]+[^{}]*?\}',
         r'\{[^{}]*?"confidence"\s*:\s*[\d.]+[^{}]*?"verdict"\s*:\s*"[^"]*"[^{}]*?\}',
         r'\{.*?"verdict".*?\}',
     ]:
         m = re.search(pat, text, re.DOTALL | re.IGNORECASE)
         if m:
             try:
-                d = json.loads(m.group())
-                v = str(d.get("verdict", "MONITOR")).upper()
-                c = float(d.get("confidence", 0.5))
-                r = str(d.get("reason", d.get("reasoning", "")))[:120]
-                verdict = Verdict(v) if v in Verdict.__members__ else Verdict.MONITOR
-                
-                # Fallback if reason is empty
-                if not r:
-                    if verdict == Verdict.ALLOW:
-                        r = "clean session, no anomalies detected"
-                    elif verdict == Verdict.MONITOR:
-                        r = "suspicious pattern detected"
-                    else:
-                        r = "malicious pattern detected"
-                
-                return TrustVerdict(
-                    verdict    = Verdict.MONITOR if c < 0.5 else verdict,
-                    confidence = max(0.0, min(1.0, c)),
-                    reason     = r,
-                    raw        = raw,
-                )
+                return _make_verdict_dict(json.loads(m.group()), raw)
             except Exception:
                 continue
 
     # ── Strategy 3: keyword 
     upper = text.upper()
-    if "DENY"    in upper: return TrustVerdict(Verdict.DENY,    0.70, "malicious pattern detected",    raw=raw)
-    if "ALLOW"   in upper: return TrustVerdict(Verdict.ALLOW,   0.70, "clean session, no anomalies detected",   raw=raw)
-    if "MONITOR" in upper: return TrustVerdict(Verdict.MONITOR, 0.60, "suspicious pattern detected", raw=raw)
+    for kw, verdict, conf in [("DENY", Verdict.DENY, 0.70), ("ALLOW", Verdict.ALLOW, 0.70), ("MONITOR", Verdict.MONITOR, 0.60)]:
+        if kw in upper:
+            return TrustVerdict(verdict, conf, f"kw:{kw}", raw=raw)
 
-    return TrustVerdict(Verdict.MONITOR, 0.50, "suspicious pattern detected", raw=raw)
+    return TrustVerdict(Verdict.MONITOR, 0.50, "parse_failed:safe_default", raw=raw)
 
 
 class OllamaClient:

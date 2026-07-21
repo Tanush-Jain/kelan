@@ -9,31 +9,12 @@ import structlog
 from .ollama_client import OllamaClient, TrustVerdict, Verdict
 from prometheus_client import Counter, Histogram, Gauge, REGISTRY
 
-if "kelan_verdicts_total" in REGISTRY._names_to_collectors:
-    VERDICTS = cast(Counter, REGISTRY._names_to_collectors["kelan_verdicts_total"])
-else:
-    VERDICTS = Counter(
-      "kelan_verdicts_total",
-      "Trust verdicts by type",
-      ["verdict","model","via_ollama"]
-    )
+def _get_metric(cls, name, desc, *args, **kwargs):
+    return cast(cls, REGISTRY._names_to_collectors.get(name)) if name in REGISTRY._names_to_collectors else cls(name, desc, *args, **kwargs)
 
-if "kelan_ollama_latency_seconds" in REGISTRY._names_to_collectors:
-    OLLAMA_LATENCY = cast(Histogram, REGISTRY._names_to_collectors["kelan_ollama_latency_seconds"])
-else:
-    OLLAMA_LATENCY = Histogram(
-      "kelan_ollama_latency_seconds",
-      "Ollama inference time",
-      buckets=[.1,.25,.5,1,2.5,5,10]
-    )
-
-if "kelan_circuit_breaker_open" in REGISTRY._names_to_collectors:
-    CIRCUIT_STATE = cast(Gauge, REGISTRY._names_to_collectors["kelan_circuit_breaker_open"])
-else:
-    CIRCUIT_STATE = Gauge(
-      "kelan_circuit_breaker_open",
-      "Circuit breaker state (1=open)"
-    )
+VERDICTS       = _get_metric(Counter, "kelan_verdicts_total", "Trust verdicts by type", ["verdict", "model", "via_ollama"])
+OLLAMA_LATENCY = _get_metric(Histogram, "kelan_ollama_latency_seconds", "Ollama inference time", buckets=[.1, .25, .5, 1, 2.5, 5, 10])
+CIRCUIT_STATE  = _get_metric(Gauge, "kelan_circuit_breaker_open", "Circuit breaker state (1=open)")
 
 log = structlog.get_logger()
 VerdictHook = Callable[[dict], Awaitable[None]]
@@ -100,7 +81,7 @@ def _fallback(session: dict) -> TrustVerdict:
     return TrustVerdict(Verdict.ALLOW, 0.75, "fallback:clean_session")
 
 
-class HybridTrustEngine:
+class HybridCorrelationEngine:
 
     def __init__(
         self,
@@ -145,9 +126,9 @@ class HybridTrustEngine:
                 log.error("engine_fallback", error=str(exc))
 
         k = verdict.verdict.value.lower()
-        self._counts["total"]  += 1
-        if self._counts.get(k) is not None:
-            self._counts.update({k: self._counts[k] + 1})
+        self._counts["total"] += 1
+        if k in self._counts:
+            self._counts[k] += 1
 
         # Record prometheus metrics
         VERDICTS.labels(
@@ -166,3 +147,8 @@ class HybridTrustEngine:
                 log.error("hook_error", error=str(exc))
 
         return verdict
+
+
+# Backward compatibility alias
+HybridTrustEngine = HybridCorrelationEngine
+
