@@ -1,0 +1,37 @@
+{
+  "tool": "kelan-dast",
+  "target": "https://www.erasurehq.in/",
+  "model": "qwen2.5-coder:latest",
+  "started_at": "2026-08-05T12:09:02.141675+00:00",
+  "finished_at": "2026-08-05T12:09:25.643601+00:00",
+  "meta": {},
+  "risk_summary": "The target website is missing a Content-Security-Policy (CSP), which could potentially lead to Cross-Site Scripting (XSS) vulnerabilities if not properly configured.",
+  "stats": {
+    "severities": {
+      "LOW": 1
+    },
+    "categories": {
+      "header": 1
+    },
+    "cwes": {
+      "CWE-693": 1
+    }
+  },
+  "findings": [
+    {
+      "url": "https://www.erasurehq.in/wp-json/",
+      "method": "GET",
+      "param": "-",
+      "category": "header",
+      "title": "Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')",
+      "evidence": "response omits content-security-policy",
+      "remediation": "Ensure that all user inputs are properly sanitized and validated before being used in SQL queries. Implement parameterized queries or prepared statements to prevent SQL injection attacks.",
+      "cwe": "CWE-693",
+      "severity": "LOW",
+      "payload": "",
+      "variant": "",
+      "confidence": "strong",
+      "detected_at": "2026-08-05T12:09:12.755160+00:00"
+    }
+  ]
+}

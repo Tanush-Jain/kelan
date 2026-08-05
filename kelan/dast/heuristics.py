@@ -45,11 +45,19 @@ REQUIRED_HEADERS: dict[str, dict] = {
     },
 }
 
+_DISCLOSURE_HEADERS = {
+    "server": ("CWE-200", "LOW", "Server header discloses web server technology"),
+    "x-powered-by": ("CWE-200", "LOW", "X-Powered-By header discloses backend framework"),
+    "x-aspnet-version": ("CWE-200", "MEDIUM", "X-AspNet-Version discloses exact ASP.NET version"),
+    "x-generator": ("CWE-200", "LOW", "X-Generator header discloses CMS/generator tool"),
+}
+
 
 def grade_headers(url: str, headers: dict) -> list[Finding]:
-    """Check for missing security headers."""
+    """Check for missing security headers and technology disclosure headers."""
     findings: list[Finding] = []
     lower = {k.lower(): v for k, v in headers.items()}
+
     for header, meta in REQUIRED_HEADERS.items():
         if header not in lower:
             findings.append(Finding(
@@ -59,6 +67,58 @@ def grade_headers(url: str, headers: dict) -> list[Finding]:
                 evidence=f"Header '{header}' absent from response",
                 remediation=meta["remediation"], confidence="strong",
             ))
+
+    for header, (cwe, sev, title) in _DISCLOSURE_HEADERS.items():
+        if header in lower:
+            val = lower[header][:120]
+            findings.append(Finding(
+                url=url, method="GET", param="-", category="header",
+                cwe=cwe, severity=sev, title=title,
+                evidence=f"{header}: {val}",
+                remediation=f"Remove or obscure the '{header}' response header in production.",
+                confidence="strong",
+            ))
+
+    return findings
+
+
+def grade_sensitive_files(url: str, status: int, body: str) -> list[Finding]:
+    """Check if common sensitive files or administrative endpoints are publicly exposed."""
+    findings: list[Finding] = []
+    if status != 200 or not body:
+        return findings
+
+    u = url.lower()
+    if "/.git/head" in u and ("ref: refs/" in body or "master" in body or "main" in body):
+        findings.append(Finding(
+            url=url, method="GET", param="-", category="exposure",
+            cwe="CWE-538", severity="CRITICAL",
+            title="Exposed Git Repository (/.git/HEAD)",
+            evidence=f"HTTP 200 response contains valid Git HEAD pointer: '{body[:60].strip()}'",
+            remediation="Deny public HTTP access to .git directories in web server configuration.",
+            confidence="strong",
+        ))
+
+    elif "/.env" in u and any(k in body for k in ("DB_PASSWORD", "SECRET_KEY", "AWS_ACCESS_KEY", "DATABASE_URL")):
+        findings.append(Finding(
+            url=url, method="GET", param="-", category="exposure",
+            cwe="CWE-538", severity="CRITICAL",
+            title="Exposed Environment File (/.env)",
+            evidence="HTTP 200 response discloses sensitive environment variables / secret keys",
+            remediation="Remove .env files from the web root and ensure web servers block dotfiles.",
+            confidence="strong",
+        ))
+
+    elif any(p in u for p in ("/swagger.json", "/openapi.json")) and any(k in body for k in ("openapi", "swagger")):
+        findings.append(Finding(
+            url=url, method="GET", param="-", category="exposure",
+            cwe="CWE-200", severity="MEDIUM",
+            title="Public API Documentation Exposure",
+            evidence="HTTP 200 response exposes full OpenAPI/Swagger definition schema",
+            remediation="Restrict access to API documentation endpoints in production environments.",
+            confidence="strong",
+        ))
+
     return findings
 
 
