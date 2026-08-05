@@ -130,6 +130,13 @@ async def main_async(target: str, limit: int, model: str,
                      endpoint: str = DEFAULT_ENDPOINT,
                      concurrency: int = 2, timeout: float = 180.0,
                      json_out: Optional[str] = None) -> int:
+    if target.startswith(("http://", "https://")):
+        print(f"\n💡 'kelan scan' is for local source code directories (SAST).")
+        print(f"   Web URLs are audited dynamically using 'kelan dast'.")
+        print(f"   Routing target '{target}' to DAST agent...\n")
+        from kelan.dast.cli import main as dast_main
+        return dast_main(["--target", target, "--model", model])
+
     if not os.path.isdir(target):
         print(f"[!] target not a directory: {target}", file=sys.stderr)
         return 2
