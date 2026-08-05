@@ -22,7 +22,7 @@ zeroize          = { workspace = true }
 serde             = { workspace = true, features = ["derive"] }
 serde_json        = { workspace = true }
 crossbeam-channel = "0.5"
-dashmap           = "5.5"
+dashmap           = "6.2"
 governor          = "0.8"
 pcap              = "1.1"
 
