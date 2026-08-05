@@ -143,6 +143,34 @@ ollama pull qwen2.5-coder:latest
 ollama pull gemma4:latest
 ```
 
+### Running `kelan` CLI Commands
+
+If running `kelan scan` returns `zsh: command not found: kelan`, use one of the following methods:
+
+#### Option 1: Activate the Virtual Environment (Recommended)
+Run this command in your terminal:
+```bash
+source .venv/bin/activate
+```
+Once activated, your terminal prompt will show `(.venv)` and you can run `kelan` directly from anywhere:
+```bash
+kelan scan
+```
+
+#### Option 2: Run via Virtual Environment Path Directly
+Without activating `.venv`, call the executable using its relative path:
+```bash
+.venv/bin/kelan scan
+```
+
+#### Optional: Make `kelan` Globally Available in Shell
+If you want `kelan` to work anywhere without having to activate `.venv` every time, add an alias to your Zsh configuration (`~/.zshrc`):
+```bash
+echo 'alias kelan="$(pwd)/.venv/bin/kelan"' >> ~/.zshrc
+source ~/.zshrc
+```
+After doing this, typing `kelan scan` or `kelan dast` will work in any shell window!
+
 ---
 
 ## ⚙️ CLI Reference & Usage
