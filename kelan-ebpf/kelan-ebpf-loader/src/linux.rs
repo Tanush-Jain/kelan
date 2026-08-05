@@ -148,15 +148,14 @@ impl EbpfLoader {
 
         #[cfg(feature = "ebpf-native")]
         {
-            use crate::SessionPermit;
             use aya::maps::HashMap;
+            use crate::SessionPermit;
 
             if let Some(ref mut bpf) = *self._bpf.lock().unwrap() {
                 let mut permit_map = HashMap::try_from(
                     bpf.map_mut("PERMIT_MAP")
-                        .map_err(|e| EbpfLoaderError::MapNotFound(e.to_string()))?,
-                )
-                .map_err(|e| EbpfLoaderError::LoadError(e.to_string()))?;
+                        .map_err(|e| EbpfLoaderError::MapNotFound(e.to_string()))?
+                ).map_err(|e| EbpfLoaderError::LoadError(e.to_string()))?;
 
                 let permit = SessionPermit {
                     source_entity_prefix: [0; 8],
@@ -168,8 +167,7 @@ impl EbpfLoader {
                     _pad: [0; 4],
                 };
 
-                permit_map
-                    .insert(_session_id, permit, 0)
+                permit_map.insert(_session_id, permit, 0)
                     .map_err(|e| EbpfLoaderError::LoadError(e.to_string()))?;
             }
         }
@@ -190,12 +188,10 @@ impl EbpfLoader {
             if let Some(ref mut bpf) = *self._bpf.lock().unwrap() {
                 let mut blacklist_map = HashMap::try_from(
                     bpf.map_mut("ip_blacklist_map")
-                        .map_err(|e| EbpfLoaderError::MapNotFound(e.to_string()))?,
-                )
-                .map_err(|e| EbpfLoaderError::LoadError(e.to_string()))?;
+                        .map_err(|e| EbpfLoaderError::MapNotFound(e.to_string()))?
+                ).map_err(|e| EbpfLoaderError::LoadError(e.to_string()))?;
 
-                blacklist_map
-                    .insert(_src_ip, 1u8, 0)
+                blacklist_map.insert(_src_ip, 1u8, 0)
                     .map_err(|e| EbpfLoaderError::LoadError(e.to_string()))?;
             }
         }
@@ -211,15 +207,14 @@ impl EbpfLoader {
 
         #[cfg(feature = "ebpf-native")]
         {
-            use crate::SessionPermit;
             use aya::maps::HashMap;
+            use crate::SessionPermit;
 
             if let Some(ref mut bpf) = *self._bpf.lock().unwrap() {
                 let mut permit_map = HashMap::try_from(
                     bpf.map_mut("PERMIT_MAP")
-                        .map_err(|e| EbpfLoaderError::MapNotFound(e.to_string()))?,
-                )
-                .map_err(|e| EbpfLoaderError::LoadError(e.to_string()))?;
+                        .map_err(|e| EbpfLoaderError::MapNotFound(e.to_string()))?
+                ).map_err(|e| EbpfLoaderError::LoadError(e.to_string()))?;
 
                 let mut expired_keys = Vec::new();
                 for item in permit_map.keys() {
