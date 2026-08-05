@@ -8,7 +8,6 @@ import structlog
 
 from kelan.ai.ollama_client import OllamaClient
 from kelan.scanner.prompts import (
-    SCANNER_JSON_SCHEMA,
     SCANNER_SYSTEM_PROMPT,
     build_scan_prompt,
 )

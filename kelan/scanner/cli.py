@@ -5,6 +5,7 @@ import json
 import os
 import sys
 import urllib.request
+from typing import Optional
 
 from kelan.scanner.analyzer import VulnerabilityAnalyzer
 from kelan.scanner.chunker import SemanticChunker
@@ -25,7 +26,7 @@ def get_local_models() -> list[str]:
     """Fetch available models from the local Ollama instance."""
     try:
         req = urllib.request.Request(f"{DEFAULT_ENDPOINT}/api/tags")
-        with urllib.request.urlopen(req, timeout=2) as resp:
+        with urllib.request.urlopen(req, timeout=2) as resp:  # nosec B310
             data = json.loads(resp.read().decode())
             return [m["name"] for m in data.get("models", [])]
     except Exception:
@@ -36,7 +37,7 @@ def get_local_models() -> list[str]:
 # Core pipeline
 # ──────────────────────────────────────────────────────────────────────────────
 
-def collect_chunks(target: str, limit: int) -> list:
+def collect_chunks(target: str, limit: Optional[int]) -> list:
     chunker = SemanticChunker()
     chunks = []
     for root, dirs, files in os.walk(target):
@@ -128,7 +129,7 @@ def render_report(results, target) -> list:
 async def main_async(target: str, limit: int, model: str,
                      endpoint: str = DEFAULT_ENDPOINT,
                      concurrency: int = 2, timeout: float = 180.0,
-                     json_out: str = None) -> int:
+                     json_out: Optional[str] = None) -> int:
     if not os.path.isdir(target):
         print(f"[!] target not a directory: {target}", file=sys.stderr)
         return 2
@@ -165,7 +166,7 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="Kelan Scan — AI-native SAST scanner")
     parser.add_argument("--target",      help="Target directory (prompts if missing)")
     parser.add_argument("--limit",       type=int, help="Max chunks (0 for all, prompts if missing)")
-    parser.add_argument("--model",       help=f"Ollama model name (prompts if missing)")
+    parser.add_argument("--model",       help="Ollama model name (prompts if missing)")
     parser.add_argument("--endpoint",    default=DEFAULT_ENDPOINT, help="Ollama endpoint")
     parser.add_argument("--concurrency", type=int, default=2, help="Parallel workers")
     parser.add_argument("--timeout",     type=float, default=180.0, help="Per-chunk timeout (s)")

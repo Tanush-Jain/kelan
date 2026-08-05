@@ -58,7 +58,8 @@ def _inject_query(url: str, param: str, value: str) -> str:
 
 
 def _build_targets(pages, fuzz_tokens: bool = False):
-    targets, seen = [], set()
+    targets: list = []
+    seen: set[tuple] = set()
     for page in pages:
         for pname in page.params:
             key = (page.url, "GET", pname, None)
@@ -69,9 +70,9 @@ def _build_targets(pages, fuzz_tokens: bool = False):
             for f in form.fields:
                 if (f.is_secret and not fuzz_tokens) or not f.name:
                     continue
-                key = (form.action, form.method.upper(), f.name, id(form))
-                if key not in seen:
-                    seen.add(key)
+                form_key = (form.action, form.method.upper(), f.name, id(form))
+                if form_key not in seen:
+                    seen.add(form_key)
                     targets.append((form.action, form.method.upper(), f.name, form))
     return targets
 
