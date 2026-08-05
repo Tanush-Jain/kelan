@@ -1,0 +1,88 @@
+version: "3.9"
+
+# ══ Kelan Security — Single Docker Compose ═══════════════════
+# Usage:
+#   docker compose up -d           (server only)
+#   docker compose --profile mon up -d  (+ Prometheus + Grafana)
+#   docker compose down
+
+services:
+
+  kelan:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: kelan
+    restart: unless-stopped
+    ports:
+      - "${AITP_HTTP_PORT:-3000}:3000"
+    environment:
+      - DATABASE_URL=sqlite+aiosqlite:///app/data/kelan.db
+      - AITP_HTTP_PORT=3000
+      - AITP_HOST=0.0.0.0
+      - RUST_LOG=info
+      - OLLAMA_ENDPOINT=${OLLAMA_ENDPOINT:-http://host.docker.internal:11434}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-gemma4:latest}
+      - OLLAMA_TIMEOUT=${OLLAMA_TIMEOUT:-90}
+      - KELAN_JWT_SECRET=${KELAN_JWT_SECRET:?set KELAN_JWT_SECRET in .env}
+      - REQUIRE_PQ=${REQUIRE_PQ:-true}
+      - SYN_RATE_LIMIT=${SYN_RATE_LIMIT:-50}
+      - UDP_RATE_LIMIT=${UDP_RATE_LIMIT:-200}
+      - CB_FAILURE_THRESHOLD=${CB_FAILURE_THRESHOLD:-3}
+      - CB_RECOVERY_TIMEOUT=${CB_RECOVERY_TIMEOUT:-30}
+      - AGENTIC_ENABLED=${AGENTIC_ENABLED:-true}
+    volumes:
+      - kelan_data:/app/data
+      - kelan_logs:/app/log
+    networks:
+      - kelan_net
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+      - NET_RAW
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: kelan-prometheus
+    restart: unless-stopped
+    ports: ["9090:9090"]
+    volumes:
+      - ../yml/monitoring-prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - kelan_net
+    profiles: [mon]
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: kelan-grafana
+    restart: unless-stopped
+    ports: ["3001:3000"]
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GF_ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - kelan_net
+    depends_on: [prometheus]
+    profiles: [mon]
+
+networks:
+  kelan_net:
+    driver: bridge
+
+volumes:
+  kelan_data:
+  kelan_logs:
+  prometheus_data:
+  grafana_data:

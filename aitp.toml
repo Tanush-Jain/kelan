@@ -1,0 +1,27 @@
+[crypto]
+mode = "hybrid_pq"        # classical | hybrid_pq | pq_only
+pq_algorithm = "ML-DSA-65"
+kem_algorithm = "ML-KEM-768"
+
+[identity]
+name = "aitp-node"
+key_path = "./aitp-node.key"
+entity_type = "Service"
+
+[transport]
+bind_addr = "0.0.0.0:9999"
+max_sessions = 65536
+max_datagram_size = 65535
+
+[trust]
+min_identity_age_secs = 86400
+eval_timeout_ms = 5
+
+[control_plane]
+url = "http://127.0.0.1:8080"
+heartbeat_interval_secs = 30
+auto_register = true
+
+[logging]
+level = "info"
+json = true

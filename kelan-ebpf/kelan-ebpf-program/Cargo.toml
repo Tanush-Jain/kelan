@@ -1,0 +1,27 @@
+[package]
+name    = "kelan-ebpf-program"
+version = "0.3.0"
+edition = "2021"
+
+# CRITICAL: This empty [workspace] table tells Cargo that this crate
+# is intentionally standalone and NOT part of the parent workspace.
+# Required because it targets bpfel-unknown-none, not the host platform.
+[workspace]
+
+[[bin]]
+name              = "kelan_xdp"
+path              = "src/main.rs"
+required-features = []
+
+[dependencies]
+aya-bpf = { package = "aya-ebpf", git = "https://github.com/aya-rs/aya.git" }
+aya-log-ebpf = { git = "https://github.com/aya-rs/aya.git" }
+
+[profile.release]
+opt-level     = 2
+debug         = false
+panic         = "abort"
+overflow-checks = false
+
+[features]
+default = []

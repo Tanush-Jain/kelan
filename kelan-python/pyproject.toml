@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kelan-security"
+version = "3.0.0"
+description = "Kelan Security — Adaptive Intent Transport Protocol (AITP) Python layer"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "fastapi>=0.110.0",
+    "uvicorn[standard]>=0.28.0",
+    "pydantic>=2.6.0",
+    "pydantic-settings>=2.2.0",
+    "structlog>=24.1.0",
+    "httpx>=0.27.0",
+    "tenacity>=8.2.0",
+    "click>=8.1.0",
+    "rich>=13.7.0",
+    "aiosqlite>=0.20.0"
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["kelan*"]

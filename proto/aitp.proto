@@ -1,0 +1,64 @@
+syntax = "proto3";
+
+package aitp;
+
+// AITP Control Plane gRPC Service Definitions
+// Used for control plane ↔ node communication
+
+service ControlPlane {
+  // Register a new identity with the control plane
+  rpc RegisterIdentity(RegisterIdentityRequest) returns (RegisterIdentityResponse);
+
+  // Resolve an entity ID to its network addresses
+  rpc ResolveIdentity(ResolveIdentityRequest) returns (ResolveIdentityResponse);
+
+  // Revoke a session permit
+  rpc RevokeSession(RevokeSessionRequest) returns (RevokeSessionResponse);
+
+  // Health check
+  rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+message RegisterIdentityRequest {
+  bytes entity_id = 1;           // 32-byte Ed25519 public key hash
+  bytes public_key = 2;          // 32-byte Ed25519 public key
+  string name = 3;
+  string entity_type = 4;        // "Human", "AiModel", "Service", "Device"
+  repeated string addresses = 5; // IP:port addresses
+}
+
+message RegisterIdentityResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message ResolveIdentityRequest {
+  bytes entity_id = 1;
+}
+
+message ResolveIdentityResponse {
+  bool found = 1;
+  bytes public_key = 2;
+  repeated string addresses = 3;
+  string entity_type = 4;
+}
+
+message RevokeSessionRequest {
+  uint64 session_id = 1;
+  bytes requester_id = 2;
+  string reason = 3;
+}
+
+message RevokeSessionResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message HealthCheckRequest {}
+
+message HealthCheckResponse {
+  string status = 1;
+  uint64 uptime_secs = 2;
+  uint32 registered_identities = 3;
+  uint32 active_sessions = 4;
+}

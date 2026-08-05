@@ -1,0 +1,67 @@
+[workspace]
+resolver = "2"
+members = [
+    "kelan-ebpf/kelan-ebpf-loader",
+]
+exclude = [
+    "kelan-ebpf/kelan-ebpf-program",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["Tanush Jain  (https://github.com/Tanush-Jain)"]
+license = "Apache-2.0"
+description = "Adaptive Intent Transport Protocol — identity-first, intent-bound transport for AI systems"
+
+[workspace.dependencies]
+tokio = { version = "1", features = ["full"] }
+thiserror = "2"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+bytes = "1"
+dashmap = "6"
+pqcrypto-mldsa = "0.1"    # ML-DSA-65 = FIPS 204 (Dilithium3)
+pqcrypto-mlkem = "0.1"    # ML-KEM-768 = FIPS 203 (Kyber-768)
+pqcrypto-traits = "0.3"
+ed25519-dalek    = { version = "2", features = ["rand_core", "pkcs8"] }
+x25519-dalek     = { version = "2", features = ["static_secrets"] }
+sha2             = "0.10"
+sha3 = "0.10"
+rand = "0.8"
+zeroize = "1"
+axum = "0.8"
+prometheus = { version = "0.13", default-features = false }
+clap = { version = "4", features = ["derive"] }
+toml = "0.8"
+reqwest = { version = "0.12.9", features = ["json", "rustls-tls"], default-features = false }
+governor = "0.8"
+hyper = { version = "1", features = ["full"] }
+proptest = "1.6"
+ratatui = "0.30"
+crossterm = "0.28"
+colored = "2"
+rustyline = "15"
+chrono = { version = "0.4", features = ["serde"] }
+anyhow = "1"
+
+# ─────────────────────────────────────────────────────────────────
+# Release profiles
+# ─────────────────────────────────────────────────────────────────
+
+# Standard release — maximum performance, minimal binary
+[profile.release]
+opt-level       = 3          # maximum optimisation
+lto             = "thin"     # link-time optimisation (good balance of speed/size)
+codegen-units   = 1          # single codegen unit = slower compile, faster binary
+panic           = "abort"    # no panic unwinding = smaller binary
+strip           = "symbols"  # strip debug symbols from the release binary
+overflow-checks = false      # arithmetic overflow checked in debug/test, not release
+
+# Size-optimised profile — for embedded or IoT deployments
+[profile.release-small]
+inherits        = "release"
+opt-level       = "z"        # optimise for binary size
+lto             = true       # full LTO (slower, but smallest output)

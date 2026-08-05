@@ -1,0 +1,170 @@
+name: Kelan Security CI
+
+on:
+  push:
+    branches: [main, dev, "feature/*"]
+  pull_request:
+    branches: [main]
+
+env:
+  PYTHON_VERSION: "3.11"
+  OLLAMA_MODEL: "qwen2.5:3b"
+  DATABASE_URL: "sqlite+aiosqlite:///./test.db"
+  JWT_SECRET: "ci-test-secret-minimum-32-chars!!"
+  REQUIRE_PQ: "false"
+  OLLAMA_ENDPOINT: "http://localhost:11434"
+
+jobs:
+
+  # ─────────────────────────────────────────────
+  # JOB 1: Secret scanning
+  # ─────────────────────────────────────────────
+  secrets-scan:
+    name: Secret Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: TruffleHog Secret Scan
+        uses: trufflesecurity/trufflehog@main
+
+  # ─────────────────────────────────────────────
+  # JOB 2: Python SAST
+  # ─────────────────────────────────────────────
+  sast:
+    name: Static Analysis
+    runs-on: ubuntu-latest
+    needs: secrets-scan
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install SAST tools
+        run: |
+          pip install bandit pip-audit
+      - name: Bandit security scan
+        run: |
+          bandit -r kelan/ -ll -ii \
+            --exclude kelan/tests \
+            -f json -o bandit-report.json \
+            || true
+          bandit -r kelan/ -ll -ii \
+            --exclude kelan/tests
+      - name: Security Audit (pip-audit)
+        run: |
+          pip-audit -r requirements.txt
+      - name: Upload reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sast-reports
+          path: bandit-report.json
+
+  # ─────────────────────────────────────────────
+  # JOB 3: Tests
+  # ─────────────────────────────────────────────
+  test:
+    name: Test Suite
+    runs-on: ubuntu-latest
+    needs: sast
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+      - name: Run tests
+        run: |
+          python -m pytest \
+            --cov=kelan \
+            --cov-config=pyproject.toml \
+            --cov-report=xml \
+            --cov-report=term-missing \
+            --cov-fail-under=60 \
+            -v --tb=short
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          file: coverage.xml
+        continue-on-error: true
+
+  # ─────────────────────────────────────────────
+  # JOB 4: Docker build and scan
+  # ─────────────────────────────────────────────
+  docker:
+    name: Docker Build + Scan
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Lowercase repository name
+        id: repository
+        run: |
+          echo "name=${GITHUB_REPOSITORY,,}" >> $GITHUB_OUTPUT
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            --no-cache \
+            -t kelan-security:${{ github.sha }} .
+
+      - name: Trivy vulnerability scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: kelan-security:${{ github.sha }}
+          format: table
+          severity: CRITICAL,HIGH
+          exit-code: 1
+        continue-on-error: true
+
+      - name: Login to GHCR
+        if: github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push to GHCR
+        if: github.ref == 'refs/heads/main'
+        run: |
+          docker tag kelan-security:${{ github.sha }} ghcr.io/${{ steps.repository.outputs.name }}:latest
+          docker tag kelan-security:${{ github.sha }} ghcr.io/${{ steps.repository.outputs.name }}:${{ github.sha }}
+          docker push ghcr.io/${{ steps.repository.outputs.name }}:latest
+          docker push ghcr.io/${{ steps.repository.outputs.name }}:${{ github.sha }}
+
+  # ─────────────────────────────────────────────
+  # JOB 5: Deploy to staging (main only)
+  # ─────────────────────────────────────────────
+#  deploy:
+#    name: Deploy Staging
+#    runs-on: ubuntu-latest
+#    needs: docker
+#    if: github.ref == 'refs/heads/main'
+#    steps:
+#      - uses: actions/checkout@v5
+#      - name: Deploy to Oracle Cloud
+#        uses: appleboy/ssh-action@master
+#        with:
+#          host:     ${{ secrets.ORACLE_HOST }}
+#          username: ${{ secrets.ORACLE_USER }}
+#          key:      ${{ secrets.ORACLE_SSH_KEY }}
+#          script: |
+#            cd /opt/kelan
+#            git pull origin main
+#            docker compose -f yml/docker-compose.yml pull
+#            docker compose -f yml/docker-compose.yml up -d --remove-orphans
+#            sleep 10
+#            curl -sf \
+#              http://localhost:3000/api/health \
+#              || exit 1
+#            echo "Deploy successful"

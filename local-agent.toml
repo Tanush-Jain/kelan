@@ -1,0 +1,27 @@
+# Kelan Security Client Agent Configuration
+# Full reference: https://docs.kelansecurtity.io/agent
+
+[server]
+address  = "kelan.your-company.internal"  # Intelligence Core hostname or IP
+api_port = 3000
+udp_port = 9999
+tls      = false   # Set true for production
+
+[agent]
+entity_name    = ""             # Auto-detected from hostname if empty
+entity_type    = "workstation"  # workstation | server | service | ai_agent | iot
+clearance_level = 0
+# api_token — set automatically by: kelan-agent enroll
+
+[interception]
+mode         = "proxy"    # proxy (recommended) | iptables (Linux/root) | monitor
+proxy_port   = 7654       # Local SOCKS5 proxy port
+exclude_ports = [22, 53, 123]     # SSH, DNS, NTP — never intercept
+exclude_hosts = []
+fail_closed  = true       # Deny connections if IC unreachable (safer)
+                          # Set false for fail-open (allows all when IC is down)
+
+[logging]
+level = "info"   # trace | debug | info | warn | error
+file  = ""       # Empty = stderr only
+json  = false    # Set true for structured log aggregation

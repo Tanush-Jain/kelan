@@ -1,0 +1,259 @@
+#cloud-config
+# Kelan Security — Oracle Cloud A1 (ARM64) Initialization
+# Runtime: Ubuntu 22.04 LTS on Ampere A1.Flex
+# This file runs ONCE on first boot. Estimated time: ~8 minutes.
+
+# ──────────────────────────────────────────────────────
+# 1. System package updates
+# ──────────────────────────────────────────────────────
+package_update: true
+package_upgrade: true
+
+packages:
+  - apt-transport-https
+  - ca-certificates
+  - curl
+  - gnupg
+  - lsb-release
+  - git
+  - ufw
+  - htop
+  - bpftool
+  # eBPF / XDP deps
+  - linux-tools-common
+  - linux-tools-generic
+  - libbpf-dev
+  - clang
+  - llvm
+  # Network diagnostics
+  - iproute2
+  - netcat-openbsd
+  - jq
+
+# ──────────────────────────────────────────────────────
+# 2. Kernel / sysctl tuning for eBPF + high-throughput UDP
+# ──────────────────────────────────────────────────────
+write_files:
+  - path: /etc/sysctl.d/99-kelan.conf
+    content: |
+      # eBPF JIT — required for Kelan XDP enforcement
+      net.core.bpf_jit_enable = 1
+      net.core.bpf_jit_harden = 0
+
+      # UDP receive buffer — prevents packet loss under AITP flood protection
+      net.core.rmem_max = 134217728
+      net.core.rmem_default = 16777216
+      net.core.wmem_max = 134217728
+      net.core.wmem_default = 16777216
+      net.core.netdev_max_backlog = 250000
+      net.core.somaxconn = 65535
+
+      # IPv4 performance
+      net.ipv4.udp_rmem_min = 8192
+      net.ipv4.tcp_rmem = 4096 87380 67108864
+      net.ipv4.tcp_wmem = 4096 65536 67108864
+
+      # File descriptors
+      fs.file-max = 2097152
+
+  # Kelan environment template — filled from OCI instance metadata
+  - path: /opt/kelan/.env
+    content: |
+      # Server Identity
+      AITP_NODE_NAME=kelan-oracle-demo
+      ENVIRONMENT=production
+
+      # Network
+      UDP_PORT=9999
+      HTTP_PORT=3000
+      HTTPS_PORT=3001
+      NETWORK_INTERFACE=enp0s3
+
+      # AI Engine (Ollama)
+      AITP_AI_ENGINE_MODE=hybrid
+      # REPLACE: set your Ollama base URL and model
+      AITP_AI_ENGINE_OLLAMA_BASE_URL=http://127.0.0.1:11434
+      AITP_AI_ENGINE_OLLAMA_MODEL=gemma3:9b
+
+      # Auth
+      JWT_SECRET=REPLACE_WITH_RANDOM_SECRET_MIN_32_CHARS
+
+      # Database (SQLite on block volume)
+      DATABASE_URL=sqlite:/mnt/kelan-data/kelan.db
+
+      # Logging
+      RUST_LOG=info,aitp_server=debug
+
+      # Grafana
+      GRAFANA_PASSWORD=REPLACE_WITH_GRAFANA_PASSWORD
+
+  # Systemd service for Kelan
+  - path: /etc/systemd/system/kelan.service
+    content: |
+      [Unit]
+      Description=Kelan Intelligence Core
+      Documentation=https://github.com/kelan-security/kelan-core
+      After=network-online.target docker.service
+      Wants=network-online.target
+      Requires=docker.service
+
+      [Service]
+      Type=simple
+      User=root
+      WorkingDirectory=/opt/kelan
+      ExecStart=/usr/bin/docker compose -f /opt/kelan/docker-compose.yml up
+      ExecStop=/usr/bin/docker compose -f /opt/kelan/docker-compose.yml down
+      Restart=on-failure
+      RestartSec=10
+      StandardOutput=journal
+      StandardError=journal
+      Environment=COMPOSE_PROJECT_NAME=kelan
+
+      [Install]
+      WantedBy=multi-user.target
+
+  # Docker Compose for Kelan (lightweight prod profile for demo instance)
+  - path: /opt/kelan/docker-compose.yml
+    content: |
+      version: '3.8'
+      services:
+        kelan-server:
+          image: ghcr.io/kelan-security/kelan-core:latest
+          container_name: kelan-server
+          restart: unless-stopped
+          env_file: /opt/kelan/.env
+          ports:
+            - "3000:3000"
+            - "3001:3001"
+            - "9999:9999/udp"
+          volumes:
+            - /mnt/kelan-data:/data
+            - /sys/kernel/debug:/sys/kernel/debug:ro
+          cap_add:
+            - NET_ADMIN
+            - SYS_ADMIN
+            - BPF
+          privileged: true  # Required for eBPF map mounting
+          healthcheck:
+            test: ["CMD", "curl", "-sf", "http://localhost:3000/health"]
+            interval: 30s
+            retries: 3
+            start_period: 20s
+
+        grafana:
+          image: grafana/grafana:latest
+          container_name: kelan-grafana
+          restart: unless-stopped
+          depends_on: [kelan-server]
+          environment:
+            GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+            GF_AUTH_ANONYMOUS_ENABLED: "false"
+          ports:
+            - "3003:3000"
+          volumes:
+            - grafana_data:/var/lib/grafana
+
+        prometheus:
+          image: prom/prometheus:latest
+          container_name: kelan-prometheus
+          restart: unless-stopped
+          command:
+            - '--config.file=/etc/prometheus/prometheus.yml'
+            - '--storage.tsdb.retention.time=7d'
+          ports:
+            - "127.0.0.1:9090:9090"
+          volumes:
+            - /opt/kelan/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+            - prometheus_data:/prometheus
+
+      volumes:
+        grafana_data:
+        prometheus_data:
+
+  # Prometheus config
+  - path: /opt/kelan/prometheus.yml
+    content: |
+      global:
+        scrape_interval: 15s
+      scrape_configs:
+        - job_name: kelan
+          static_configs:
+            - targets: ['kelan-server:3000']
+          metrics_path: /metrics
+
+  # UFW firewall rules script
+  - path: /opt/kelan/setup-firewall.sh
+    permissions: '0755'
+    content: |
+      #!/bin/bash
+      ufw default deny incoming
+      ufw default allow outgoing
+      ufw allow 22/tcp    # SSH
+      ufw allow 3000/tcp  # Kelan HTTP API
+      ufw allow 3001/tcp  # Kelan HTTPS API
+      ufw allow 3003/tcp  # Grafana
+      ufw allow 9999/udp  # AITP Protocol
+      ufw --force enable
+      echo "Firewall configured."
+
+# ──────────────────────────────────────────────────────
+# 3. Run commands (executes in order)
+# ──────────────────────────────────────────────────────
+runcmd:
+  # Apply sysctl settings
+  - sysctl -p /etc/sysctl.d/99-kelan.conf
+
+  # Mount block volume (/dev/sdb) for persistent DB storage
+  - |
+    if ! blkid /dev/sdb | grep -q ext4; then
+      mkfs.ext4 -L kelan-data /dev/sdb
+    fi
+    mkdir -p /mnt/kelan-data
+    echo "LABEL=kelan-data /mnt/kelan-data ext4 defaults,nofail 0 2" >> /etc/fstab
+    mount -a
+
+  # Install Docker (official ARM64 method)
+  - curl -fsSL https://get.docker.com | sh
+  - systemctl enable docker
+  - systemctl start docker
+  - usermod -aG docker ubuntu
+
+  # Pull Kelan image
+  - docker pull ghcr.io/kelan-security/kelan-core:latest || echo "Image pull failed — will build from source"
+
+  # Fallback: clone and build from source if registry pull fails
+  - |
+    if ! docker image inspect ghcr.io/kelan-security/kelan-core:latest > /dev/null 2>&1; then
+      apt-get install -y build-essential pkg-config libssl-dev
+      curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y -t aarch64-unknown-linux-gnu
+      source /root/.cargo/env
+      git clone https://github.com/kelan-security/kelan-core.git /opt/kelan-src
+      cd /opt/kelan-src
+      cargo build --release --package aitp-server
+      docker build -t ghcr.io/kelan-security/kelan-core:latest .
+    fi
+
+  # Configure and start firewall
+  - /opt/kelan/setup-firewall.sh
+
+  # Enable/start Kelan service
+  - systemctl daemon-reload
+  - systemctl enable kelan
+  - systemctl start kelan
+
+  # Log completion
+  - echo "Kelan Security cloud-init complete at $(date)" >> /var/log/kelan-init.log
+
+# ──────────────────────────────────────────────────────
+# 4. Final message on completion
+# ──────────────────────────────────────────────────────
+final_message: |
+  ============================================================
+  Kelan Security initialized successfully!
+  
+  API:      http://<this-ip>:3000/health
+  Grafana:  http://<this-ip>:3003  (admin / see .env)
+  AITP UDP: <this-ip>:9999
+  
+  Edit /opt/kelan/.env and restart: systemctl restart kelan
+  ============================================================

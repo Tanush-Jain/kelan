@@ -1,0 +1,189 @@
+# Prometheus Alert Rules for Kelan Security Intelligence Core
+# Mount at: /etc/prometheus/alerts/kelan.yml  (Docker)
+# or: monitoring/alerts/kelan.yml  (local)
+
+groups:
+  # ── Security Alerts ─────────────────────────────────────────────────────
+  - name: kelan_security
+    interval: 30s
+    rules:
+
+      - alert: HighAuthFailureRate
+        expr: rate(kelan_auth_failures_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+          team: security
+        annotations:
+          summary: "High authentication failure rate detected"
+          description: >
+            {{ $value | humanize }} auth failures/sec over last 5 minutes.
+            Potential brute-force or credential-stuffing attack.
+          runbook: "Check /api/auth/signin logs for offending IPs"
+
+      - alert: UnauthorizedAccessSpike
+        expr: rate(kelan_unauthorized_requests_total[5m]) > 1
+        for: 1m
+        labels:
+          severity: warning
+          team: security
+        annotations:
+          summary: "Spike in unauthorized API access attempts"
+          description: >
+            {{ $value | humanize }} unauthorized requests/sec.
+            May indicate token theft or reconnaissance scan.
+
+      - alert: AnomalyDetectionSpike
+        expr: rate(kelan_anomalies_detected_total[5m]) > 5
+        for: 1m
+        labels:
+          severity: warning
+          team: security
+        annotations:
+          summary: "Sentinel anomaly detection spike"
+          description: >
+            {{ $value | humanize }} anomalies/sec detected.
+            Possible coordinated attack or infrastructure issue.
+
+      - alert: CriticalAnomalyFired
+        expr: increase(kelan_anomalies_detected_total{severity="critical"}[1m]) > 0
+        for: 0s   # fire immediately
+        labels:
+          severity: critical
+          team: security
+        annotations:
+          summary: "CRITICAL anomaly detected by Sentinel"
+          description: >
+            A critical-severity anomaly was fired. Immediate investigation required.
+
+      - alert: QuarantineTriggered
+        expr: increase(kelan_entities_quarantined_total[5m]) > 0
+        for: 0s
+        labels:
+          severity: warning
+          team: security
+        annotations:
+          summary: "Entity auto-quarantined by Intelligence Core"
+          description: >
+            {{ $value }} entity/entities were quarantined.
+            Review the security incident log for context.
+
+      - alert: TrustDenyRateHigh
+        expr: |
+          rate(kelan_trust_denials_total[5m])
+          /
+          (rate(kelan_trust_denials_total[5m]) + rate(kelan_sessions_created_total[5m])) > 0.3
+        for: 5m
+        labels:
+          severity: warning
+          team: security
+        annotations:
+          summary: "Trust engine deny rate above 30%"
+          description: >
+            {{ $value | humanizePercentage }} of sessions being denied.
+            Either a real attack or a misconfigured trust policy.
+
+  # ── Performance Alerts ──────────────────────────────────────────────────
+  - name: kelan_performance
+    interval: 60s
+    rules:
+
+      - alert: HighAPILatency
+        expr: |
+          histogram_quantile(0.95,
+            rate(kelan_http_request_duration_seconds_bucket[5m])
+          ) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          team: infra
+        annotations:
+          summary: "API P95 latency exceeds 500ms"
+          description: >
+            P95 latency is {{ $value | humanizeDuration }}.
+            Consider scaling or investigating slow queries.
+
+      - alert: OllamaAPIHighLatency
+        expr: |
+          histogram_quantile(0.95,
+            rate(kelan_ollama_request_duration_seconds_bucket[5m])
+          ) > 4.0
+        for: 5m
+        labels:
+          severity: warning
+          team: infra
+        annotations:
+          summary: "Ollama API P95 latency above 4 seconds"
+          description: >
+            AI trust evaluation is slow ({{ $value | humanizeDuration }}).
+            Trust scoring may time out and fall back to rule-based mode.
+
+      - alert: OllamaAPIErrorRate
+        expr: rate(kelan_ollama_errors_total[5m]) > 0.01
+        for: 2m
+        labels:
+          severity: critical
+          team: infra
+        annotations:
+          summary: "Ollama API errors detected"
+          description: >
+            {{ $value | humanize }} Ollama API errors/sec.
+            Verify OLLAMA_ENDPOINT is valid and active.
+
+      - alert: eBPFEnforcerOffline
+        expr: kelan_ebpf_mode == 0
+        for: 1m
+        labels:
+          severity: info
+          team: infra
+        annotations:
+          summary: "eBPF enforcer running in software fallback mode"
+          description: >
+            Software enforcement is active (expected on macOS / non-Linux).
+            On Linux production: check kernel version (5.15+) and privileges.
+
+  # ── Database Alerts ─────────────────────────────────────────────────────
+  - name: kelan_database
+    interval: 30s
+    rules:
+
+      - alert: DatabaseConnectionPoolExhaustion
+        expr: kelan_db_connections_active / kelan_db_connections_max > 0.85
+        for: 5m
+        labels:
+          severity: critical
+          team: infra
+        annotations:
+          summary: "Database connection pool near exhaustion"
+          description: >
+            {{ $value | humanizePercentage }} of DB connections in use.
+            Increase DATABASE_MAX_CONNECTIONS or investigate connection leaks.
+
+  # ── System Alerts ────────────────────────────────────────────────────────
+  - name: kelan_system
+    interval: 60s
+    rules:
+
+      - alert: KernelServerDown
+        expr: up{job="kelan_server"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: infra
+        annotations:
+          summary: "Kelan Intelligence Core is DOWN"
+          description: >
+            The aitp-server process is not responding to Prometheus scrapes.
+            Immediate action required.
+
+      - alert: HighMemoryUsage
+        expr: kelan_memory_usage_bytes / kelan_memory_limit_bytes > 0.9
+        for: 10m
+        labels:
+          severity: warning
+          team: infra
+        annotations:
+          summary: "Memory usage above 90%"
+          description: >
+            {{ $value | humanizePercentage }} memory in use.
+            Check for memory leaks or increase container limits.

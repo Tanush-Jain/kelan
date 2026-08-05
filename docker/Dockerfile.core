@@ -1,0 +1,55 @@
+# ── Build stage ──────────────────────────────────────────────────
+FROM rust:1.85-slim-bookworm AS builder
+
+RUN apt-get update && apt-get install -y \
+    pkg-config libssl-dev clang llvm \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Cache dependencies: copy manifests first, build a dummy, then real source
+COPY Cargo.toml Cargo.lock ./
+COPY aitp-core/Cargo.toml aitp-core/Cargo.toml
+COPY aitp-identity/Cargo.toml aitp-identity/Cargo.toml
+COPY aitp-ai-engine/Cargo.toml aitp-ai-engine/Cargo.toml
+COPY aitp-control-plane/Cargo.toml aitp-control-plane/Cargo.toml
+COPY aitp-observability/Cargo.toml aitp-observability/Cargo.toml
+COPY aitp-sdk/Cargo.toml aitp-sdk/Cargo.toml
+
+# Create stub sources so Cargo can resolve dependencies
+RUN mkdir -p aitp-core/src/bin && echo "fn main(){}" > aitp-core/src/bin/aitp_node.rs && echo "" > aitp-core/src/lib.rs \
+    && mkdir -p aitp-identity/src && echo "" > aitp-identity/src/lib.rs \
+    && mkdir -p aitp-ai-engine/src && echo "" > aitp-ai-engine/src/lib.rs \
+    && mkdir -p aitp-control-plane/src && echo "fn main(){}" > aitp-control-plane/src/main.rs \
+    && mkdir -p aitp-observability/src && echo "" > aitp-observability/src/lib.rs \
+    && mkdir -p aitp-sdk/src && echo "" > aitp-sdk/src/lib.rs
+
+RUN cargo build --release --bin aitp-node 2>/dev/null || true
+
+# Copy real source and build
+COPY . .
+RUN rm -rf target/release/deps/libaitp* target/release/deps/aitp* target/release/aitp-node
+RUN cargo build --release --bin aitp-node
+
+# ── Runtime stage ────────────────────────────────────────────────
+FROM debian:bookworm-slim
+
+RUN apt-get update && apt-get install -y \
+    ca-certificates libssl3 curl \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /app/target/release/aitp-node /usr/local/bin/aitp-node
+COPY config/aitp.toml /etc/aitp/aitp.toml
+
+ENV AITP_LOG_LEVEL=info
+ENV AITP_NODE_LISTEN_PORT=9999
+ENV OLLAMA_ENDPOINT=http://localhost:11434
+ENV OLLAMA_MODEL=gemma3:9b
+
+EXPOSE 9999/udp
+EXPOSE 9100/tcp
+
+HEALTHCHECK --interval=10s --timeout=3s --retries=3 \
+    CMD curl -f http://localhost:9100/health || exit 1
+
+ENTRYPOINT ["aitp-node", "--config", "/etc/aitp/aitp.toml"]
