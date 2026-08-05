@@ -158,6 +158,9 @@ async def main_async(target: str, limit: int, model: str,
     render_report(results, target)
 
     if json_out:
+        os.makedirs("reports", exist_ok=True)
+        if not os.path.dirname(json_out):
+            json_out = os.path.join("reports", json_out)
         with open(json_out, "w") as fh:
             json.dump(results, fh, indent=2)
         print(f"[*] wrote {json_out}")
