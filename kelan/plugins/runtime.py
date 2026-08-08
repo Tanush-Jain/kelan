@@ -1,9 +1,10 @@
 
 from __future__ import annotations
+
 from pathlib import Path
 
 from kelan.analyze.runtime import audit_codebase
-from kelan.core.plugin import (PluginResult, ScanContext, ScanPlugin, ScopeKind)
+from kelan.core.plugin import PluginResult, ScanContext, ScanPlugin, ScopeKind
 
 
 class AnalyzeRuntimePlugin(ScanPlugin):

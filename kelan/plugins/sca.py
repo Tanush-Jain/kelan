@@ -10,7 +10,6 @@ import os
 import re
 import shutil
 from pathlib import Path
-from typing import Optional
 
 import httpx
 import structlog
@@ -117,9 +116,8 @@ class ScaPlugin(ScanPlugin):
                         location=f"{loc}:{pkg_name}@{version}",
                         target=str(root),
                     )
-                    f.add_evidence("manifest", vuln.get("id", ""),
-                                   ref=",".join(aliases) or pkg_name,
-                                   detail=vuln.get("summary", ""))
+                    f.add_evidence("manifest", vuln.get("summary", "") or vuln.get("id", ""),
+                                   ref=",".join(aliases) or pkg_name)
                     findings.append(f)
         return findings
 
@@ -141,9 +139,8 @@ class ScaPlugin(ScanPlugin):
                     remediation=f"pip install --upgrade {name}",
                     location=f"{name}@{version}",
                 )
-                f.add_evidence("manifest", v.get("id", ""),
-                               ref=",".join(v.get("aliases", [])),
-                               detail=(v.get("description") or "")[:300])
+                f.add_evidence("manifest", (v.get("description") or "")[:300] or v.get("id", ""),
+                               ref=",".join(v.get("aliases", [])))
                 findings.append(f)
         return findings
 
@@ -169,9 +166,8 @@ class ScaPlugin(ScanPlugin):
                         remediation=f"npm audit fix; upgrade {name}",
                         location=name,
                     )
-                    f.add_evidence("manifest", v.get("url", ""),
-                                   ref=v.get("url", "") or name,
-                                   detail=v.get("range", ""))
+                    f.add_evidence("manifest", v.get("range", "") or v.get("url", ""),
+                                   ref=v.get("url", "") or name)
                     findings.append(f)
         return findings
 

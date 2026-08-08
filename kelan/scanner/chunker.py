@@ -1,9 +1,11 @@
 import os
-from typing import Iterator, Dict, Any
-from tree_sitter import Language, Parser, Query, QueryCursor
-import tree_sitter_python as tspython
+from collections.abc import Iterator
+from typing import Any
+
 import tree_sitter_javascript as tsjs
+import tree_sitter_python as tspython
 import tree_sitter_typescript as tsts
+from tree_sitter import Language, Parser, Query, QueryCursor
 
 
 class SemanticChunker:
@@ -24,7 +26,7 @@ class SemanticChunker:
             "(function_declaration) @func (class_declaration) @class (arrow_function) @arrow"
         )
 
-    def extract_chunks(self, file_path: str, code_bytes: bytes) -> Iterator[Dict[str, Any]]:
+    def extract_chunks(self, file_path: str, code_bytes: bytes) -> Iterator[dict[str, Any]]:
         ext = os.path.splitext(file_path)[1].lower()
         
         if ext == ".py":
@@ -51,5 +53,5 @@ class SemanticChunker:
                     "type": capture_name,
                     "start_line": node.start_point[0],
                     "end_line": node.end_point[0],
-                    "content": node.text.decode("utf-8", errors="replace"),
+                    "content": (node.text or b"").decode("utf-8", errors="replace"),
                 }

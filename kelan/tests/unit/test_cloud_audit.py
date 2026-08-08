@@ -1,9 +1,11 @@
 import tempfile
 from pathlib import Path
-import pytest
 from unittest.mock import AsyncMock, patch
 
-from kelan.cloud.audit import audit_creds, check_s3_bucket, audit_all
+import pytest
+
+from kelan.cloud.audit import audit_creds, check_s3_bucket
+
 
 def test_audit_creds_finding():
     code = f"""

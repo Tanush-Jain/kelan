@@ -1,9 +1,11 @@
 
 import json
 import os
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
-from .models import Base, VerdictLog, AnomalyLog
+
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
 from ..config import get_settings
+from .models import AnomalyLog, Base, VerdictLog
 
 _engine = None
 _session_factory = None
@@ -142,7 +144,7 @@ async def save_anomaly(source: str, kind: str,
 
 
 async def fetch_verdicts(limit: int = 100) -> list[dict]:
-    from sqlalchemy import select, desc
+    from sqlalchemy import desc, select
     async with get_session() as s:
         rows = await s.execute(
             select(VerdictLog)
@@ -165,7 +167,7 @@ async def fetch_verdicts(limit: int = 100) -> list[dict]:
 
 
 async def fetch_anomalies(limit: int = 50) -> list[dict]:
-    from sqlalchemy import select, desc
+    from sqlalchemy import desc, select
     async with get_session() as s:
         rows = await s.execute(
             select(AnomalyLog)

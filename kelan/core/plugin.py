@@ -1,16 +1,16 @@
 
 from __future__ import annotations
 
-import asyncio
 import importlib
 import inspect
 import shutil
 import tempfile
 import time
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Iterable, Optional
+from typing import Any
 
 import structlog
 
@@ -67,8 +67,8 @@ class ScanContext:
 
 
     def __init__(self, target: ScanTarget, config: ScanConfig,
-                 workspace: Path, results: Optional[FindingSet] = None,
-                 ollama: Optional[dict] = None):
+                 workspace: Path, results: FindingSet | None = None,
+                 ollama: dict | None = None):
         self.target = target
         self.config = config
         self.workspace = workspace
@@ -178,11 +178,11 @@ class Scheduler:
 
 
     def __init__(self, registry: PluginRegistry,
-                 config: Optional[ScanConfig] = None):
+                 config: ScanConfig | None = None):
         self.registry = registry
         self.config = config or ScanConfig()
         self.results = FindingSet()
-        self._workspace: Optional[Path] = None
+        self._workspace: Path | None = None
         self._made_workspace = False
 
     def cleanup(self) -> None:
@@ -190,8 +190,8 @@ class Scheduler:
             shutil.rmtree(self._workspace, ignore_errors=True)
 
     async def run(self, target: ScanTarget,
-                  only: Optional[set[str]] = None,
-                  skip: Optional[set[str]] = None,
+                  only: set[str] | None = None,
+                  skip: set[str] | None = None,
                   ) -> tuple[FindingSet, dict[str, PluginResult]]:
         only = only or set()
         skip = skip or set()

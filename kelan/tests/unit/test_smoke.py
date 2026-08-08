@@ -1,10 +1,13 @@
 
 import asyncio
 import json
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
+
+from kelan.enforcement.ebpf_bridge import LOADER_BINARY, EbpfBridge
 from kelan.trust.fallback_rules import FallbackRulesEngine
-from kelan.enforcement.ebpf_bridge import EbpfBridge, LOADER_BINARY
+
 
 @pytest.fixture(scope="module")
 def anyio_backend():

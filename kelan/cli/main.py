@@ -4,13 +4,11 @@
 from __future__ import annotations
 
 import sys
-from typing import Optional
 
 import structlog
-
 from rich.console import Console
-from rich.prompt import Prompt
 from rich.panel import Panel
+from rich.prompt import Prompt
 
 log = structlog.get_logger()
 
@@ -20,9 +18,9 @@ def _err(msg: str, code: int = 2) -> int:
     return code
 
 
-def _delegate() -> Optional[int]:
+def _delegate() -> int | None:
 
-    import kelan.run as run
+    from kelan import run
     return run.main()
 
 
@@ -73,8 +71,8 @@ def _launch_dashboard() -> None:
     import socket
     import subprocess
     import sys
-    import webbrowser
     import time
+    import webbrowser
     from pathlib import Path
 
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -82,7 +80,7 @@ def _launch_dashboard() -> None:
         s.bind(("127.0.0.1", 7681))
         s.close()
         port_free = True
-    except socket.error:
+    except OSError:
         port_free = False
 
     if port_free:
@@ -104,7 +102,7 @@ def _launch_dashboard() -> None:
         pass
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     argv = list(argv) if argv is not None else sys.argv[1:]
     
     # Launch dashboard for scans, menus, or default invocations
@@ -121,6 +119,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         return cmd_menu()
     if cmd == "doctor":
         import asyncio
+
         from kelan.doctor import doctor
         return asyncio.run(doctor())
     if cmd == "--plugins":

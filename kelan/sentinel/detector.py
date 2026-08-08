@@ -1,9 +1,12 @@
 from __future__ import annotations
+
 import time
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from typing import Any
+
 import structlog
+
 from ..db.database import save_anomaly
 
 log = structlog.get_logger()

@@ -1,10 +1,10 @@
 import asyncio
 import random
 import uuid
-from typing import Optional
 
 # Added missing imports based on code usage
 from dataclasses import dataclass
+
 
 @dataclass
 class SessionContext:
@@ -41,7 +41,7 @@ class SimulationEngine:
         self.trust_engine = trust_engine
         self.sentinel = sentinel
         self.active = False
-        self._task: Optional[asyncio.Task] = None
+        self._task: asyncio.Task | None = None
         self.verdicts_generated = 0
         self._lock = asyncio.Lock()
 
@@ -64,8 +64,7 @@ class SimulationEngine:
                     await asyncio.wait_for(
                         self._task, timeout=5.0
                     )
-                except (asyncio.CancelledError,
-                        asyncio.TimeoutError):
+                except (TimeoutError, asyncio.CancelledError):
                     pass
                 self._task = None
 

@@ -4,31 +4,42 @@
 
 
 
-import time
-import uuid
 import asyncio
 import os
-from pathlib import Path
+import time
+import uuid
 from contextlib import asynccontextmanager
-from typing import Optional, Any, cast
+from pathlib import Path
+from typing import Any, cast
 
 import structlog
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, FileResponse
-from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST, REGISTRY
+from fastapi.responses import FileResponse, JSONResponse
+from prometheus_client import (
+    CONTENT_TYPE_LATEST,
+    REGISTRY,
+    Counter,
+    Histogram,
+    generate_latest,
+)
+from pydantic import BaseModel
 from starlette.responses import Response
 
-from pydantic import BaseModel
-
-from ..config import get_settings
-from ..ai.ollama_client import OllamaClient, Verdict
 from ..ai.engine import HybridTrustEngine
-from ..sentinel.detector import SentinelDetector
-from ..enforcement.ebpf_bridge import EbpfBridge
-from ..protocol.handshake import HandshakeManager, HandshakeError
-from ..db.database import init_db, save_verdict, fetch_verdicts, fetch_anomalies, get_session
+from ..ai.ollama_client import OllamaClient, Verdict
+from ..config import get_settings
+from ..db.database import (
+    fetch_anomalies,
+    fetch_verdicts,
+    get_session,
+    init_db,
+    save_verdict,
+)
 from ..db.models import Entity, Session
+from ..enforcement.ebpf_bridge import EbpfBridge
+from ..protocol.handshake import HandshakeError, HandshakeManager
+from ..sentinel.detector import SentinelDetector
 
 log = structlog.get_logger()
 cfg = get_settings()
@@ -51,11 +62,11 @@ else:
                            buckets=[50, 100, 200, 500, 1000, 2000, 5000])
 
 
-ollama:    Optional[OllamaClient]     = None
-engine:    Optional[HybridTrustEngine] = None
-sentinel:  Optional[SentinelDetector] = None
-ebpf:      Optional[EbpfBridge]       = None
-handshake_mgr: Optional[HandshakeManager] = None
+ollama:    OllamaClient | None     = None
+engine:    HybridTrustEngine | None = None
+sentinel:  SentinelDetector | None = None
+ebpf:      EbpfBridge | None       = None
+handshake_mgr: HandshakeManager | None = None
 
 _ws_clients: set[WebSocket] = set()
 _start_time = time.time()
@@ -118,6 +129,7 @@ if os.path.exists("kelan-dashboard/dist/assets"):
     app.mount("/assets", StaticFiles(directory="kelan-dashboard/dist/assets"), name="assets")
 
 from prometheus_fastapi_instrumentator import Instrumentator
+
 Instrumentator().instrument(app).expose(app)
 
 
@@ -164,14 +176,14 @@ async def _on_verdict(payload: dict):
     _ws_clients.difference_update(dead)
 
 
-import hmac
-import hashlib
 import base64
+import hashlib
+import hmac
 import json
 from collections import defaultdict
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from fastapi import Depends
 
+from fastapi import Depends
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 _organisations: dict[str, dict] = {}
 _rate_limit_history = defaultdict(list)
@@ -198,7 +210,7 @@ def encode_jwt(claims: dict, secret: str) -> str:
     header = {"alg": "HS256", "typ": "JWT"}
     header_b64 = base64url_encode(json.dumps(header, separators=(',', ':')).encode('utf-8'))
     payload_b64 = base64url_encode(json.dumps(claims, separators=(',', ':')).encode('utf-8'))
-    signing_input = f"{header_b64}.{payload_b64}".encode('utf-8')
+    signing_input = f"{header_b64}.{payload_b64}".encode()
     signature = hmac.new(secret.encode('utf-8'), signing_input, hashlib.sha256).digest()
     signature_b64 = base64url_encode(signature)
     return f"{header_b64}.{payload_b64}.{signature_b64}"
@@ -208,7 +220,7 @@ def decode_jwt(token: str, secret: str) -> dict:
     if len(parts) != 3:
         raise ValueError("Invalid token format")
     header_b64, payload_b64, signature_b64 = parts
-    signing_input = f"{header_b64}.{payload_b64}".encode('utf-8')
+    signing_input = f"{header_b64}.{payload_b64}".encode()
     expected_signature = hmac.new(secret.encode('utf-8'), signing_input, hashlib.sha256).digest()
     expected_signature_b64 = base64url_encode(expected_signature)
     if not hmac.compare_digest(signature_b64.encode('utf-8'), expected_signature_b64.encode('utf-8')):
@@ -221,7 +233,7 @@ def decode_jwt(token: str, secret: str) -> dict:
 
 security = HTTPBearer(auto_error=False)
 
-async def get_current_org(credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)):
+async def get_current_org(credentials: HTTPAuthorizationCredentials | None = Depends(security)):
     if not credentials:
         raise HTTPException(status_code=401, detail="Missing authorization header")
     token = credentials.credentials
@@ -247,10 +259,10 @@ def enforce_rate_limit(request: Request, limit: int = 50, window: int = 60):
 
 class SignupReq(BaseModel):
     org_name: str
-    email: Optional[str] = None
-    password: Optional[str] = None
-    entity_id: Optional[str] = None
-    tier: Optional[str] = None
+    email: str | None = None
+    password: str | None = None
+    entity_id: str | None = None
+    tier: str | None = None
 
 class SigninReq(BaseModel):
     email: str
@@ -259,15 +271,15 @@ class SigninReq(BaseModel):
 class CreateEntityReq(BaseModel):
     name: str
     entity_type: str
-    department: Optional[str] = None
-    clearance_level: Optional[int] = None
-    allowed_intents: Optional[list[str]] = None
+    department: str | None = None
+    clearance_level: int | None = None
+    allowed_intents: list[str] | None = None
 
 class TestSessionReq(BaseModel):
     dest_entity_id: str
     intent: str
-    bytes_tx: Optional[int] = 0
-    simulate_lateral_movement: Optional[bool] = False
+    bytes_tx: int | None = 0
+    simulate_lateral_movement: bool | None = False
 
 class VerifyKeyReq(BaseModel):
     provider: str
@@ -279,37 +291,37 @@ class EnrollReq(BaseModel):
     intent:             str   = "INIT_ENROL"
     name:               str   = ""
     version:            Any   = 1
-    x25519_public_key:  Optional[str] = None
-    kem_public_key:     Optional[str] = None
-    signature:          Optional[str] = None
-    nonce:              Optional[str] = None
-    metadata:           Optional[dict] = None
+    x25519_public_key:  str | None = None
+    kem_public_key:     str | None = None
+    signature:          str | None = None
+    nonce:              str | None = None
+    metadata:           dict | None = None
 
 
 class HandshakeReq(BaseModel):
-    session_id:        Optional[str] = None
+    session_id:        str | None = None
     entity_id:         str
     phase:             int   = 1
     intent:            str   = "INIT_SESSION"
-    nonce_c:           Optional[str] = None
-    x25519_public_key: Optional[str] = None
-    kem_ciphertext:    Optional[str] = None
-    kem_public_key:    Optional[str] = None
-    signature:         Optional[str] = None
-    ed25519_public_key: Optional[str] = None
+    nonce_c:           str | None = None
+    x25519_public_key: str | None = None
+    kem_ciphertext:    str | None = None
+    kem_public_key:    str | None = None
+    signature:         str | None = None
+    ed25519_public_key: str | None = None
 
 
 class TrustEvalReq(BaseModel):
     entity_id:  str
     intent:     str
     session_id: str
-    anomalies:  Optional[Any] = None
+    anomalies:  Any | None = None
 
 
 class XdpDropReport(BaseModel):
     count:     int
     interface: str = "eth0"
-    reason:    Optional[str] = None
+    reason:    str | None = None
 
 
 
@@ -641,8 +653,8 @@ async def websocket_logs(websocket: WebSocket):
 async def trigger_attack():
 
     try:
-        import sys
         import subprocess
+        import sys
         python_bin = sys.executable
         script_path = "scripts/run_attacks.py"
         subprocess.Popen(
@@ -788,7 +800,7 @@ async def signup(req: SignupReq, request: Request):
     token = encode_jwt(claims, cfg.jwt_secret)
     
     import datetime
-    expires_at_iso = datetime.datetime.fromtimestamp(expiry, datetime.timezone.utc).isoformat()
+    expires_at_iso = datetime.datetime.fromtimestamp(expiry, datetime.UTC).isoformat()
     
     return {
         "token": token,
@@ -835,7 +847,7 @@ async def signin(req: SigninReq, request: Request):
     token = encode_jwt(claims, cfg.jwt_secret)
     
     import datetime
-    expires_at_iso = datetime.datetime.fromtimestamp(expiry, datetime.timezone.utc).isoformat()
+    expires_at_iso = datetime.datetime.fromtimestamp(expiry, datetime.UTC).isoformat()
     
     return {
         "token": token,
@@ -1009,7 +1021,7 @@ async def get_entity(id: str, current_org = Depends(get_current_org)):
 @app.delete("/api/entities/{id}")
 async def delete_entity(id: str, current_org = Depends(get_current_org)):
     org_id = current_org.get("org_id", "")
-    from sqlalchemy import select, delete
+    from sqlalchemy import delete, select
     async with get_session() as s:
         result = await s.execute(select(Entity).filter(Entity.id == id))
         e = result.scalar_one_or_none()
@@ -1031,7 +1043,7 @@ async def quarantine_entity(id: str, current_org = Depends(get_current_org)):
         if not e:
             raise HTTPException(status_code=404, detail="Entity not found")
             
-        setattr(e, "quarantined", 1)
+        e.quarantined = 1  # type: ignore
         await s.commit()
         
     if ebpf:
@@ -1053,7 +1065,7 @@ async def release_entity(id: str, current_org = Depends(get_current_org)):
         if not e:
             raise HTTPException(status_code=404, detail="Entity not found")
             
-        setattr(e, "quarantined", 0)
+        e.quarantined = 0  # type: ignore
         await s.commit()
     return {"status": "released", "entity_id": id}
 
@@ -1155,13 +1167,13 @@ async def test_session(id: str, req: TestSessionReq, current_org = Depends(get_c
             session_cnt = getattr(source_db, "session_count", 0)
             if not isinstance(session_cnt, int):
                 session_cnt = 0
-            setattr(source_db, "session_count", session_cnt + 1)
+            source_db.session_count = session_cnt + 1  # type: ignore
             
             if verdict.verdict == Verdict.DENY:
                 blocked_cnt = getattr(source_db, "blocked_count", 0)
                 if not isinstance(blocked_cnt, int):
                     blocked_cnt = 0
-                setattr(source_db, "blocked_count", blocked_cnt + 1)
+                source_db.blocked_count = blocked_cnt + 1  # type: ignore
                 
         await s.commit()
         

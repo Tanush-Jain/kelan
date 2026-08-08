@@ -1,9 +1,10 @@
 
 from __future__ import annotations
+
 from pathlib import Path
 
 from kelan.cloud.audit import audit_all
-from kelan.core.plugin import (PluginResult, ScanContext, ScanPlugin, ScopeKind)
+from kelan.core.plugin import PluginResult, ScanContext, ScanPlugin, ScopeKind
 
 
 class CloudPlugin(ScanPlugin):

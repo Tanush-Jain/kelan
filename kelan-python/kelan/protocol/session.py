@@ -6,7 +6,7 @@ import time
 import uuid
 from collections import deque
 from dataclasses import dataclass, field
-from typing import Optional
+
 import structlog
 
 from ..ai.ollama_client import TrustVerdict, Verdict
@@ -22,7 +22,7 @@ class SessionRecord:
     confidence: float
     reason: str
     created_at: float = field(default_factory=time.time)
-    permit_token: Optional[str] = None
+    permit_token: str | None = None
 
     def to_dict(self) -> dict:
         return {
@@ -71,14 +71,14 @@ class SessionManager:
 
         # If at capacity, the deque will drop the oldest ID on append.
         # Capture it first so we can remove it from _sessions.
-        evicted: Optional[str] = self._order[0] if len(self._order) >= self._capacity else None
+        evicted: str | None = self._order[0] if len(self._order) >= self._capacity else None
         self._order.append(session_id)          # oldest auto-dropped if maxlen hit
         if evicted and evicted not in self._order:
             self._sessions.pop(evicted, None)   # free the dict entry too
 
         return record
 
-    def get(self, session_id: str) -> Optional[SessionRecord]:
+    def get(self, session_id: str) -> SessionRecord | None:
         return self._sessions.get(session_id)
 
     def recent_verdicts(self, limit: int = 100) -> list[dict]:

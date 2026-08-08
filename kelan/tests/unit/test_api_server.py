@@ -1,16 +1,17 @@
 
 from __future__ import annotations
+
 from typing import Any
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 from fastapi import WebSocketDisconnect
-from httpx import AsyncClient, ASGITransport
+from httpx import ASGITransport, AsyncClient
 
 from kelan.ai.ollama_client import TrustVerdict, Verdict
+from kelan.api.server import _on_verdict, _ws_clients, app, lifespan, ws_agent
 from kelan.protocol.handshake import HandshakeError
-from kelan.api.server import (
-    app, lifespan, _on_verdict, ws_agent, _ws_clients
-)
+
 
 @pytest.fixture(scope="module")
 def anyio_backend() -> str:

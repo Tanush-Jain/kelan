@@ -5,7 +5,6 @@ import json
 import os
 import sys
 import urllib.request
-from typing import Optional
 
 from kelan.scanner.analyzer import VulnerabilityAnalyzer
 from kelan.scanner.chunker import SemanticChunker
@@ -37,7 +36,7 @@ def get_local_models() -> list[str]:
 
 
 
-def collect_chunks(target: str, limit: Optional[int]) -> list:
+def collect_chunks(target: str, limit: int | None) -> list:
     chunker = SemanticChunker()
     chunks = []
     for root, dirs, files in os.walk(target):
@@ -129,10 +128,10 @@ def render_report(results, target) -> list:
 async def main_async(target: str, limit: int, model: str,
                      endpoint: str = DEFAULT_ENDPOINT,
                      concurrency: int = 2, timeout: float = 180.0,
-                     json_out: Optional[str] = None) -> int:
+                     json_out: str | None = None) -> int:
     if target.startswith(("http://", "https://")):
-        print(f"\n💡 'kelan scan' is for local source code directories (SAST).")
-        print(f"   Web URLs are audited dynamically using 'kelan dast'.")
+        print("\n💡 'kelan scan' is for local source code directories (SAST).")
+        print("   Web URLs are audited dynamically using 'kelan dast'.")
         print(f"   Routing target '{target}' to DAST agent...\n")
         from kelan.dast.cli import main as dast_main
         return dast_main(["--target", target, "--model", model])

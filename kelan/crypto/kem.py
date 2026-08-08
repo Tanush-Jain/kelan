@@ -1,4 +1,5 @@
-from kelan.protocol.crypto import kem_generate, kem_encapsulate, kem_decapsulate
+from kelan.protocol.crypto import kem_decapsulate, kem_encapsulate, kem_generate
+
 
 def mlkem_keygen():
     pair = kem_generate()

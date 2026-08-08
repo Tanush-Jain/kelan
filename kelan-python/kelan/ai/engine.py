@@ -9,8 +9,9 @@ Architecture:
   4. Broadcast verdict to all connected WebSocket agents
 """
 import time
+from collections.abc import Awaitable, Callable
 from enum import Enum
-from typing import Callable, Awaitable
+
 import structlog
 
 from .ollama_client import OllamaClient, TrustVerdict, Verdict

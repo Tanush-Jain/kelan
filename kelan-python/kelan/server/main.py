@@ -18,34 +18,36 @@ import os
 import time
 import uuid
 from contextlib import asynccontextmanager
-from typing import Optional
 
 import structlog
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Request
+from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
-from ..config import get_settings
 from ..ai.engine import HybridTrustEngine
 from ..ai.ollama_client import OllamaClient, Verdict
-from ..sentinel.anomaly import SentinelEngine
-from ..protocol.session import SessionManager
+from ..config import get_settings
 from ..enforcement.ebpf_bridge import EbpfBridge
+from ..protocol.session import SessionManager
+from ..sentinel.anomaly import SentinelEngine
 from ..simulation.engine import SimulationEngine
 from .models import (
-    EnrollRequest, HandshakeRequest, XdpDropReport,
-    HealthResponse, EnrollResponse,
+    EnrollRequest,
+    EnrollResponse,
+    HandshakeRequest,
+    HealthResponse,
+    XdpDropReport,
 )
 
 log = structlog.get_logger()
 settings = get_settings()
 
 # ── Global singletons (initialised in lifespan) ───────────────────────────────
-ollama: Optional[OllamaClient] = None
-engine: Optional[HybridTrustEngine] = None
-sentinel: Optional[SentinelEngine] = None
-sessions: Optional[SessionManager] = None
-ebpf: Optional[EbpfBridge] = None
-simulation: Optional[SimulationEngine] = None
+ollama: OllamaClient | None = None
+engine: HybridTrustEngine | None = None
+sentinel: SentinelEngine | None = None
+sessions: SessionManager | None = None
+ebpf: EbpfBridge | None = None
+simulation: SimulationEngine | None = None
 ws_clients: set[WebSocket] = set()
 
 _started_at = time.time()

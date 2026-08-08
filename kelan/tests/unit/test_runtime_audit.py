@@ -1,10 +1,13 @@
 import tempfile
 from pathlib import Path
-import pytest
 
 from kelan.analyze.runtime import (
-    _extract_re_patterns, is_redos_candidate, _validate_redos, audit_codebase
+    _extract_re_patterns,
+    _validate_redos,
+    audit_codebase,
+    is_redos_candidate,
 )
+
 
 def test_extract_re_patterns():
     code = """

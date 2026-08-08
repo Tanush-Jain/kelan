@@ -18,7 +18,6 @@ import os
 import re
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional
 
 import httpx
 import structlog
@@ -29,7 +28,7 @@ from tenacity import (
     wait_exponential,
 )
 
-from .prompts import build_evaluation_prompt, VERIFY_PROMPT
+from .prompts import VERIFY_PROMPT, build_evaluation_prompt
 
 log = structlog.get_logger()
 
@@ -83,7 +82,7 @@ class OllamaClient:
         # Change OLLAMA_MODEL in .env to switch models without code changes
         self.model = model or os.getenv("OLLAMA_MODEL", "qwen2.5:3b")
         self.timeout = timeout
-        self._client: Optional[httpx.AsyncClient] = None
+        self._client: httpx.AsyncClient | None = None
         # FIX 1: lock prevents concurrent coroutines racing on _client init
         self._session_lock = asyncio.Lock()
 

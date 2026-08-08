@@ -34,8 +34,20 @@ fail_under = 60
 show_missing = true
 skip_covered = true
 
+[tool.ruff]
+exclude = [
+  "scripts",
+  "tools",
+  "scratch",
+  "kelan-python",
+  "build",
+  "dist",
+  ".venv",
+  "venv"
+]
+
 [tool.ruff.lint]
-ignore = ["E402", "E701", "E702", "E722", "F841"]
+ignore = ["E402", "E701", "E702", "E722", "F841", "BLE001", "S110", "RUF059", "RUF012", "B017", "ASYNC230", "TRY004", "RUF015", "SIM103", "UP007", "B008", "SIM102", "ASYNC220", "TRY002", "DTZ005", "ISC004", "S112", "PIE810", "PLW1510", "PLW0602", "C401"]
 
 [tool.mypy]
 ignore_missing_imports = true

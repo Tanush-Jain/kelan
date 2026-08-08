@@ -1,5 +1,6 @@
 from kelan.ai.engine import _fallback
 
+
 class FallbackRulesEngine:
     async def evaluate(self, ctx: dict) -> dict:
         trust_verdict = _fallback(ctx)

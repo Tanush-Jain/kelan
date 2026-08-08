@@ -5,20 +5,23 @@ import asyncio
 import random
 import re
 from dataclasses import dataclass
-from typing import Optional
-from urllib.parse import urlparse, urlunparse, parse_qsl, urlencode
+from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 import httpx
 import structlog
 
-from kelan.dast.bypass import build_probes, RATELIMIT_HEADERS
-from kelan.dast.crawler import Crawler, DEFAULT_HEADERS
+from kelan.dast.bypass import RATELIMIT_HEADERS, build_probes
+from kelan.dast.crawler import DEFAULT_HEADERS, Crawler
 from kelan.dast.heuristics import (
-    reflected, sql_error_hint, traversal_hit, ssti_hit, grade_idor,
+    grade_idor,
     grade_ratelimit_burst,
+    reflected,
+    sql_error_hint,
+    ssti_hit,
+    traversal_hit,
 )
 from kelan.dast.llm import CATEGORY_CWE, enrich_finding
-from kelan.dast.report import Finding, Report, SEV_ORDER
+from kelan.dast.report import SEV_ORDER, Finding, Report
 
 log = structlog.get_logger()
 
@@ -26,7 +29,7 @@ REQUIRED_HEADERS = [
     "content-security-policy", "x-frame-options", "x-content-type-options",
     "referrer-policy", "permissions-policy", "strict-transport-security",
 ]
-API_RE = re.compile(r"/(api|v\d+|rest|graphql|service)/", re.I)
+API_RE = re.compile(r"/(api|v\d+|rest|graphql|service)/", re.IGNORECASE)
 
 
 @dataclass
@@ -74,7 +77,7 @@ def _build_targets(pages, fuzz_tokens: bool = False):
 
 
 def _evaluate(cat, resp, payload, variant, url, method, param, marker,
-              strong_seen: set) -> Optional[Finding]:
+              strong_seen: set) -> Finding | None:
     body = resp.text or ""
     st = resp.status_code
     key = (url, param, cat)
@@ -317,7 +320,7 @@ def render_report(report: Report):
     print(f"Flaw detected: {'YES ⚠️' if flawed else 'NO ✅'}")
     stats = report.stats()
     sev = stats["severities"]
-    print(f"Findings: " + ", ".join(f"{sev.get(s, 0)} {s}" for s in
+    print("Findings: " + ", ".join(f"{sev.get(s, 0)} {s}" for s in
                                      ("CRITICAL", "HIGH", "MEDIUM", "LOW")) or "0")
     missing = [f for f in flagged if f.category == "header"]
     if missing:

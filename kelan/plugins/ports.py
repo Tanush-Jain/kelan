@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from urllib.parse import urlparse
+
 import structlog
 
 from kelan.core.finding import Confidence, Finding, Severity

@@ -7,14 +7,16 @@ import re
 import time
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional
 
 import httpx
 import structlog
 from tenacity import (
-    retry, stop_after_attempt,
-    wait_exponential, retry_if_exception_type,
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
 )
+
 from .prompts import SYSTEM_PROMPT, build_prompt
 
 log = structlog.get_logger()
@@ -137,7 +139,7 @@ class OllamaClient:
         self.timeout     = timeout
         self.temperature = temperature
         self.max_tokens  = max_tokens
-        self._http: Optional[httpx.AsyncClient] = None
+        self._http: httpx.AsyncClient | None = None
 
         self._cache: dict[str, TrustVerdict] = {}
         self._cache_hits  = 0
@@ -263,7 +265,7 @@ class OllamaClient:
         prompt: str,
         system: str = "",
         max_tokens: int = 4000,
-        temperature: Optional[float] = None,
+        temperature: float | None = None,
     ) -> str:
 
 

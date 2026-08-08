@@ -30,7 +30,9 @@ class SastPlugin(ScanPlugin):
                 return PluginResult(self.name, errors=[f"git clone failed: {repo}"])
             target_path = str(clone_dir)
 
-        from kelan.scanner.chunker import SemanticChunker
+        if target_path is None:
+            return PluginResult(self.name, errors=["No codebase target path provided"])
+
         from kelan.scanner.analyzer import VulnerabilityAnalyzer
 
         root = Path(target_path)
@@ -113,7 +115,7 @@ class SastPlugin(ScanPlugin):
         results = await asyncio.gather(*(guarded(p) for p in files),
                                        return_exceptions=True)
         for r in results:
-            if isinstance(r, Exception):
+            if isinstance(r, BaseException):
                 pr.errors.append(str(r))
             else:
                 pr.findings.extend(r)

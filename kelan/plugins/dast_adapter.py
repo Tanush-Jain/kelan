@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from kelan.core.finding import Confidence, Finding, Severity, Evidence
+from kelan.core.finding import Confidence, Finding, Severity
 from kelan.core.plugin import PluginResult, ScanContext, ScanPlugin, ScopeKind
 
 
@@ -25,7 +25,7 @@ class DastPlugin(ScanPlugin):
     requires = ("recon_ports",)
 
     async def run(self, ctx: ScanContext) -> PluginResult:
-        from kelan.dast.pipeline import run_scan, ScanOptions
+        from kelan.dast.pipeline import ScanOptions, run_scan
 
         target_url = ctx.target.value
         cfg = ctx.config.section("dast")

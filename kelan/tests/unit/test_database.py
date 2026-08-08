@@ -1,11 +1,18 @@
 
 import os
+
 import pytest
 import pytest_asyncio
+
 from kelan.config import get_settings
 from kelan.db.database import (
-    init_db, save_verdict, save_anomaly, fetch_verdicts, fetch_anomalies
+    fetch_anomalies,
+    fetch_verdicts,
+    init_db,
+    save_anomaly,
+    save_verdict,
 )
+
 
 @pytest.fixture(scope="module")
 def anyio_backend():
