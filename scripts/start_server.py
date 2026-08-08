@@ -1,11 +1,13 @@
-import uvicorn
 import sys
 from pathlib import Path
+
+import uvicorn
 
 # Add project root to sys.path so we can import kelan
 sys.path.append(str(Path(__file__).parent.parent))
 
 from kelan.config import get_settings
+
 
 def print_banner(settings):
     banner = f"""

@@ -39,16 +39,28 @@ exclude = [
   "scripts",
   "tools",
   "scratch",
-  "kelan-python",
   "build",
   "dist",
   ".venv",
   "venv"
 ]
-ignore = ["E402", "E701", "E702", "E722", "F841", "BLE001", "S110", "RUF059", "RUF012", "B017", "ASYNC230", "TRY004", "RUF015", "SIM103", "UP007", "B008", "SIM102", "ASYNC220", "TRY002", "DTZ005", "ISC004", "S112", "PIE810", "PLW1510", "PLW0602", "C401"]
 
 [tool.ruff.lint]
-ignore = ["E402", "E701", "E702", "E722", "F841", "BLE001", "S110", "RUF059", "RUF012", "B017", "ASYNC230", "TRY004", "RUF015", "SIM103", "UP007", "B008", "SIM102", "ASYNC220", "TRY002", "DTZ005", "ISC004", "S112", "PIE810", "PLW1510", "PLW0602", "C401"]
+ignore = [
+  "E402", "E701", "E702", "E722", "F841",
+  "BLE001", "S110", "S112",
+  "RUF059", "RUF012", "RUF015",
+  "B008", "B017",
+  "ASYNC230", "ASYNC220",
+  "TRY004", "TRY002",
+  "SIM102", "SIM103",
+  "UP007", "UP011", "UP035", "UP041", "UP045",
+  "I001",
+  "C401",
+  "DTZ005", "ISC004",
+  "PIE810", "PLW1510", "PLW0602",
+  "FURB167",
+]
 
 [tool.mypy]
 ignore_missing_imports = true

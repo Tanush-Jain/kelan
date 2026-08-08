@@ -1,9 +1,10 @@
-import sys
 import asyncio
-import httpx
-import uuid
 import secrets
+import sys
+import uuid
 from pathlib import Path
+
+import httpx
 from rich.console import Console
 from rich.panel import Panel
 

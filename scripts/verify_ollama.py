@@ -1,14 +1,15 @@
-import sys
 import asyncio
+import sys
 from pathlib import Path
+
 from rich.console import Console
 from rich.panel import Panel
 
 # Add project root to sys.path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from kelan.config import get_settings
 from kelan.ai.ollama_client import OllamaClient
+from kelan.config import get_settings
 
 console = Console()
 

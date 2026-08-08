@@ -1,13 +1,14 @@
 import asyncio
 import os
-import sys
 import subprocess
-import uvicorn
-import httpx
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.middleware.cors import CORSMiddleware
+import sys
 from pathlib import Path
+
+import httpx
+import uvicorn
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse, JSONResponse
 
 app = FastAPI(title="Kelan Security Dashboard Server")
 

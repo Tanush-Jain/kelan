@@ -1,9 +1,10 @@
+import secrets
 import sys
+import uuid
+from pathlib import Path
+
 import click
 import httpx
-import uuid
-import secrets
-from pathlib import Path
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table

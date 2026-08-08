@@ -9,11 +9,14 @@ Usage:
   python tools/strip_comments.py ./kelan --dry-run              # report only
 """
 from __future__ import annotations
-import argparse, io, sys
+
+import argparse
+import io
+import sys
 from pathlib import Path
 
 EXCLUDE = {".git", "node_modules", "venv", ".venv", "target", "__pycache__",
-           "dist", "build", ".venv", "docs"}
+           "dist", "build", "docs"}
 
 
 def _clean_line_spans(line: str, spans: list[tuple[int, int]]) -> str:
@@ -55,7 +58,6 @@ def _strip_python(src: str, drop_docstrings: bool) -> str:
                 # multi-line: blank until closing quote
                 start = lineno
                 end = lineno
-                import re
                 if line.count('"""') < 2 and "'''" not in line:
                     for j in range(lineno + 1, len(lines)):
                         end = j
