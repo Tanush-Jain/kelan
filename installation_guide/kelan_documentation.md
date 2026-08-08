@@ -48,8 +48,8 @@ source "$HOME/.cargo/env"
 Clone the repository and build the workspace.
 
 ```bash
-git clone https://github.com/kelan-security/kelan-core.git
-cd kelan-core
+git clone https://github.com/kelan-security/kelan.git
+cd kelan
 
 # Build the workspace
 cargo build --release
@@ -100,7 +100,7 @@ Create a `.env` file in the project root:
 
 ```env
 # ── Server Identity ──
-AITP_NODE_NAME=kelan-core-01
+AITP_NODE_NAME=kelan-01
 ENVIRONMENT=production
 
 # ── Network Settings ──
@@ -157,9 +157,9 @@ After=network.target
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/opt/kelan-core
-ExecStart=/opt/kelan-core/target/release/aitp-server
-EnvironmentFile=/opt/kelan-core/.env
+WorkingDirectory=/opt/kelan
+ExecStart=/opt/kelan/target/release/aitp-server
+EnvironmentFile=/opt/kelan/.env
 Restart=on-failure
 LimitNOFILE=65536
 
@@ -237,7 +237,7 @@ The Adaptive Intent Transport Protocol (AITP) utilizes a 5-phase handshake to es
 Add the SDK to your `Cargo.toml`:
 ```toml
 [dependencies]
-kelan-sdk = { git = "https://github.com/kelan-security/kelan-core", version = "0.3.0" }
+kelan-sdk = { git = "https://github.com/kelan-security/kelan", version = "0.3.0" }
 ```
 
 Minimal connection setup:
@@ -402,7 +402,7 @@ sudo bpftool map dump name DENY_MAP
 
 ### Attack Simulation
 ```bash
-cd kelan-core
+cd kelan
 cargo run --example attack_sim -- --server localhost:9999 --mode ddos
 ```
 

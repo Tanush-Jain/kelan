@@ -1,9 +1,9 @@
-"""
-Kelan Security — FastAPI Server
-Full replacement for Rust aitp-server.
-Endpoints: health, stats, verdicts, anomalies,
-           enroll, handshake, xdp/drop, /ws/agent
-"""
+
+
+
+
+
+
 import time
 import uuid
 import asyncio
@@ -18,7 +18,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
 from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST, REGISTRY
 from starlette.responses import Response
-# pyrefly: ignore [missing-import]
+
 from pydantic import BaseModel
 
 from ..config import get_settings
@@ -33,7 +33,7 @@ from ..db.models import Entity, Session
 log = structlog.get_logger()
 cfg = get_settings()
 
-# ── Prometheus metrics 
+
 if "kelan_requests_total" in REGISTRY._names_to_collectors:
     REQ_COUNT = cast(Counter, REGISTRY._names_to_collectors["kelan_requests_total"])
 else:
@@ -50,7 +50,7 @@ else:
     OLLAMA_LAT = Histogram("kelan_ollama_latency_ms", "Ollama latency ms",
                            buckets=[50, 100, 200, 500, 1000, 2000, 5000])
 
-# ── Global singletons 
+
 ollama:    Optional[OllamaClient]     = None
 engine:    Optional[HybridTrustEngine] = None
 sentinel:  Optional[SentinelDetector] = None
@@ -61,12 +61,12 @@ _ws_clients: set[WebSocket] = set()
 _start_time = time.time()
 _xdp_drops = 0
 
-# In-memory ring buffers
+
 _verdict_buf: list[dict] = []
 _MAX_BUF = 1000
 
 
-# ── Application lifespan 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global ollama, engine, sentinel, ebpf, handshake_mgr
@@ -102,7 +102,7 @@ async def lifespan(app: FastAPI):
     log.info("kelan_stopped")
 
 
-# ── App 
+
 app = FastAPI(
     title="Kelan Security Intelligence",
     version="4.0.0-python",
@@ -125,13 +125,13 @@ async def add_security_headers(request: Request, call_next):
     return response
 
 
-# ── Helpers 
+
 async def _on_verdict(payload: dict):
-    """Called on every verdict — store + broadcast."""
+
     _verdict_buf.append(payload)
     if len(_verdict_buf) > _MAX_BUF:
         _verdict_buf.pop(0)
-    # Persist to DB
+
     await save_verdict(
         payload.get("session_id", ""),
         payload.get("entity_id", ""),
@@ -141,7 +141,7 @@ async def _on_verdict(payload: dict):
         payload.get("latency_ms", 0.0),
         payload.get("anomalies", {}),
     )
-    # eBPF enforcement
+
     if ebpf:
         if payload.get("action") == "REVOKE":
             await ebpf.revoke(payload.get("entity_id", ""))
@@ -150,7 +150,7 @@ async def _on_verdict(payload: dict):
                 payload.get("session_id", ""),
                 payload.get("entity_id", ""),
             )
-    # WebSocket broadcast
+
     dead = set()
     for ws in _ws_clients:
         try:
@@ -168,11 +168,11 @@ from collections import defaultdict
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi import Depends
 
-# In-memory store for registered organisations
+
 _organisations: dict[str, dict] = {}
 _rate_limit_history = defaultdict(list)
 
-# Password hashing
+
 def hash_password(password: str) -> str:
     salt = b"kelan_security_salt_12345"
     iterations = 100000
@@ -182,7 +182,7 @@ def hash_password(password: str) -> str:
 def verify_password_hash(password: str, password_hash: str) -> bool:
     return hmac.compare_digest(hash_password(password), password_hash)
 
-# JWT helpers
+
 def base64url_encode(data: bytes) -> str:
     return base64.urlsafe_b64encode(data).rstrip(b'=').decode('utf-8')
 
@@ -240,7 +240,7 @@ def enforce_rate_limit(request: Request, limit: int = 50, window: int = 60):
         )
     _rate_limit_history[client_ip].append(now)
 
-# ── Request Models 
+
 class SignupReq(BaseModel):
     org_name: str
     email: Optional[str] = None
@@ -308,12 +308,15 @@ class XdpDropReport(BaseModel):
     reason:    Optional[str] = None
 
 
-# ── Routes
+
 
 @app.get("/")
 @app.get("/dashboard")
 async def get_dashboard():
+    if os.path.exists("kelan-dashboard/index.html"):
+        return FileResponse("kelan-dashboard/index.html")
     return FileResponse("static/index.html")
+
 
 
 @app.get("/terminal")
@@ -388,7 +391,7 @@ async def sentinel_events(limit: int = 20):
 async def enroll(req: EnrollReq, request: Request):
     REQ_COUNT.labels("enroll").inc()
     
-    # signature validation
+
     if req.signature is not None:
         from ..protocol.crypto import is_valid_ed25519_sig
         if not is_valid_ed25519_sig(req.signature):
@@ -397,7 +400,7 @@ async def enroll(req: EnrollReq, request: Request):
                 detail={"error": "invalid_signature", "reason": "Ed25519 signature rejected"},
             )
             
-    # post-quantum enforcement
+
     if cfg.require_pq:
         if not req.kem_public_key or len(req.kem_public_key) != 2368:
             raise HTTPException(
@@ -407,7 +410,7 @@ async def enroll(req: EnrollReq, request: Request):
         
     source_ip = request.client.host if request.client else ""
     
-    # Sentinel analysis
+
     anomalies = sentinel.analyze(req.entity_id, req.intent, source_ip) if sentinel else {}
     
     session_id = str(uuid.uuid4())
@@ -459,7 +462,7 @@ async def handshake(req: HandshakeReq, request: Request):
     if not handshake_mgr:
         raise HTTPException(status_code=503, detail="Handshake manager not initialized")
         
-    # Enforce PQ checks
+
     if cfg.require_pq:
         if req.phase == 1:
             if not req.kem_public_key or len(req.kem_public_key) != 2368:
@@ -596,18 +599,18 @@ async def websocket_logs(websocket: WebSocket):
     await websocket.accept()
     log_file_path = Path("log/kelan-server.log")
     
-    # Send existing logs first
+
     if log_file_path.exists():
         try:
             with open(log_file_path, "r", encoding="utf-8") as f:
                 lines = f.readlines()
-                # Send the last 150 lines
+
                 for line in lines[-150:]:
                     await websocket.send_text(line.strip())
         except Exception as e:
             await websocket.send_text(f"2026-06-13 12:00:00 [error] Error reading initial logs: {e}")
 
-    # Tail the log file
+
     try:
         with open(log_file_path, "r", encoding="utf-8") as f:
             f.seek(0, os.SEEK_END)
@@ -628,7 +631,7 @@ async def websocket_logs(websocket: WebSocket):
 
 @app.post("/api/trigger-attack")
 async def trigger_attack():
-    """Triggers the attack simulation suite in the background."""
+
     try:
         import sys
         import subprocess
@@ -646,7 +649,7 @@ async def trigger_attack():
 
 @app.post("/api/trigger-enroll")
 async def trigger_enroll():
-    """Simulates a normal client enrollment."""
+
     try:
         import httpx
         async with httpx.AsyncClient() as client:
@@ -667,7 +670,7 @@ async def trigger_enroll():
 
 @app.post("/api/trigger-xdp")
 async def trigger_xdp():
-    """Simulates an eBPF/XDP drop event."""
+
     try:
         import httpx
         async with httpx.AsyncClient() as client:
@@ -690,7 +693,7 @@ async def get_metrics():
     return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
-# ── WebSocket: Agentic Sync
+
 
 @app.websocket("/ws/agent")
 async def ws_agent(websocket: WebSocket):
@@ -720,21 +723,21 @@ async def ws_agent(websocket: WebSocket):
         log.error("agent_ws_error", error=str(exc), client=client_info)
 
 
-# ── Auth & Organization Endpoints
+
 
 @app.post("/api/auth/signup")
 @app.post("/api/auth/register")
 async def signup(req: SignupReq, request: Request):
     enforce_rate_limit(request, limit=50, window=60)
     
-    # Check if register/signup payload format is used
+
     email = req.email or (f"{req.entity_id}@kelan.io" if req.entity_id else None)
     password = req.password or "default_pass_123"
     
     if not email:
         raise HTTPException(status_code=400, detail="Email or entity_id is required")
         
-    # Weak password validation (at least 6 chars for signup, skip for register alias)
+
     if req.password is not None and len(req.password) < 6:
         raise HTTPException(
             status_code=400,
@@ -758,9 +761,9 @@ async def signup(req: SignupReq, request: Request):
     
     _organisations[email] = org_info
     
-    # Issue JWT token
+
     now = int(time.time())
-    expiry = now + (24 * 3600)  # 24 hours
+    expiry = now + (24 * 3600)
     
     claims = {
         "sub": org_id,
@@ -859,7 +862,7 @@ async def auth_me(current_org = Depends(get_current_org)):
     }
 
 
-# ── Entity & Session Management Endpoints
+
 
 @app.get("/api/entities")
 async def list_entities(current_org = Depends(get_current_org)):
@@ -893,7 +896,7 @@ async def list_entities(current_org = Depends(get_current_org)):
 async def create_entity(req: CreateEntityReq, current_org = Depends(get_current_org)):
     org_id = current_org.get("org_id", "")
     
-    # Basic input validation / XSS prevention
+
     if any(char in req.name for char in ["<", ">", "script", "javascript"]):
         raise HTTPException(status_code=400, detail="Potential XSS/HTML detected in entity name")
         
@@ -1076,12 +1079,12 @@ async def test_session(id: str, req: TestSessionReq, current_org = Depends(get_c
         behavioral_flags.append("ExfiltrationPattern")
         anomalies["exfiltration"] = True
         
-    # Detect clearance violation
+
     if source.clearance_level < dest.clearance_level:
         behavioral_flags.append("ClearanceViolation")
         anomalies["clearance_violation"] = True
         
-    # Detect control signal abuse
+
     if req.intent == "ControlSignal":
         behavioral_flags.append("ControlSignalAbuse")
         anomalies["control_signal_abuse"] = True

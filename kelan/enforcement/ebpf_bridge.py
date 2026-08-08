@@ -1,8 +1,8 @@
-"""
-eBPF Bridge — Python controls Rust XDP pipeline via subprocess.
-Rust does ONE thing: load XDP into kernel and manage BPF maps.
-Python decides WHAT to permit/deny via Ollama.
-"""
+
+
+
+
+
 import asyncio
 import json
 from pathlib import Path
@@ -55,7 +55,7 @@ class EbpfBridge:
     async def drop_stats(self) -> dict:
         if self._mode == "software":
             return {}
-        # Read from /proc or BPF map via bpftool
+
         try:
             proc = await asyncio.create_subprocess_exec(
                 "bpftool", "map", "dump", "name", "SYN_RATE",

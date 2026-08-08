@@ -1,7 +1,7 @@
-"""
-kelan.database — public re-export facade.
-Imports from kelan.db.database for backwards compatibility.
-"""
+
+
+
+
 from kelan.db.database import (
     init_db,
     get_session,

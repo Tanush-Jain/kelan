@@ -1,4 +1,4 @@
-"""Structured findings, JSON persistence, CI gate."""
+
 from __future__ import annotations
 
 import json
@@ -44,7 +44,7 @@ class Finding:
     severity: str = "LOW"
     payload: str = ""
     variant: str = ""
-    confidence: str = "medium"  # none | weak | medium | strong
+    confidence: str = "medium"
     detected_at: str = field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
     )
@@ -101,7 +101,8 @@ class Report:
             "risk_summary": self.risk_summary,
             "stats": self.stats(),
             "findings": [
-                {k: v for k, v in f.__dict__.items()} for f in self.findings
+                {k: v for k, v in f.__dict__.items()}
+                for f in self.findings
             ],
         }
 
@@ -119,7 +120,7 @@ class Report:
             raise
 
     def gate(self, min_severity: str) -> int:
-        """0 = pass, 1 = findings at/above threshold with real evidence."""
+
         threshold = SEV_ORDER.get(min_severity.upper(), 1)
         blockers = [
             f for f in self.findings

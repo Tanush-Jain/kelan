@@ -1,4 +1,4 @@
-"""SQLAlchemy async ORM models."""
+
 import time
 import uuid
 from sqlalchemy import Column, String, Float, Integer, Boolean, Text, Index

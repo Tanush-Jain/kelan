@@ -1,9 +1,9 @@
-"""Bypass probe sets — encoding & obfuscation variants of common payloads.
 
-build_probes(vectors, marker, bypass=False) → list of (category, variant, payload)
-Variant "raw" is always included; bypass=True adds encodings intended to defeat
-WAFs and ASP.NET ValidateRequest-style filters.
-"""
+
+
+
+
+
 from __future__ import annotations
 
 from urllib.parse import quote
@@ -75,7 +75,7 @@ def _sqli_variants(p: str) -> list[tuple[str, str]]:
 
 
 def _cmdi_marker(marker: str) -> list[tuple[str, str]]:
-    """Deterministic command-injection probes: inject an echo marker, look for it."""
+
     return [
         ("semi-echo", f";echo {marker}"),
         ("pipe-echo", f"|echo {marker}"),
@@ -124,7 +124,7 @@ _BASES = {
 
 
 def build_probes(vectors: tuple, marker: str = "", bypass: bool = False) -> list[tuple[str, str, str]]:
-    """Return deduped (category, variant_name, payload) probes for the requested vectors."""
+
     out: list[tuple[str, str, str]] = []
     for cat in vectors:
         cat = cat.strip().lower()
@@ -146,3 +146,25 @@ def build_probes(vectors: tuple, marker: str = "", bypass: bool = False) -> list
         seen.add(k)
         deduped.append((cat, name, payload))
     return deduped
+
+
+RATELIMIT_HEADERS = [
+    {},
+    {"X-Forwarded-For": "1.1.1.1"},
+    {"X-Forwarded-For": "1.2.3.4"},
+    {"X-Real-IP": "5.6.7.8"},
+    {"CF-Connecting-IP": "9.9.9.9"},
+    {"X-Client-IP": "8.8.8.8"},
+    {"Forwarded": "for=10.0.0.5"},
+    {"X-Forwarded-For": "1.2.3.4",
+     "X-Real-IP": "1.2.3.4"},
+]
+
+
+def ratelimit_vectors(target: str) -> list[dict]:
+
+    return [
+        {"url": target, "method": "GET", "headers": h, "category": "ratelimit"}
+        for h in RATELIMIT_HEADERS
+    ]
+

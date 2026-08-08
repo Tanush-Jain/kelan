@@ -1,13 +1,13 @@
-"""
-AITP 5-Phase Handshake — pure Python.
-Replaces the Rust aitp-core handshake FSM.
 
-Phase 1 — SYN:         client → server (entity_id, kem_pk, x25519_pk)
-Phase 2 — SYN-ACK:     server → client (kem_ct, x25519_pk)
-Phase 3 — KEM-COMPLETE: client → server (kem_ct, sig)
-Phase 4 — AI-EVAL:     server internal (Ollama verdict)
-Phase 5 — COMPLETE:    server → client (permit_token) + PERMIT_MAP write
-"""
+
+
+
+
+
+
+
+
+
 import hashlib
 import json
 import os
@@ -46,7 +46,7 @@ class PendingSession:
     kem_pk_c:         Optional[bytes]
     x25519_pk_c:      Optional[bytes]
     phase:            Phase = Phase.SYN
-    # server-side ephemeral keys
+
     x25519_sk_s:      bytes = field(default_factory=lambda: os.urandom(32))
     x25519_pk_s:      bytes = field(default_factory=lambda: os.urandom(32))
     kem_ct_s:         Optional[bytes] = None
@@ -61,16 +61,16 @@ class PendingSession:
 
 
 class HandshakeManager:
-    """
-    Manages all pending AITP handshake sessions.
-    Thread-safe for asyncio single-thread model.
-    """
+
+
+
+
 
     def __init__(self, require_pq: bool = True):
         self.require_pq = require_pq
         self._pending: dict[str, PendingSession] = {}
 
-    # ── Phase 1: receive SYN 
+
     def receive_syn(
         self,
         entity_id:       str,
@@ -86,15 +86,15 @@ class HandshakeManager:
         kem_pk_c   = bytes.fromhex(kem_pk_c_hex)  if kem_pk_c_hex   else None
         x25519_pk_c= bytes.fromhex(x25519_pk_c_hex) if x25519_pk_c_hex else None
 
-        # Generate server ephemeral X25519 keypair
+
         x25519_sk_s, x25519_pk_s = x25519_generate()
 
-        # Encapsulate ML-KEM against client public key
+
         kem_ct_s = None
         if kem_pk_c:
             kem_ct_s, _ = kem_encapsulate(kem_pk_c)
 
-        # Generate server ephemeral KEM keypair
+
         kem_sk_s = None
         kem_pk_s = None
         if self.require_pq or kem_pk_c_hex is not None:
@@ -119,7 +119,7 @@ class HandshakeManager:
         self._pending[session_id] = ps
         return ps
 
-    # ── Phase 3: receive KEM-COMPLETE ─────────────────────────
+
     def receive_kem_complete(
         self,
         session_id:      str,
@@ -136,7 +136,7 @@ class HandshakeManager:
         if ps.phase != Phase.SYN:
             raise HandshakeError(f"Wrong phase: expected SYN, got {ps.phase}")
 
-        # Validate signature
+
         if not is_valid_ed25519_sig(signature_hex):
             raise HandshakeError("Invalid Ed25519 signature (zero/invalid)")
 
@@ -151,7 +151,7 @@ class HandshakeManager:
         if not ed25519_verify(ed_pub, sig, transcript):
             raise HandshakeError("Ed25519 signature verification FAILED — identity spoofing attempt")
 
-        # Derive session key
+
         kem_ct_c = bytes.fromhex(kem_ct_c_hex)
         x25519_shared = b"\x00" * 32
         if ps.x25519_pk_c:
@@ -169,15 +169,15 @@ class HandshakeManager:
         ps.phase = Phase.KEM_COMPLETE
         return ps
 
-    # ── Phase 5: complete (after AI verdict = ALLOW) ──────────
+
     def complete_session(self, session_id: str) -> str:
         ps = self._pending.pop(session_id, None)
         if not ps:
             raise HandshakeError(f"Session not found: {session_id}")
         ps.phase = Phase.COMPLETE
-        return str(uuid.uuid4())   # permit_token
+        return str(uuid.uuid4())
 
-    # ── Cleanup 
+
     def purge_expired(self):
         expired = [sid for sid, ps in self._pending.items() if ps.is_expired()]
         for sid in expired:

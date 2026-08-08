@@ -1,4 +1,4 @@
-"""Unit tests for the Ollama client."""
+
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
@@ -83,17 +83,17 @@ async def test_ollama_evaluate_success():
 async def test_ollama_evaluate_cache_hits():
     client = OllamaClient("http://mock-ollama", "qwen2.5:3b")
     with patch.object(client, "_raw_generate", new_callable=AsyncMock) as mock_raw:
-        # We need a DENY verdict with confidence >= 0.7 to cache it (per client.py line 203)
+
         mock_raw.return_value = "{\"verdict\": \"DENY\", \"confidence\": 0.8, \"reason\": \"malicious\"}"
         
         session = {"entity_id": "test-1", "intent": "TEST", "anomalies": {"syn_flood": True}}
         
-        # Miss 1
+
         v1 = await client.evaluate(session)
         assert v1.verdict == Verdict.DENY
         assert v1.from_cache is False
         
-        # Hit 1
+
         v2 = await client.evaluate(session)
         assert v2.verdict == Verdict.DENY
         assert v2.from_cache is True

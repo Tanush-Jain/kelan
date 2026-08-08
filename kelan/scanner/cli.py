@@ -1,4 +1,4 @@
-"""Kelan scanner CLI — chunk → Ollama SAST analysis → structured report."""
+
 import argparse
 import asyncio
 import json
@@ -18,24 +18,24 @@ DEFAULT_MODEL = "qwen2.5-coder:latest"
 DEFAULT_ENDPOINT = "http://127.0.0.1:11434"
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Ollama helpers
-# ──────────────────────────────────────────────────────────────────────────────
+
+
+
 
 def get_local_models() -> list[str]:
-    """Fetch available models from the local Ollama instance."""
+
     try:
         req = urllib.request.Request(f"{DEFAULT_ENDPOINT}/api/tags")
-        with urllib.request.urlopen(req, timeout=2) as resp:  # nosec B310
+        with urllib.request.urlopen(req, timeout=2) as resp:
             data = json.loads(resp.read().decode())
             return [m["name"] for m in data.get("models", [])]
     except Exception:
         return []
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Core pipeline
-# ──────────────────────────────────────────────────────────────────────────────
+
+
+
 
 def collect_chunks(target: str, limit: Optional[int]) -> list:
     chunker = SemanticChunker()
@@ -122,9 +122,9 @@ def render_report(results, target) -> list:
     return flagged
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Async entry point (called by main after interactive setup)
-# ──────────────────────────────────────────────────────────────────────────────
+
+
+
 
 async def main_async(target: str, limit: int, model: str,
                      endpoint: str = DEFAULT_ENDPOINT,
@@ -168,9 +168,9 @@ async def main_async(target: str, limit: int, model: str,
     return 0
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Interactive CLI entry point
-# ──────────────────────────────────────────────────────────────────────────────
+
+
+
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="Kelan Scan — AI-native SAST scanner")
@@ -184,17 +184,17 @@ def main(argv=None) -> int:
     parser.add_argument("--no-limit",    action="store_true", help="Analyze all chunks")
     args = parser.parse_args(argv)
 
-    # ── 1. Target ──────────────────────────────────────────────────────────────
+
     if not args.target:
         raw = input("🎯 Enter target directory to scan [default: .]: ").strip()
         args.target = raw or "."
 
-    # ── 2. Limit ───────────────────────────────────────────────────────────────
+
     if args.limit is None and not args.no_limit:
         raw = input("⚡ Enter chunk limit (0 for all) [default: 10]: ").strip()
         args.limit = int(raw) if raw.isdigit() else 10
 
-    # ── 3. Model ───────────────────────────────────────────────────────────────
+
     if not args.model:
         models = get_local_models()
         if models:

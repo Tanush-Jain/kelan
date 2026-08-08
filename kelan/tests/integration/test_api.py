@@ -1,4 +1,4 @@
-"""Integration tests for FastAPI endpoints — mocks Ollama."""
+
 import pytest
 import pytest_asyncio
 from unittest.mock import AsyncMock
@@ -16,10 +16,10 @@ def anyio_backend():
 
 @pytest_asyncio.fixture
 async def client():
-    """Create test client with mocked Ollama."""
+
     import kelan.api.server as s
 
-    # Ensure DB is initialized for integration endpoints
+
     await init_db()
 
     mock_ollama = AsyncMock(spec=OllamaClient)
@@ -39,7 +39,7 @@ async def client():
     s.ebpf.mode    = "software"
     s.handshake_mgr = HandshakeManager(require_pq=False)
 
-    # Disable require_pq by default so legit tests succeed without kem keys
+
     old_pq = s.cfg.require_pq
     s.cfg.require_pq = False
 
@@ -148,7 +148,7 @@ async def test_handshake_pq_downgrade_rejected(client):
             "phase":     1,
             "intent":    "INIT_SESSION",
         })
-        # With require_pq and no kem_public_key in phase 1, should fail with 403
+
         assert r.status_code == 403
         assert r.json()["detail"]["error"] == "pq_downgrade_denied"
     finally:

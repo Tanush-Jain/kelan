@@ -1,4 +1,4 @@
-"""Tests for Ollama response parser — no Ollama needed."""
+
 from kelan.ai.ollama_client import _parse, Verdict
 
 
@@ -24,7 +24,7 @@ class TestParser:
     def test_low_confidence_forces_monitor(self):
         raw = '{"verdict":"DENY","confidence":0.3,"reason":"uncertain"}'
         v = _parse(raw)
-        assert v.verdict == Verdict.MONITOR   # low conf → MONITOR
+        assert v.verdict == Verdict.MONITOR
 
     def test_json_embedded_in_prose(self):
         raw = 'I analyzed the session and found: {"verdict":"DENY","confidence":0.91,"reason":"port scan"} based on the anomalies.'

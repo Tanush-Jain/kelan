@@ -1,19 +1,19 @@
-"""Kelan DAST Agent — dynamic agentic endpoint analysis.
 
-Workflow:
-  1. Reconnaissance  — send baseline GET, capture headers + DOM
-  2. Probe           — send XSS/BOLA probe payloads from domain root
-  3. LLM Evaluation  — Ollama model reasons over the captured state
-  4. Report          — structured JSON findings, printed + optionally saved
 
-Usage (standalone):
-    .venv/bin/python3 kelan/scanner/agent.py
-    .venv/bin/python3 kelan/scanner/agent.py --target http://localhost:8080 --model qwen2.5-coder:latest
 
-Usage (via kelan CLI):
-    kelan dast
-    kelan dast --target http://localhost:8080
-"""
+
+
+
+
+
+
+
+
+
+
+
+
+
 import argparse
 import asyncio
 import json
@@ -29,7 +29,7 @@ log = structlog.get_logger()
 
 DEFAULT_MODEL    = "qwen2.5-coder:latest"
 DEFAULT_ENDPOINT = "http://localhost:11434"
-DOM_PREVIEW_LEN  = 1500   # characters sent to the model (keep total context <4 k tokens)
+DOM_PREVIEW_LEN  = 1500
 
 DAST_SYSTEM_PROMPT = """\
 You are a dynamic application security (DAST) agent.
@@ -75,9 +75,9 @@ EXPECTED_SECURITY_HEADERS = [
 ]
 
 PROBE_PAYLOADS = [
-    "/?search=<script>alert(1)</script>",   # XSS reflection probe
-    "/api/user?id=1",                       # BOLA probe — unauthenticated data access
-    "/api/user?id=99",                      # BOLA 404 — confirm endpoint exists
+    "/?search=<script>alert(1)</script>",
+    "/api/user?id=1",
+    "/api/user?id=99",
 ]
 
 
@@ -109,7 +109,7 @@ async def _llm_evaluate(observation: str, model: str,
         r.raise_for_status()
         raw = r.json().get("response", "").strip()
 
-    # Strip markdown fences if the model wrapped the JSON anyway
+
     import re
     m = re.search(r"```(?:json)?\s*(.*?)```", raw, re.DOTALL)
     if m:
@@ -129,7 +129,7 @@ def _build_observation(target_url: str, responses: list[tuple[str, httpx.Respons
     parts = [f"TARGET: {target_url}\n"]
     for url, resp in responses:
         headers = dict(resp.headers)
-        # Only pass header names+values, strip long cookies to save tokens
+
         safe_headers = {k: (v[:120] if len(v) > 120 else v) for k, v in headers.items()}
         missing = [h for h in EXPECTED_SECURITY_HEADERS if h not in headers]
         dom_preview = resp.text[:DOM_PREVIEW_LEN]
@@ -186,15 +186,15 @@ async def analyze_live_endpoint(
     async with httpx.AsyncClient() as client:
         responses = []
 
-        # Baseline
+
         resp = await _fetch(client, target_url)
         if resp is None:
             print(f"❌  Could not reach {target_url}. Is the server running?")
             return {}
         responses.append((target_url, resp))
 
-        # Probes — always launched from the domain origin (scheme + host),
-        # never appended to the target page path.
+
+
         parsed = urllib.parse.urlparse(target_url)
         origin = f"{parsed.scheme}://{parsed.netloc}"
         for probe in PROBE_PAYLOADS:
@@ -217,9 +217,9 @@ async def analyze_live_endpoint(
     return findings
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# CLI wiring (called by kelan dast or directly)
-# ──────────────────────────────────────────────────────────────────────────────
+
+
+
 
 async def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="Kelan DAST — dynamic agentic scanner")

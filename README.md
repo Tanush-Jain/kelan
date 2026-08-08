@@ -114,8 +114,8 @@ By running entirely on local LLMs via Ollama, **Kelan ensures zero code or netwo
 
 1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/kelan-security/kelan-core.git
-   cd kelan-core
+   git clone https://github.com/kelan-security/kelan.git
+   cd kelan
    ```
 
 2. **Create and Activate Virtual Environment**:
@@ -305,7 +305,7 @@ jobs:
 ## 📁 Repository Structure
 
 ```text
-kelan-core/
+kelan/
 ├── pyproject.toml              # PEP 621 build config & console_scripts entry
 ├── requirements.txt            # Python dependencies
 ├── kelan-scan                  # Convenience shell wrapper

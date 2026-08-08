@@ -101,7 +101,7 @@ echo "  • linux-x86_64   • linux-arm64"
 echo "  • macos-x86_64   • macos-arm64"
 echo "  • windows-x86_64"
 echo ""
-echo "Watch at: https://github.com/kelan-security/kelan-core/actions"
+echo "Watch at: https://github.com/kelan-security/kelan/actions"
 echo ""
 
 read -r -p "Push ${TAG} to origin now? [y/N] " REPLY
@@ -113,7 +113,7 @@ if [[ "$REPLY" =~ ^[Yy]$ ]]; then
   echo ""
   echo "✓ Release ${TAG} triggered!"
   echo ""
-  echo "Release page: https://github.com/kelan-security/kelan-core/releases/tag/${TAG}"
+  echo "Release page: https://github.com/kelan-security/kelan/releases/tag/${TAG}"
 else
   echo "Not pushed. To push manually:"
   echo "  git push origin ${BRANCH} && git push origin ${TAG}"

@@ -1,22 +1,20 @@
-"""Kelan DAST CLI — crawl, bypass probes, JSON reports, CI gate."""
+
 from __future__ import annotations
 
 import argparse
 import asyncio
+import os
+import re
 import sys
+from datetime import datetime
 
-from kelan.dast.pipeline import ScanOptions, render_report, run_scan
+from kelan.dast.pipeline import ScanOptions, run_scan, render_report
 
 DEFAULT_VECTORS = "xss,sqli,cmdi,traversal,ssti"
 
 
-import os
-import re
-from datetime import datetime
-
-
 def resolve_report_path(raw_path: str, target: str = "") -> str:
-    """Ensure report files are saved inside the dedicated 'reports/' directory."""
+
     os.makedirs("reports", exist_ok=True)
     if not raw_path:
         slug = re.sub(r"[^a-zA-Z0-9_\-]", "_", target.replace("https://", "").replace("http://", ""))[:30].strip("_")
@@ -44,7 +42,7 @@ def main(argv=None) -> int:
     p.add_argument("--vectors", default=DEFAULT_VECTORS,
                    help=f"comma list of vectors (default: {DEFAULT_VECTORS})")
     p.add_argument("--json", dest="json_out", nargs="?", const="",
-                   help="write findings to JSON file (saved in reports/ folder)")
+                   help="write findings to JSON file")
     p.add_argument("--ci-gate", choices=["critical", "high", "medium", "low"],
                    help="exit 1 if any finding at/above this severity")
     p.add_argument("--concurrency", type=int, default=2)

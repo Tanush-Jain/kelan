@@ -1,4 +1,4 @@
-"""Async database engine and session factory."""
+
 import json
 import os
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
@@ -14,7 +14,7 @@ async def init_db():
     os.makedirs("data", exist_ok=True)
     cfg = get_settings()
     
-    # Ensure the connection string is: "sqlite+aiosqlite:///data/aitp.db"
+
     db_url = cfg.database_url
     if not db_url or ("sqlite" in db_url and ":memory:" not in db_url):
         db_url = "sqlite+aiosqlite:///data/aitp.db"
@@ -32,7 +32,7 @@ async def init_db():
             await conn.run_sync(Base.metadata.create_all)
             from sqlalchemy import text
             
-            # Self-healing migrations for Entity columns
+
             entities_cols = [
                 ("name", "VARCHAR"),
                 ("public_key", "TEXT"),
@@ -57,7 +57,7 @@ async def init_db():
                 except Exception:
                     pass
             
-            # Self-healing migrations for Session columns
+
             sessions_cols = [
                 ("entity_id", "VARCHAR"),
                 ("phase", "INTEGER DEFAULT 0"),

@@ -16,7 +16,7 @@ if ! gh auth status &> /dev/null; then
   exit 1
 fi
 
-echo "🔍 Fetching failed workflow runs for Kelan-Security/kelan-core..."
+echo "🔍 Fetching failed workflow runs for Kelan-Security/kelan..."
 
 # Fetch failed run IDs
 RUN_IDS=$(gh run list \
@@ -38,7 +38,7 @@ echo "$RUN_IDS" | while read -r run_id; do
     echo "🗑 Deleting failed run $run_id..."
     gh api \
       -X DELETE \
-      "repos/Kelan-Security/kelan-core/actions/runs/$run_id" --silent || echo "   ⚠️ Could not delete run $run_id"
+      "repos/Kelan-Security/kelan/actions/runs/$run_id" --silent || echo "   ⚠️ Could not delete run $run_id"
   fi
 done
 

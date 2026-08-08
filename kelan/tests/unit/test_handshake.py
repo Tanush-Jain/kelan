@@ -1,4 +1,4 @@
-"""Unit tests for the AITP handshake protocol."""
+
 import json
 import pytest
 from kelan.protocol.handshake import HandshakeManager, HandshakeError, Phase, PendingSession
@@ -14,7 +14,7 @@ def test_pending_session_expiration():
         x25519_pk_c=None,
     )
     assert sess.is_expired(ttl=60) is False
-    # Artificially age the session
+
     sess.created_at -= 61
     assert sess.is_expired(ttl=60) is True
 
@@ -28,7 +28,7 @@ def test_receive_syn_success():
     mgr = HandshakeManager(require_pq=False)
     _, x25519_pub = x25519_generate()
     
-    # KEM public key is typically 1184 bytes, let's use a dummy hex representation
+
     kem_pub_hex = "00" * 1184
     
     ps = mgr.receive_syn(
@@ -56,7 +56,7 @@ def test_receive_kem_complete_unknown_session():
 def test_receive_kem_complete_expired():
     mgr = HandshakeManager(require_pq=False)
     ps = mgr.receive_syn("entity-1", "intent-1", "nonce-1", None, None)
-    ps.created_at -= 61 # Expire it
+    ps.created_at -= 61
     
     with pytest.raises(HandshakeError) as exc_info:
         mgr.receive_kem_complete(ps.session_id, "00"*1088, "00"*64, "00"*32)
@@ -66,7 +66,7 @@ def test_receive_kem_complete_expired():
 def test_receive_kem_complete_wrong_phase():
     mgr = HandshakeManager(require_pq=False)
     ps = mgr.receive_syn("entity-1", "intent-1", "nonce-1", None, None)
-    ps.phase = Phase.KEM_COMPLETE # Change phase manually
+    ps.phase = Phase.KEM_COMPLETE
     
     with pytest.raises(HandshakeError) as exc_info:
         mgr.receive_kem_complete(ps.session_id, "00"*1088, "00"*64, "00"*32)
@@ -76,7 +76,7 @@ def test_receive_kem_complete_invalid_sig_format():
     mgr = HandshakeManager(require_pq=False)
     ps = mgr.receive_syn("entity-1", "intent-1", "nonce-1", None, None)
     
-    # 00*64 is rejected by is_valid_ed25519_sig
+
     with pytest.raises(HandshakeError) as exc_info:
         mgr.receive_kem_complete(ps.session_id, "00"*1088, "00"*64, "00"*32)
     assert "Invalid Ed25519 signature" in str(exc_info.value)
@@ -86,7 +86,7 @@ def test_receive_kem_complete_sig_verification_fail():
     ps = mgr.receive_syn("entity-1", "intent-1", "nonce-1", None, None)
     
     priv, pub = ed25519_generate()
-    # Sign random transcript instead of actual
+
     sig = ed25519_sign(priv, b"different transcript")
     
     with pytest.raises(HandshakeError) as exc_info:
@@ -143,7 +143,7 @@ def test_purge_expired():
     ps1 = mgr.receive_syn("entity-1", "intent-1", "nonce-1", None, None)
     ps2 = mgr.receive_syn("entity-2", "intent-2", "nonce-2", None, None)
     
-    ps1.created_at -= 100 # Expired
+    ps1.created_at -= 100
     mgr.purge_expired()
     
     assert ps1.session_id not in mgr._pending

@@ -1,4 +1,4 @@
-"""Smoke and unit tests for EbpfBridge and FallbackRulesEngine."""
+
 import asyncio
 import json
 import pytest
@@ -13,7 +13,7 @@ def anyio_backend():
 @pytest.mark.asyncio
 async def test_fallback_rules_engine():
     engine = FallbackRulesEngine()
-    # Test synthetic flood payload trigger (syn_rate_per_second > 100)
+
     ctx = {
         "entity_id": "test-entity",
         "intent": "TEST",
@@ -24,7 +24,7 @@ async def test_fallback_rules_engine():
     assert "syn_flood" in res["reason"]
     assert res["confidence"] == 0.85
 
-    # Test clean allow trigger
+
     ctx_clean = {
         "entity_id": "test-entity",
         "intent": "TEST",
@@ -36,13 +36,13 @@ async def test_fallback_rules_engine():
 
 @pytest.mark.asyncio
 async def test_ebpf_bridge_software_mode():
-    # Force LOADER_BINARY to not exist so it starts in software fallback mode
+
     with patch("pathlib.Path.exists", return_value=False):
         bridge = EbpfBridge(iface="eth99")
         await bridge.start()
         assert bridge.mode == "software"
         
-        # Test permit, revoke, stats do not crash and log/do nothing
+
         await bridge.permit("sess-1", "entity-1", "1.1.1.1")
         await bridge.revoke("entity-1")
         stats = await bridge.drop_stats()
@@ -52,7 +52,7 @@ async def test_ebpf_bridge_software_mode():
 
 @pytest.mark.asyncio
 async def test_ebpf_bridge_ebpf_mode_success():
-    # Force LOADER_BINARY to exist and mock create_subprocess_exec
+
     with patch("pathlib.Path.exists", return_value=True):
         mock_proc = MagicMock()
         mock_proc.pid = 9876
@@ -75,7 +75,7 @@ async def test_ebpf_bridge_ebpf_mode_success():
                 stderr=asyncio.subprocess.PIPE,
             )
             
-            # Test permit
+
             await bridge.permit("sess-1", "entity-1", "1.1.1.1")
             expected_permit = json.dumps({
                 "action": "PERMIT", "session_id": "sess-1",
@@ -83,7 +83,7 @@ async def test_ebpf_bridge_ebpf_mode_success():
             }).encode() + b"\n"
             mock_proc.stdin.write.assert_called_with(expected_permit)
             
-            # Test revoke
+
             await bridge.revoke("entity-2")
             expected_revoke = json.dumps({
                 "action": "REVOKE", "entity_id": "entity-2"

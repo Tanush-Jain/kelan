@@ -1,4 +1,4 @@
-"""Tests for HybridTrustEngine — mocks Ollama."""
+
 import asyncio
 import pytest
 from unittest.mock import AsyncMock
@@ -31,7 +31,7 @@ class TestCircuitBreaker:
         cb.failure()
         assert cb.state == CBState.OPEN
         time.sleep(0.01)
-        assert cb.allow  # triggers half-open
+        assert cb.allow
         assert cb.state == CBState.HALF_OPEN
 
 
@@ -77,14 +77,14 @@ class TestHybridEngine:
         mock_ollama.evaluate.side_effect = ConnectionError("Ollama down")
         engine = HybridTrustEngine(mock_ollama, threshold=1)
         v = await engine.evaluate({"entity_id": "test", "anomalies": {}})
-        # Should use fallback — not crash
+
         assert v.verdict in (Verdict.ALLOW, Verdict.MONITOR, Verdict.DENY)
 
     @pytest.mark.asyncio
     async def test_circuit_open_uses_fallback(self):
         mock_ollama = AsyncMock(spec=OllamaClient)
         engine = HybridTrustEngine(mock_ollama, threshold=1)
-        engine.cb.failure()  # Force open
+        engine.cb.failure()
         v = await engine.evaluate({"entity_id": "test",
                                    "anomalies": {"syn_rate_per_second": 500}})
         assert v.verdict == Verdict.DENY
@@ -114,10 +114,10 @@ class TestHybridEngine:
         )
         engine = HybridTrustEngine(mock_ollama, threshold=3)
         
-        # Call evaluate
+
         v = await engine.evaluate({"entity_id": "test", "anomalies": {}})
         
-        # Verify circuit is CLOSED, success was called, and verdict is returned (not fallback)
+
         assert engine.cb.state == CBState.CLOSED
         assert v.verdict == Verdict.DENY
         assert v.reason == "slow response but ok"

@@ -37,7 +37,7 @@ class SentinelDetector:
         key = source_ip or entity_id
         out: dict = {}
 
-        # ── Enrollment burst (sybil) ──────────────────────────
+
         if "ENROL" in intent.upper():
             q = self._enroll[key]
             q.append(now)
@@ -54,7 +54,7 @@ class SentinelDetector:
                     {"count": len(burst), "window": "5s"}
                 ))
 
-        # ── Connection rate (flood) 
+
         q2 = self._connect[key]
         q2.append(now)
         rate = len([t for t in q2 if now - t < 1.0])
@@ -68,7 +68,7 @@ class SentinelDetector:
                 key, "flood", 0.95, {"rate": rate}
             ))
 
-        # ── Auth failures (brute force) 
+
         if "AUTH" in intent.upper():
             fails = self._auth_fail[key]
             fails.append(now)

@@ -92,7 +92,7 @@ write_files:
     content: |
       [Unit]
       Description=Kelan Intelligence Core
-      Documentation=https://github.com/kelan-security/kelan-core
+      Documentation=https://github.com/kelan-security/kelan
       After=network-online.target docker.service
       Wants=network-online.target
       Requires=docker.service
@@ -118,7 +118,7 @@ write_files:
       version: '3.8'
       services:
         kelan-server:
-          image: ghcr.io/kelan-security/kelan-core:latest
+          image: ghcr.io/kelan-security/kelan:latest
           container_name: kelan-server
           restart: unless-stopped
           env_file: /opt/kelan/.env
@@ -219,18 +219,18 @@ runcmd:
   - usermod -aG docker ubuntu
 
   # Pull Kelan image
-  - docker pull ghcr.io/kelan-security/kelan-core:latest || echo "Image pull failed — will build from source"
+  - docker pull ghcr.io/kelan-security/kelan:latest || echo "Image pull failed — will build from source"
 
   # Fallback: clone and build from source if registry pull fails
   - |
-    if ! docker image inspect ghcr.io/kelan-security/kelan-core:latest > /dev/null 2>&1; then
+    if ! docker image inspect ghcr.io/kelan-security/kelan:latest > /dev/null 2>&1; then
       apt-get install -y build-essential pkg-config libssl-dev
       curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y -t aarch64-unknown-linux-gnu
       source /root/.cargo/env
-      git clone https://github.com/kelan-security/kelan-core.git /opt/kelan-src
+      git clone https://github.com/kelan-security/kelan.git /opt/kelan-src
       cd /opt/kelan-src
       cargo build --release --package aitp-server
-      docker build -t ghcr.io/kelan-security/kelan-core:latest .
+      docker build -t ghcr.io/kelan-security/kelan:latest .
     fi
 
   # Configure and start firewall
