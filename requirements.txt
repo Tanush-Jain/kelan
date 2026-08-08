@@ -15,7 +15,7 @@ tenacity==9.0.0
 # No API keys — pure local inference
 
 # ══ Data / Validation 
-pydantic==2.10.3
+pydantic==2.13.4
 pydantic-settings==2.7.0
 
 # ══ Database 
