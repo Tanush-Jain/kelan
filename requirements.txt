@@ -21,7 +21,7 @@ pydantic-settings==2.7.0
 # ══ Database 
 aiosqlite==0.20.0
 sqlalchemy[asyncio]==2.0.36
-alembic==1.14.0
+alembic==1.19.0
 
 # ══ Cryptography (replaces kelan-crypto Rust crate) ══════════
 cryptography>=46.0.0
