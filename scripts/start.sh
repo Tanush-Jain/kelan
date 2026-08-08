@@ -186,7 +186,11 @@ if [ -d "kelan-dashboard" ] || [ -d "../kelan-web" ] || [ -d "dashboard" ] || [ 
     
     if [ -d "kelan-dashboard" ]; then
         LOGS_DIR="$(pwd)/log"
-        python3 -m http.server 7681 --directory kelan-dashboard > "$LOGS_DIR/dashboard.log" 2>&1 &
+        if [ -d "kelan-dashboard/dist" ]; then
+            python3 -m http.server 7681 --directory kelan-dashboard/dist > "$LOGS_DIR/dashboard.log" 2>&1 &
+        else
+            python3 -m http.server 7681 --directory kelan-dashboard > "$LOGS_DIR/dashboard.log" 2>&1 &
+        fi
         DASH_PID=$!
         echo $DASH_PID >> "$LOGS_DIR/../.kelan.pid"
         sleep 1

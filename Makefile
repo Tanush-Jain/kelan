@@ -32,7 +32,11 @@ backend:
 frontend:
 	@if [ -d "kelan-dashboard" ]; then \
 		echo "Starting Kelan dashboard on http://localhost:7681..."; \
-		python3 -m http.server 7681 --directory kelan-dashboard; \
+		if [ -d "kelan-dashboard/dist" ]; then \
+			python3 -m http.server 7681 --directory kelan-dashboard/dist; \
+		else \
+			python3 -m http.server 7681 --directory kelan-dashboard; \
+		fi; \
 	elif [ -d "../kelan-web" ] && command -v node >/dev/null; then \
 		echo "Starting frontend on http://localhost:5173..."; \
 		cd ../kelan-web && npm install --silent && npm run dev; \

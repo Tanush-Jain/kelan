@@ -58,18 +58,18 @@ def _build_targets(pages, fuzz_tokens: bool = False):
     targets, seen = [], set()
     for page in pages:
         for pname in page.params:
-            key = (page.url, "GET", pname, None)
+            key = (page.url, "GET", pname)
             if key not in seen:
                 seen.add(key)
-                targets.append(key)
+                targets.append((page.url, "GET", pname, None))
         for form in page.forms:
             for f in form.fields:
                 if (f.is_secret and not fuzz_tokens) or not f.name:
                     continue
-                key = (form.action, form.method.upper(), f.name, form)
+                key = (form.action, form.method.upper(), f.name)
                 if key not in seen:
                     seen.add(key)
-                    targets.append(key)
+                    targets.append((form.action, form.method.upper(), f.name, form))
     return targets
 
 

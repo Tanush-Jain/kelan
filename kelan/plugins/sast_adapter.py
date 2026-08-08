@@ -54,8 +54,18 @@ class SastPlugin(ScanPlugin):
 
                 from kelan.scanner.chunker import SemanticChunker
                 chunker = SemanticChunker()
-                chunks = chunker.extract_chunks(str(path), code)
+                chunks = list(chunker.extract_chunks(str(path), code))
+                if not chunks:
+                    chunks = [{
+                        "file_path": str(path),
+                        "type": "module",
+                        "start_line": 1,
+                        "end_line": len(code.splitlines()) or 1,
+                        "content": code.decode("utf-8", errors="replace"),
+                    }]
             except Exception as e:
+                import sys
+                print(f"Exception scanning {path}: {e}", file=sys.stderr)
                 return []
             n_files += 1
             n_chunks += len(chunks)

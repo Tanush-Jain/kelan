@@ -1,6 +1,6 @@
 import os
 from typing import Iterator, Dict, Any
-from tree_sitter import Language, Parser
+from tree_sitter import Language, Parser, Query, QueryCursor
 import tree_sitter_python as tspython
 import tree_sitter_javascript as tsjs
 import tree_sitter_typescript as tsts
@@ -9,18 +9,18 @@ import tree_sitter_typescript as tsts
 class SemanticChunker:
     def __init__(self):
 
-        self.py_lang = Language(tspython.language(), "python")
-        self.js_lang = Language(tsjs.language(), "javascript")
-        self.ts_lang = Language(tsts.language_typescript(), "typescript")
+        self.py_lang = Language(tspython.language())
+        self.js_lang = Language(tsjs.language())
+        self.ts_lang = Language(tsts.language_typescript())
 
 
-        self.py_query = self.py_lang.query(
+        self.py_query = Query(self.py_lang,
             "(function_definition) @func (class_definition) @class"
         )
-        self.js_query = self.js_lang.query(
+        self.js_query = Query(self.js_lang,
             "(function_declaration) @func (class_declaration) @class (arrow_function) @arrow"
         )
-        self.ts_query = self.ts_lang.query(
+        self.ts_query = Query(self.ts_lang,
             "(function_declaration) @func (class_declaration) @class (arrow_function) @arrow"
         )
 
@@ -39,16 +39,17 @@ class SemanticChunker:
         else:
             return
 
-        parser = Parser()
-        parser.set_language(lang)
+        parser = Parser(lang)
         tree = parser.parse(code_bytes)
 
-        captures = query.captures(tree.root_node)
-        for node, capture_name in captures:
-            yield {
-                "file_path": file_path,
-                "type": capture_name,
-                "start_line": node.start_point[0],
-                "end_line": node.end_point[0],
-                "content": node.text.decode("utf-8", errors="replace"),
-            }
+        cursor = QueryCursor(query)
+        captures = cursor.captures(tree.root_node)
+        for capture_name, nodes in captures.items():
+            for node in nodes:
+                yield {
+                    "file_path": file_path,
+                    "type": capture_name,
+                    "start_line": node.start_point[0],
+                    "end_line": node.end_point[0],
+                    "content": node.text.decode("utf-8", errors="replace"),
+                }
