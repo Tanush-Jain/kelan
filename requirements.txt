@@ -30,7 +30,7 @@ PyJWT[crypto]>=2.9.0
 pynacl==1.6.2
 
 scapy==2.7.0
-psutil==6.1.0
+psutil==7.2.2
 netifaces==0.11.0
 
 # ══ Monitoring 
