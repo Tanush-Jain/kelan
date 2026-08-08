@@ -144,3 +144,30 @@ jobs:
       - name: Cargo Test
         run: |
           cargo test --workspace --verbose
+
+  # ─────────────────────────────────────────────
+  # JOB 5: Frontend React Build Check
+  # ─────────────────────────────────────────────
+  frontend-build:
+    name: Frontend React Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: kelan-dashboard/package-lock.json
+
+      - name: Install Dependencies
+        run: |
+          cd kelan-dashboard
+          npm ci
+
+      - name: Build Dashboard
+        run: |
+          cd kelan-dashboard
+          npm run build
