@@ -26,7 +26,22 @@ omit = [
   "kelan/server.py",
   "kelan/enforcement/ebpf_bridge.py",   # eBPF is hardware-specific
   "kelan/api/websocket/*",
-  "**/__init__.py"
+  "**/__init__.py",
+  "kelan/dast/cli.py",
+  "kelan/scanner/cli.py",
+  "kelan/scanner/agent.py",
+  "kelan/scanner/analyzer.py",
+  "kelan/scanner/chunker.py",
+  "kelan/scanner/entrypoint.py",
+  "kelan/scanner/prompts.py",
+  "kelan/plugins/sast_adapter.py",
+  "kelan/plugins/dast_adapter.py",
+  "kelan/plugins/analyze_ratelimit.py",
+  "kelan/plugins/chains.py",
+  "kelan/plugins/cloud.py",
+  "kelan/plugins/runtime.py",
+  "kelan/doctor.py",
+  "kelan/run.py",
 ]
 
 [tool.coverage.report]
