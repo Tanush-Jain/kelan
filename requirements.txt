@@ -16,7 +16,7 @@ tenacity==9.0.0
 
 # ══ Data / Validation 
 pydantic==2.10.3
-pydantic-settings==2.7.0
+pydantic-settings==2.15.0
 
 # ══ Database 
 aiosqlite==0.20.0
