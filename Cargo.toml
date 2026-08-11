@@ -29,7 +29,7 @@ pqcrypto-traits = "0.3"
 ed25519-dalek    = { version = "2", features = ["rand_core", "pkcs8"] }
 x25519-dalek     = { version = "2", features = ["static_secrets"] }
 sha2             = "0.10"
-sha3 = "0.10"
+sha3 = "0.12"
 rand = "0.8"
 zeroize = "1"
 axum = "0.8"
