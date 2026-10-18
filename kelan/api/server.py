@@ -113,6 +113,10 @@ app = FastAPI(
 app.add_middleware(CORSMiddleware, allow_origins=["*"],
                   allow_methods=["*"], allow_headers=["*"])
 
+if os.path.exists("kelan-dashboard/dist/assets"):
+    from fastapi.staticfiles import StaticFiles
+    app.mount("/assets", StaticFiles(directory="kelan-dashboard/dist/assets"), name="assets")
+
 from prometheus_fastapi_instrumentator import Instrumentator
 Instrumentator().instrument(app).expose(app)
 
@@ -313,8 +317,12 @@ class XdpDropReport(BaseModel):
 @app.get("/")
 @app.get("/dashboard")
 async def get_dashboard():
+    if os.path.exists("kelan-dashboard/dist/index.html"):
+        return FileResponse("kelan-dashboard/dist/index.html")
     if os.path.exists("kelan-dashboard/index.html"):
         return FileResponse("kelan-dashboard/index.html")
+    if os.path.exists("kelan-dashboard/index.html.docs"):
+        return FileResponse("kelan-dashboard/index.html.docs")
     return FileResponse("static/index.html")
 
 

@@ -87,7 +87,9 @@ def _launch_dashboard() -> None:
 
     if port_free:
         root = Path(__file__).parent.parent.parent
-        dash_dir = root / "kelan-dashboard"
+        dash_dir = root / "kelan-dashboard/dist"
+        if not dash_dir.exists():
+            dash_dir = root / "kelan-dashboard"
         if dash_dir.exists():
             subprocess.Popen(
                 [sys.executable, "-m", "http.server", "7681", "--directory", str(dash_dir)],
