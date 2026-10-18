@@ -15,12 +15,12 @@ use aya_bpf::{
 #[derive(Clone, Copy)]
 pub struct SessionPermit {
     pub source_entity_prefix: [u8; 8],
-    pub dest_entity_prefix:   [u8; 8],
-    pub intent:     u16,
+    pub dest_entity_prefix: [u8; 8],
+    pub intent: u16,
     pub trust_score: u8,
-    pub verdict:    u8,
+    pub verdict: u8,
     pub expires_at: u64,
-    pub _pad:       [u8; 4],
+    pub _pad: [u8; 4],
 }
 
 // ── Per-CPU rate-limit entry ─────────────────────────────────────────────────
@@ -34,8 +34,8 @@ pub struct SessionPermit {
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct RateEntry {
-    pub count:         u32,  // packets seen this window
-    pub last_reset_ns: u64,  // window start (ktime nanoseconds)
+    pub count: u32,         // packets seen this window
+    pub last_reset_ns: u64, // window start (ktime nanoseconds)
 }
 
 // ── Rate-limit tuning constants ──────────────────────────────────────────────
@@ -44,14 +44,14 @@ pub struct RateEntry {
 // Lower = stricter protection; raise if legitimate clients hit limits.
 
 /// Max UDP packets per source IP per second (limits generic UDP floods)
-const MAX_UDP_PER_SEC:  u32 = 200;
+const MAX_UDP_PER_SEC: u32 = 200;
 
 /// Max SYN-flagged AITP packets per source IP per second (limits handshake floods)
 /// AITP SYN = flags byte bit 0x01 set in AitpMinHdr
-const MAX_SYN_PER_SEC:  u32 = 50;
+const MAX_SYN_PER_SEC: u32 = 50;
 
 /// Rate-limit window = 1 second in nanoseconds
-const TIME_WINDOW_NS:   u64 = 1_000_000_000;
+const TIME_WINDOW_NS: u64 = 1_000_000_000;
 
 // ── BPF maps ─────────────────────────────────────────────────────────────────
 
@@ -93,7 +93,7 @@ pub fn kelan_xdp(ctx: XdpContext) -> u32 {
 
 #[inline(always)]
 fn try_kelan_xdp(ctx: XdpContext) -> Result<u32, ()> {
-    let ethhdr   = ptr_at::<EthHdr>(&ctx, 0)?;
+    let ethhdr = ptr_at::<EthHdr>(&ctx, 0)?;
     let eth_proto = u16::from_be(unsafe { (*ethhdr).ether_type });
 
     // ── Only process IPv4 and IPv6 frames ─────────────────────────────
@@ -114,8 +114,8 @@ fn try_kelan_xdp(ctx: XdpContext) -> Result<u32, ()> {
     }
 
     // ── IPv4 path ─────────────────────────────────────────────────────
-    let ipv4hdr  = ptr_at::<Ipv4Hdr>(&ctx, ETH_HDR_LEN)?;
-    let proto    = unsafe { (*ipv4hdr).proto };
+    let ipv4hdr = ptr_at::<Ipv4Hdr>(&ctx, ETH_HDR_LEN)?;
+    let proto = unsafe { (*ipv4hdr).proto };
     let src_addr = u32::from_be(unsafe { (*ipv4hdr).src_addr });
 
     // Check IP Blacklist
@@ -136,12 +136,7 @@ fn try_kelan_xdp(ctx: XdpContext) -> Result<u32, ()> {
     let now_ns = unsafe { bpf_ktime_get_ns() };
     let src_key = fnv_hash(src_addr) as u32; // 16-bit bucket via truncation
 
-    let udp_rate_drop = check_rate(
-        unsafe { &mut UDP_RATE },
-        src_key,
-        now_ns,
-        MAX_UDP_PER_SEC,
-    );
+    let udp_rate_drop = check_rate(unsafe { &mut UDP_RATE }, src_key, now_ns, MAX_UDP_PER_SEC);
 
     if udp_rate_drop {
         increment_stat(4); // dropped by UDP rate limit
@@ -150,8 +145,8 @@ fn try_kelan_xdp(ctx: XdpContext) -> Result<u32, ()> {
 
     // ── Parse UDP header ──────────────────────────────────────────────
     let ip_hdr_len = ((unsafe { (*ipv4hdr).ihl_version } & 0x0F) * 4) as usize;
-    let udphdr     = ptr_at::<UdpHdr>(&ctx, ETH_HDR_LEN + ip_hdr_len)?;
-    let dst_port   = u16::from_be(unsafe { (*udphdr).dest });
+    let udphdr = ptr_at::<UdpHdr>(&ctx, ETH_HDR_LEN + ip_hdr_len)?;
+    let dst_port = u16::from_be(unsafe { (*udphdr).dest });
 
     if dst_port != AITP_PORT {
         increment_stat(3); // bypass — wrong port
@@ -162,20 +157,15 @@ fn try_kelan_xdp(ctx: XdpContext) -> Result<u32, ()> {
     let udp_payload_offset = ETH_HDR_LEN + ip_hdr_len + UDP_HDR_LEN;
     let aitp_hdr = ptr_at::<AitpMinHdr>(&ctx, udp_payload_offset)?;
 
-    let version    = unsafe { (*aitp_hdr).version };
-    let flags      = unsafe { (*aitp_hdr).flags };
+    let version = unsafe { (*aitp_hdr).version };
+    let flags = unsafe { (*aitp_hdr).flags };
     let session_id = u64::from_be(unsafe { (*aitp_hdr).session_id });
 
     // ── SYN rate-limit: applied on top of UDP rate limit ─────────────
     // AITP SYN = flags bit 0x01 set AND bit 0x02 (ACK) NOT set
     let is_syn = (flags & 0x01 != 0) && (flags & 0x02 == 0);
     if is_syn {
-        let syn_rate_drop = check_rate(
-            unsafe { &mut SYN_RATE },
-            src_key,
-            now_ns,
-            MAX_SYN_PER_SEC,
-        );
+        let syn_rate_drop = check_rate(unsafe { &mut SYN_RATE }, src_key, now_ns, MAX_SYN_PER_SEC);
 
         if syn_rate_drop {
             increment_stat(5); // dropped by SYN rate limit
@@ -221,12 +211,7 @@ fn try_kelan_xdp(ctx: XdpContext) -> Result<u32, ()> {
 // distributed traffic but avoids all atomic ops and spinlocks.
 
 #[inline(always)]
-fn check_rate(
-    map:       &mut PerCpuArray<RateEntry>,
-    key:       u32,
-    now_ns:    u64,
-    threshold: u32,
-) -> bool {
+fn check_rate(map: &mut PerCpuArray<RateEntry>, key: u32, now_ns: u64, threshold: u32) -> bool {
     // PerCpuArray key must be < max_entries; we modulo to stay in bounds.
     // 65536 = 2^16, FNV hash is already well-distributed.
     let bucket = key & 0xFFFF; // keep within 65536 entries
@@ -259,17 +244,21 @@ fn check_rate(
 
 #[inline(always)]
 fn fnv_hash(src_ip: u32) -> u16 {
-    const FNV_PRIME:  u32 = 0x01000193;
+    const FNV_PRIME: u32 = 0x01000193;
     const FNV_OFFSET: u32 = 0x811c9dc5;
 
     let bytes = src_ip.to_be_bytes();
     let mut hash = FNV_OFFSET;
 
     // Unrolled — eBPF verifier prefers no loops
-    hash ^= bytes[0] as u32; hash = hash.wrapping_mul(FNV_PRIME);
-    hash ^= bytes[1] as u32; hash = hash.wrapping_mul(FNV_PRIME);
-    hash ^= bytes[2] as u32; hash = hash.wrapping_mul(FNV_PRIME);
-    hash ^= bytes[3] as u32; hash = hash.wrapping_mul(FNV_PRIME);
+    hash ^= bytes[0] as u32;
+    hash = hash.wrapping_mul(FNV_PRIME);
+    hash ^= bytes[1] as u32;
+    hash = hash.wrapping_mul(FNV_PRIME);
+    hash ^= bytes[2] as u32;
+    hash = hash.wrapping_mul(FNV_PRIME);
+    hash ^= bytes[3] as u32;
+    hash = hash.wrapping_mul(FNV_PRIME);
 
     // Fold to 16 bits for the PerCpuArray key
     ((hash ^ (hash >> 16)) & 0xFFFF) as u16
@@ -279,47 +268,47 @@ fn fnv_hash(src_ip: u32) -> u16 {
 
 #[repr(C)]
 struct EthHdr {
-    dst_mac:    [u8; 6],
-    src_mac:    [u8; 6],
+    dst_mac: [u8; 6],
+    src_mac: [u8; 6],
     ether_type: u16,
 }
 
 #[repr(C)]
 struct Ipv4Hdr {
     ihl_version: u8,
-    tos:         u8,
-    tot_len:     u16,
-    id:          u16,
-    frag_off:    u16,
-    ttl:         u8,
-    proto:       u8,
-    check:       u16,
-    src_addr:    u32,
-    dst_addr:    u32,
+    tos: u8,
+    tot_len: u16,
+    id: u16,
+    frag_off: u16,
+    ttl: u8,
+    proto: u8,
+    check: u16,
+    src_addr: u32,
+    dst_addr: u32,
 }
 
 #[repr(C)]
 struct UdpHdr {
     source: u16,
-    dest:   u16,
-    len:    u16,
-    check:  u16,
+    dest: u16,
+    len: u16,
+    check: u16,
 }
 
 #[repr(C)]
 struct AitpMinHdr {
-    version:    u8,
-    flags:      u8,
-    intent:     u16,
+    version: u8,
+    flags: u8,
+    intent: u16,
     session_id: u64,
 }
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-const ETH_P_IP:   u16 = 0x0800;
+const ETH_P_IP: u16 = 0x0800;
 const ETH_P_IPV6: u16 = 0x86DD;
 const IPPROTO_UDP: u8 = 17;
-const AITP_PORT:  u16 = 9999;
+const AITP_PORT: u16 = 9999;
 const AITP_VERSION: u8 = 4; // updated: protocol is now v4 per AitpHeaderV4
 const ETH_HDR_LEN: usize = 14;
 const UDP_HDR_LEN: usize = 8;
@@ -338,8 +327,8 @@ fn increment_stat(key: u32) {
 #[inline(always)]
 fn ptr_at<T>(ctx: &XdpContext, offset: usize) -> Result<*const T, ()> {
     let start = ctx.data();
-    let end   = ctx.data_end();
-    let len   = core::mem::size_of::<T>();
+    let end = ctx.data_end();
+    let len = core::mem::size_of::<T>();
 
     if start + offset + len > end {
         return Err(());

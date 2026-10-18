@@ -1,7 +1,7 @@
-use std::sync::Arc;
-use aitp_core::server::state::ServerState;
 use aitp_core::events::EventBus;
 use aitp_core::server::alert_engine::AlertEngine;
+use aitp_core::server::state::ServerState;
+use std::sync::Arc;
 
 #[tokio::main]
 async fn main() {
