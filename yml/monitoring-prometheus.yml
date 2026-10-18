@@ -13,7 +13,7 @@ scrape_configs:
       - targets: ["trust:8001"]
     metrics_path: /metrics
 
-  - job_name: kelan-core
+  - job_name: kelan
     static_configs:
       - targets: ["core:8004"]
     metrics_path: /metrics

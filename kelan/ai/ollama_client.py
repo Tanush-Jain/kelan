@@ -1,7 +1,7 @@
-"""
-Ollama Client — gemma4:latest local inference.
-Pure async Python. Zero external API calls.
-"""
+
+
+
+
 import json
 import re
 import time
@@ -50,10 +50,10 @@ class TrustVerdict:
 
 
 def _parse(raw: str) -> TrustVerdict:
-    """Three-strategy parser for Ollama's response."""
+
     text = raw.strip()
 
-    # ── Strategy 1: direct JSON 
+
     for candidate in [text, text.split("```json")[-1].split("```")[0].strip()]:
         try:
             d = json.loads(candidate)
@@ -62,7 +62,7 @@ def _parse(raw: str) -> TrustVerdict:
             r = str(d.get("reason", d.get("reasoning", "")))[:120]
             verdict = Verdict(v) if v in Verdict.__members__ else Verdict.MONITOR
             
-            # Fallback if reason is empty
+
             if not r:
                 if verdict == Verdict.ALLOW:
                     r = "clean session, no anomalies detected"
@@ -80,7 +80,7 @@ def _parse(raw: str) -> TrustVerdict:
         except Exception:
             pass
 
-    # ── Strategy 2: regex JSON extraction ────────────────────
+
     for pat in [
         r'\{[^{}]*?"verdict"\s*:\s*"[^"]*"[^{}]*?"confidence"\s*:\s*[\d.]+[^{}]*\}',
         r'\{[^{}]*?"confidence"\s*:\s*[\d.]+[^{}]*?"verdict"\s*:\s*"[^"]*"[^{}]*?\}',
@@ -95,7 +95,7 @@ def _parse(raw: str) -> TrustVerdict:
                 r = str(d.get("reason", d.get("reasoning", "")))[:120]
                 verdict = Verdict(v) if v in Verdict.__members__ else Verdict.MONITOR
                 
-                # Fallback if reason is empty
+
                 if not r:
                     if verdict == Verdict.ALLOW:
                         r = "clean session, no anomalies detected"
@@ -113,7 +113,7 @@ def _parse(raw: str) -> TrustVerdict:
             except Exception:
                 continue
 
-    # ── Strategy 3: keyword 
+
     upper = text.upper()
     if "DENY"    in upper: return TrustVerdict(Verdict.DENY,    0.70, "malicious pattern detected",    raw=raw)
     if "ALLOW"   in upper: return TrustVerdict(Verdict.ALLOW,   0.70, "clean session, no anomalies detected",   raw=raw)
@@ -138,7 +138,7 @@ class OllamaClient:
         self.temperature = temperature
         self.max_tokens  = max_tokens
         self._http: Optional[httpx.AsyncClient] = None
-        # Simple LRU cache keyed on anomaly fingerprint
+
         self._cache: dict[str, TrustVerdict] = {}
         self._cache_hits  = 0
         self._cache_misses = 0
@@ -147,8 +147,8 @@ class OllamaClient:
         if self._http is None or self._http.is_closed:
             self._http = httpx.AsyncClient(
                 base_url=self.endpoint,
-                timeout=httpx.Timeout(None),   # no timeout
-                transport=httpx.AsyncHTTPTransport(retries=0)  # no retries — fail fast and let circuit breaker handle it
+                timeout=httpx.Timeout(None),
+                transport=httpx.AsyncHTTPTransport(retries=0)
             )
         return self._http
 
@@ -205,8 +205,8 @@ class OllamaClient:
         ).hexdigest()
 
     async def evaluate(self, session: dict) -> TrustVerdict:
-        """Evaluate a session — main public API."""
-        # Check cache for identical anomaly pattern
+
+
         ck = self._cache_key(session)
         if ck in self._cache:
             self._cache_hits += 1
@@ -224,7 +224,7 @@ class OllamaClient:
             verdict = _parse(raw)
             verdict.latency_ms = (time.monotonic() - t0) * 1000
 
-            # Cache all patterns (ALLOW, DENY, MONITOR) so repeated requests from same entity short-circuit
+
             if len(self._cache) > 500:
                 self._cache.pop(next(iter(self._cache)))
             self._cache[ck] = verdict
@@ -265,11 +265,11 @@ class OllamaClient:
         max_tokens: int = 4000,
         temperature: Optional[float] = None,
     ) -> str:
-        """Generate with a custom system prompt and NO truncating stop tokens.
 
-        Used by the SAST scanner, which needs full multi-line JSON output.
-        Falls back to the trust-engine SYSTEM_PROMPT only when none is given.
-        """
+
+
+
+
         r = await (await self._client()).post(
             "/api/generate",
             json={
@@ -281,7 +281,7 @@ class OllamaClient:
                     "temperature": self.temperature if temperature is None else temperature,
                     "top_p":       0.9,
                     "num_predict": max_tokens,
-                    "stop":        [],   # never truncate structured JSON mid-object
+                    "stop":        [],
                 },
             },
         )

@@ -1,7 +1,7 @@
-"""
-HybridTrustEngine — Ollama + circuit breaker + fallback rules.
-Replaces Rust HybridTrustEngine completely.
-"""
+
+
+
+
 import time
 from enum import Enum
 from typing import Awaitable, Callable, cast
@@ -77,11 +77,11 @@ class CircuitBreaker:
                 log.info("circuit_half_open")
                 return True
             return False
-        return True   # HALF_OPEN: probe
+        return True
 
 
 def _fallback(session: dict) -> TrustVerdict:
-    """Deterministic rules — runs when Ollama is unavailable."""
+
     a = session.get("anomalies", {}) or {}
     if not isinstance(a, dict):
         return TrustVerdict(Verdict.MONITOR, 0.5, "fallback:non_dict_anomalies")
@@ -138,7 +138,7 @@ class HybridTrustEngine:
                 else:
                     self.cb.success()
                 OLLAMA_LATENCY.observe(time.monotonic() - t0)
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 self.cb.failure()
                 verdict = _fallback(session)
                 self._counts["fallbacks"] += 1
@@ -149,7 +149,7 @@ class HybridTrustEngine:
         if self._counts.get(k) is not None:
             self._counts.update({k: self._counts[k] + 1})
 
-        # Record prometheus metrics
+
         VERDICTS.labels(
             verdict=verdict.verdict.value,
             model=getattr(self.ollama, "model", "qwen2.5:3b"),
@@ -162,7 +162,7 @@ class HybridTrustEngine:
         for hook in self._hooks:
             try:
                 await hook(payload)
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 log.error("hook_error", error=str(exc))
 
         return verdict

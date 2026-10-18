@@ -68,9 +68,9 @@ echo -e "${AMBER}Starting Intelligence Core (Backend)...${NC}"
 echo -e "${AMBER}Starting Admin Dashboard (Frontend)...${NC}"
 cd ../kelan-web
 # Run in background, redirect logs
-npm run dev -- --port 5173 > ../kelan-core/log/aitp_frontend.log 2>&1 &
+npm run dev -- --port 5173 > ../kelan/log/aitp_frontend.log 2>&1 &
 echo -e "${GREEN}✓ Frontend starting at http://localhost:5173${NC}"
-cd ../kelan-core
+cd ../kelan
 
 # 5. Final Status
 echo ""

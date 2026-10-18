@@ -1,4 +1,4 @@
-"""Kelan scanner prompts and JSON schema for Ollama-backed SAST analysis."""
+
 import json
 
 
@@ -53,7 +53,7 @@ SCANNER_SYSTEM_PROMPT = (
 
 
 def build_scan_prompt(chunk: dict) -> str:
-    """Wrap a chunk dict into the user message with the schema embedded."""
+
     return (
         "Analyze the following code chunk for security weaknesses.\n\n"
         f"file_path: {chunk.get('file_path', 'unknown')}\n"

@@ -1,4 +1,4 @@
-"""Attack detection prompts for Ollama."""
+
 
 SYSTEM_PROMPT = """You are a zero-trust network security evaluator. You MUST return DENY for ANY of these patterns:
 - clearance_violation: true  → entity is accessing resources above its clearance level

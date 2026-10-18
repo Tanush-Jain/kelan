@@ -45,7 +45,7 @@ curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/s
 echo "deb [arch=arm64 signed-by=/usr/share/keyrings/hashicorp.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
 sudo apt-get update && sudo apt-get install terraform
 
-cd kelan-core/deploy/oracle-cloud/terraform
+cd kelan/deploy/oracle-cloud/terraform
 ```
 
 Create `terraform.tfvars`:

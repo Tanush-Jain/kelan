@@ -47,8 +47,8 @@ cargo install bpf-linker
 ### C. Clone and Build the Workspace
 ```bash
 # Clone the repository
-git clone https://github.com/kelan-security/kelan-core.git
-cd kelan-core
+git clone https://github.com/kelan-security/kelan.git
+cd kelan
 
 # Build in standard debug mode
 cargo build
@@ -144,9 +144,9 @@ After=network.target
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/home/wop/startup/kelan-core
-ExecStart=/home/wop/startup/kelan-core/target/release/aitp-server
-EnvironmentFile=/home/wop/startup/kelan-core/.env
+WorkingDirectory=/home/wop/startup/kelan
+ExecStart=/home/wop/startup/kelan/target/release/aitp-server
+EnvironmentFile=/home/wop/startup/kelan/.env
 Restart=on-failure
 LimitNOFILE=65536
 
@@ -191,14 +191,14 @@ tmux split-window -v -t warroom:0.2
 
 # 3. Setup Pane 0 (top-left): Live server logs filtered for key verdicts/operations
 tmux send-keys -t warroom:0.0 "
-cd ~/kelan-core && \
+cd ~/kelan && \
 export \$(cat .env | grep -v '^#' | xargs) && \
 RUST_LOG=info,aitp_server=debug ./target/release/aitp-server 2>&1 | \
 grep -E --line-buffered 'verdict|ALLOW|DENY|MONITOR|Ollama|DROP|flood|anomaly|sentinel|attack|blocked|WARN|ERROR'
 " Enter
 
 # 4. Setup Pane 1 (bottom-left): Live attack injection shell
-tmux send-keys -t warroom:0.1 "cd ~/kelan-core && export \$(cat .env | grep -v '^#' | xargs)" Enter
+tmux send-keys -t warroom:0.1 "cd ~/kelan && export \$(cat .env | grep -v '^#' | xargs)" Enter
 tmux send-keys -t warroom:0.1 "IFACE=\$(ip -o -4 route show to default | awk '{print \$5}' | head -1) && echo Attack terminal ready on \$IFACE" Enter
 
 # 5. Setup Pane 2 (top-right): Live local HTTP statistics (curled every 2 seconds)

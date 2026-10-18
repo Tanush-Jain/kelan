@@ -1,4 +1,4 @@
-"""VulnerabilityAnalyzer — Ollama-backed SAST chunk analysis for kelan scan."""
+
 import asyncio
 import json
 import re
@@ -8,6 +8,7 @@ import structlog
 
 from kelan.ai.ollama_client import OllamaClient
 from kelan.scanner.prompts import (
+    SCANNER_JSON_SCHEMA,
     SCANNER_SYSTEM_PROMPT,
     build_scan_prompt,
 )
@@ -23,10 +24,10 @@ FINDING_KEYS = (
 
 
 def _extract_json_object(text: str) -> Optional[dict]:
-    """Pull the first balanced JSON object out of a possibly noisy response."""
+
     if not text:
         return None
-    # Gemma 4 may emit <|think|> / <|channel>... blocks — strip channel tags
+
     text = re.sub(r"<\|[^|]*\|>", "", text)
     m = re.search(r"```(?:json)?\s*(.*?)```", text, re.DOTALL)
     if m:
@@ -41,7 +42,7 @@ def _extract_json_object(text: str) -> Optional[dict]:
 
 
 def _coerce_finding(raw: Any) -> dict:
-    """Enforce the finding sub-schema; discard malformed entries."""
+
     if not isinstance(raw, dict):
         raise ValueError("finding not an object")
     severity = str(raw.get("severity", "MEDIUM")).upper()
@@ -58,7 +59,7 @@ def _coerce_finding(raw: Any) -> dict:
 
 
 def _validate_result(data: Any) -> dict:
-    """Enforce SCANNER_JSON_SCHEMA shape; drop malformed findings."""
+
     if not isinstance(data, dict):
         return dict(SAFE_DEFAULT)
     raw_findings = data.get("findings")
@@ -75,7 +76,7 @@ def _validate_result(data: Any) -> dict:
 
 
 class VulnerabilityAnalyzer:
-    """Analyze semantic code chunks with a local Ollama model (defensive SAST)."""
+
 
     def __init__(
         self,
@@ -95,7 +96,7 @@ class VulnerabilityAnalyzer:
         self._timeout = timeout
 
     async def analyze_chunk(self, chunk: dict) -> dict:
-        """Analyze one chunk. Never raises — SAFE_DEFAULT on any failure."""
+
         try:
             raw = await asyncio.wait_for(
                 self._client.generate_json(

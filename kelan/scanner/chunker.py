@@ -8,12 +8,12 @@ import tree_sitter_typescript as tsts
 
 class SemanticChunker:
     def __init__(self):
-        # Initialize languages
+
         self.py_lang = Language(tspython.language(), "python")
         self.js_lang = Language(tsjs.language(), "javascript")
         self.ts_lang = Language(tsts.language_typescript(), "typescript")
 
-        # Compile query strings
+
         self.py_query = self.py_lang.query(
             "(function_definition) @func (class_definition) @class"
         )

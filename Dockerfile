@@ -1,76 +1,21 @@
-# ── Stage 1: Rust builder ────────────────────────────────────────────────────
-FROM rust:slim AS rust-builder
-
+# ---- dast-only stage (smallest runtime) ----
+FROM python:3.12-slim AS dast
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpcap-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-WORKDIR /build
-
-# Cache dependencies
-COPY Cargo.toml Cargo.lock* ./
-COPY kelan-ebpf/Cargo.toml ./kelan-ebpf/
-COPY kelan-ebpf/kelan-ebpf-loader/Cargo.toml ./kelan-ebpf/kelan-ebpf-loader/
-
-# Build deps only (cache layer)
-RUN mkdir -p kelan-ebpf/kelan-ebpf-loader/src && \
-    echo "fn main() {}" > kelan-ebpf/kelan-ebpf-loader/src/main.rs && \
-    touch kelan-ebpf/kelan-ebpf-loader/src/lib.rs && \
-    cargo build --release 2>/dev/null || true
-
-# Copy full source and build
-COPY . .
-RUN cargo build --release
-
-# ── Stage 2: Python builder ───────────────────────────────────────────────────
-FROM python:3.12-slim AS python-builder
-
-WORKDIR /build
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    python3-dev \
-    libssl-dev \
-    libffi-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-COPY requirements.txt .
-RUN pip install --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt --target=/build/deps
-
-# ── Stage 3: Runtime ──────────────────────────────────────────────────────────
-FROM python:3.12-slim AS runtime
-
-# Install runtime dependencies (including curl for HEALTHCHECK)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
-    libpcap0.8 \
-    && rm -rf /var/lib/apt/lists/*
-
-# Security: non-root user
-RUN groupadd -r kelan && useradd -r -g kelan kelan
-
+    curl ca-certificates && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
+COPY pyproject.toml .
+COPY kelan/ kelan/
+RUN pip install --no-cache-dir .
+ENTRYPOINT ["kelan"]
 
-# Copy Python deps
-COPY --from=python-builder /build/deps /app/deps
-ENV PYTHONPATH=/app/deps
-
-# Copy Rust binary
-COPY --from=rust-builder /build/target/release/kelan-ebpf-loader /usr/local/bin/
-RUN chmod +x /usr/local/bin/kelan-ebpf-loader
-
-# Copy application code (exclude secrets)
-COPY --chown=kelan:kelan . .
-
-# Remove any accidentally included secrets
-RUN rm -f .env .env.* *.log
-
-USER kelan
-
-EXPOSE 3000
-
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:3000/health || exit 1
-
-CMD ["python", "scripts/start_server.py"]
+# ---- full stage: + SAST chunker libs + SCA tools ----
+FROM python:3.12-slim AS full
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl ca-certificates git build-essential \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY pyproject.toml .
+COPY kelan/ kelan/
+RUN pip install --no-cache-dir ".[all]" \
+    && pip install --no-cache-dir osv-scanner pip-audit
+ENTRYPOINT ["kelan"]

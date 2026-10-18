@@ -1,0 +1,10 @@
+{
+  "stats": {
+    "findings": 0,
+    "severities": {},
+    "categories": {},
+    "cwes": {},
+    "plugins": {}
+  },
+  "findings": []
+}

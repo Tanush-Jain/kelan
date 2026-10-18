@@ -181,28 +181,37 @@ done
 echo -e "${GREEN}✓ Command Center Dashboard configured at log/terminal.html${NC}"
 
 # ── Start Dashboard ──────────────────────────
-if [ -d "../kelan-web" ] || [ -d "dashboard" ] || [ -d "frontend" ] || [ -d "aitp-dashboard" ]; then
+if [ -d "kelan-dashboard" ] || [ -d "../kelan-web" ] || [ -d "dashboard" ] || [ -d "frontend" ] || [ -d "aitp-dashboard" ]; then
     echo -e "${YELLOW}Starting dashboard...${NC}"
     
-    if [ -d "../kelan-web" ]; then
-        DASH_DIR="../kelan-web"
-    else
-        DASH_DIR=$([ -d "aitp-dashboard" ] && echo "aitp-dashboard" || ([ -d "dashboard" ] && echo "dashboard" || echo "frontend"))
-    fi
-    
-    if [ -f "$DASH_DIR/package.json" ]; then
+    if [ -d "kelan-dashboard" ]; then
         LOGS_DIR="$(pwd)/log"
-        cd "$DASH_DIR"
-        npm install --silent
-        npm run dev > "$LOGS_DIR/dashboard.log" 2>&1 &
+        python3 -m http.server 7681 --directory kelan-dashboard > "$LOGS_DIR/dashboard.log" 2>&1 &
         DASH_PID=$!
         echo $DASH_PID >> "$LOGS_DIR/../.kelan.pid"
-        cd - >/dev/null
-        
-        sleep 3
-        echo -e "${GREEN}✓ Dashboard starting...${NC}"
+        sleep 1
+        echo -e "${GREEN}✓ Kelan Dashboard running at http://localhost:7681${NC}"
     else
-        echo -e "${YELLOW}⚠ Dashboard directory found, but package.json is missing in $DASH_DIR. Skipping...${NC}"
+        if [ -d "../kelan-web" ]; then
+            DASH_DIR="../kelan-web"
+        else
+            DASH_DIR=$([ -d "aitp-dashboard" ] && echo "aitp-dashboard" || ([ -d "dashboard" ] && echo "dashboard" || echo "frontend"))
+        fi
+        
+        if [ -f "$DASH_DIR/package.json" ]; then
+            LOGS_DIR="$(pwd)/log"
+            cd "$DASH_DIR"
+            npm install --silent
+            npm run dev > "$LOGS_DIR/dashboard.log" 2>&1 &
+            DASH_PID=$!
+            echo $DASH_PID >> "$LOGS_DIR/../.kelan.pid"
+            cd - >/dev/null
+            
+            sleep 3
+            echo -e "${GREEN}✓ Dashboard starting...${NC}"
+        else
+            echo -e "${YELLOW}⚠ Dashboard directory found, but package.json is missing in $DASH_DIR. Skipping...${NC}"
+        fi
     fi
 fi
 

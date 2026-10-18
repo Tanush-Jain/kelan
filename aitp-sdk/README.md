@@ -87,7 +87,7 @@ Benchmarks on Intel i7, Ubuntu 22.04, Gemini 2.5 Flash.
 ```bash
 docker run -p 3000:3000 -p 9999:9999/udp \
   -e GEMINI_API_KEY=[REDACTED_GEMINI_KEY] \
-  ghcr.io/kelan-security/kelan-core:latest
+  ghcr.io/kelan-security/kelan:latest
 ```
 
 ## Documentation

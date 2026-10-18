@@ -13,7 +13,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$Repo     = "kelan-security/kelan-core"
+$Repo     = "kelan-security/kelan"
 $Platform = "windows-x86_64"
 
 Write-Host ""

@@ -1,4 +1,4 @@
-"""Tests for Python crypto layer."""
+
 import pytest
 from kelan.protocol.crypto import (
     ed25519_generate, ed25519_sign, ed25519_verify,
@@ -102,7 +102,7 @@ class TestKEM:
         kp          = kem_generate()
         ct, shared1 = kem_encapsulate(kp.public_key)
         shared2     = kem_decapsulate(kp.private_key, ct)
-        # Both parties derive same secret (may differ in stub mode, just check types)
+
         assert isinstance(shared1, bytes) and len(shared1) >= 32
         assert isinstance(shared2, bytes) and len(shared2) >= 32
 

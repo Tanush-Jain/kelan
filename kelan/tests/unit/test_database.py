@@ -1,4 +1,4 @@
-"""Unit tests for database operations."""
+
 import os
 import pytest
 import pytest_asyncio
@@ -13,17 +13,17 @@ def anyio_backend():
 
 @pytest_asyncio.fixture(autouse=True)
 async def setup_test_db():
-    # Use in-memory database for testing
+
     old_db_url = os.environ.get("DATABASE_URL")
     os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///:memory:"
     get_settings.cache_clear()
     
-    # Initialize the in-memory database schema
+
     await init_db()
     
     yield
     
-    # Restore configuration
+
     if old_db_url:
         os.environ["DATABASE_URL"] = old_db_url
     else:
@@ -32,7 +32,7 @@ async def setup_test_db():
 
 @pytest.mark.asyncio
 async def test_save_and_fetch_verdict():
-    # Save a test verdict
+
     session_id = "test-session-123"
     entity_id = "test-entity-456"
     verdict = "ALLOW"
@@ -51,11 +51,11 @@ async def test_save_and_fetch_verdict():
         anomalies=anomalies
     )
     
-    # Fetch verdicts
+
     verdicts = await fetch_verdicts(limit=10)
     assert len(verdicts) >= 1
     
-    # Verify the saved verdict fields
+
     saved = verdicts[0]
     assert saved["session_id"] == session_id
     assert saved["entity_id"] == entity_id
@@ -66,7 +66,7 @@ async def test_save_and_fetch_verdict():
 
 @pytest.mark.asyncio
 async def test_save_and_fetch_anomaly():
-    # Save a test anomaly
+
     source = "192.168.1.50"
     kind = "port_scan"
     severity = 0.85
@@ -79,11 +79,11 @@ async def test_save_and_fetch_anomaly():
         details=details
     )
     
-    # Fetch anomalies
+
     anomalies = await fetch_anomalies(limit=10)
     assert len(anomalies) >= 1
     
-    # Verify saved anomaly fields
+
     saved = anomalies[0]
     assert saved["source"] == source
     assert saved["kind"] == kind

@@ -1,4 +1,4 @@
-"""Unit tests for FastAPI server endpoints and lifecycle."""
+
 from __future__ import annotations
 from typing import Any
 import pytest
@@ -71,7 +71,7 @@ async def test_on_verdict_broadcasting() -> None:
     mock_ws: Any = MockWebSocket([])
     _ws_clients.add(mock_ws)
     
-    # Verdict payload with REVOKE
+
     payload_revoke = {
         "session_id": "sess-rev",
         "entity_id": "entity-rev",
@@ -81,7 +81,7 @@ async def test_on_verdict_broadcasting() -> None:
         "reason": "malicious activity"
     }
     
-    # Verdict payload with PERMIT
+
     payload_permit = {
         "session_id": "sess-perm",
         "entity_id": "entity-perm",
@@ -91,7 +91,7 @@ async def test_on_verdict_broadcasting() -> None:
         "reason": "clean session"
     }
     
-    # Call _on_verdict
+
     with patch("kelan.api.server.save_verdict", new_callable=AsyncMock) as mock_save:
         await _on_verdict(payload_revoke)
         s.ebpf.revoke.assert_called_once_with("entity-rev")
@@ -135,7 +135,7 @@ async def test_websocket_agent_error() -> None:
 async def test_dashboard_endpoint() -> None:
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        # Mock FileResponse to avoid actual static file checking
+
         with patch("kelan.api.server.FileResponse") as mock_file_resp:
             mock_file_resp.return_value = MagicMock()
             
@@ -157,7 +157,7 @@ async def test_trust_evaluate_endpoint() -> None:
             "entity_id": "entity-123",
             "intent": "TEST",
             "session_id": "sess-123",
-            "anomalies": [{"port_scan": True}] # List should be coerced to dict
+            "anomalies": [{"port_scan": True}]
         })
         assert r.status_code == 200
         d = r.json()
@@ -181,7 +181,7 @@ async def test_handshake_endpoint_errors() -> None:
     
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        # Phase 1, require_pq, missing kem_public_key -> 403
+
         r1 = await client.post("/api/handshake", json={
             "entity_id": "entity-1",
             "phase": 1,
@@ -189,7 +189,7 @@ async def test_handshake_endpoint_errors() -> None:
         assert r1.status_code == 403
         assert "pq_downgrade_denied" in r1.json()["detail"]["error"]
         
-        # Phase 3, require_pq, missing kem_ciphertext -> 403
+
         r2 = await client.post("/api/handshake", json={
             "entity_id": "entity-1",
             "phase": 3,
@@ -197,7 +197,7 @@ async def test_handshake_endpoint_errors() -> None:
         assert r2.status_code == 403
         assert "pq_downgrade_denied" in r2.json()["detail"]["error"]
         
-        # Phase 3, missing session_id -> 400
+
         s.cfg.require_pq = False
         r3 = await client.post("/api/handshake", json={
             "entity_id": "entity-1",
@@ -208,7 +208,7 @@ async def test_handshake_endpoint_errors() -> None:
         })
         assert r3.status_code == 400
         
-        # Phase 3, HandshakeError -> 403
+
         s.handshake_mgr.receive_kem_complete.side_effect = HandshakeError("expired")
         r4 = await client.post("/api/handshake", json={
             "entity_id": "entity-1",
@@ -220,7 +220,7 @@ async def test_handshake_endpoint_errors() -> None:
         })
         assert r4.status_code == 403
         
-        # Unsupported phase -> 400
+
         r5 = await client.post("/api/handshake", json={
             "entity_id": "entity-1",
             "phase": 99,

@@ -1,4 +1,4 @@
-"""Compose crawl → probe → evidence → optional LLM → report."""
+
 from __future__ import annotations
 
 import asyncio
@@ -6,22 +6,19 @@ import random
 import re
 from dataclasses import dataclass
 from typing import Optional
-from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
+from urllib.parse import urlparse, urlunparse, parse_qsl, urlencode
 
 import httpx
 import structlog
 
-from kelan.dast.bypass import build_probes
-from kelan.dast.crawler import DEFAULT_HEADERS, Crawler
+from kelan.dast.bypass import build_probes, RATELIMIT_HEADERS
+from kelan.dast.crawler import Crawler, DEFAULT_HEADERS
 from kelan.dast.heuristics import (
-    grade_idor,
-    reflected,
-    sql_error_hint,
-    ssti_hit,
-    traversal_hit,
+    reflected, sql_error_hint, traversal_hit, ssti_hit, grade_idor,
+    grade_ratelimit_burst,
 )
-from kelan.dast.llm import summarize_findings
-from kelan.dast.report import Finding, Report
+from kelan.dast.llm import CATEGORY_CWE, enrich_finding
+from kelan.dast.report import Finding, Report, SEV_ORDER
 
 log = structlog.get_logger()
 
@@ -42,7 +39,7 @@ class ScanOptions:
     max_depth: int = 3
     delay: float = 0.5
     bypass: bool = False
-    vectors: tuple = ("xss", "sqli", "cmdi", "traversal", "ssti")
+    vectors: tuple = ("xss", "sqli", "cmdi", "traversal", "ssti", "ratelimit")
     timeout: float = 15.0
     concurrency: int = 2
     fuzz_tokens: bool = False
@@ -58,8 +55,7 @@ def _inject_query(url: str, param: str, value: str) -> str:
 
 
 def _build_targets(pages, fuzz_tokens: bool = False):
-    targets: list = []
-    seen: set[tuple] = set()
+    targets, seen = [], set()
     for page in pages:
         for pname in page.params:
             key = (page.url, "GET", pname, None)
@@ -70,10 +66,10 @@ def _build_targets(pages, fuzz_tokens: bool = False):
             for f in form.fields:
                 if (f.is_secret and not fuzz_tokens) or not f.name:
                     continue
-                form_key = (form.action, form.method.upper(), f.name, id(form))
-                if form_key not in seen:
-                    seen.add(form_key)
-                    targets.append((form.action, form.method.upper(), f.name, form))
+                key = (form.action, form.method.upper(), f.name, form)
+                if key not in seen:
+                    seen.add(key)
+                    targets.append(key)
     return targets
 
 
@@ -200,40 +196,38 @@ async def _probe_api(sem, client, pages, report, opts, headers):
 def _check_headers(resp_headers: dict, report, url):
     for h in REQUIRED_HEADERS:
         if h not in resp_headers:
-            report.add(Finding(url=url, method="GET", param="-", category="header",
+            report.add(Finding(url=url, method="GET", param=h, category="header",
                 title=f"Missing security header: {h}",
                 evidence=f"response omits {h}",
                 confidence="strong"))
 
 
-def render_report(report: Report):
-    width = 72
-    print("=" * width)
-    print("🛡️  KELAN DAST AGENT REPORT")
-    print("=" * width)
-    print(f"Target:          {report.target}")
-    print(f"Model:           {report.model}")
-    print(f"Findings:        {len(report.findings)}")
-    print("=" * width)
-
-    for f in report.findings:
-        print(f"\n[{f.severity}] {f.cwe} — {f.title}")
-        print(f"  URL:         {f.url}")
-        print(f"  Param:       {f.param} ({f.method})")
-        print(f"  Evidence:    {f.evidence}")
-        if f.remediation:
-            print(f"  Remediation: {f.remediation}")
-        print("-" * width)
-
-    if not report.findings:
-        print("\n✅ No security flaws detected in target application.")
-    print("=" * width)
+async def _ratelimit_probe(url: str, client) -> list[dict]:
+    results = []
+    for variant in RATELIMIT_HEADERS:
+        codes = []
+        for _ in range(20):
+            try:
+                r = await client.get(url, headers=variant, timeout=15)
+                codes.append(r.status_code)
+            except Exception as exc:
+                log.debug("ratelimit_probe_request_failed", error=str(exc))
+                codes.append(0)
+        results.append({
+            "code": (429 if 429 in codes else max(codes) if codes else 0),
+            "headers": variant,
+            "url": url,
+            "identity": "baseline" if not variant else list(variant.values())[0]
+        })
+    return results
 
 
 async def run_scan(opts: ScanOptions) -> Report:
     log.info("dast_start", target=opts.target, model=opts.model)
     report = Report(opts.target, opts.model)
     headers = dict(DEFAULT_HEADERS)
+
+
 
     crawler = Crawler(
         seed=opts.target,
@@ -244,37 +238,108 @@ async def run_scan(opts: ScanOptions) -> Report:
     pages = await crawler.crawl()
     if not pages:
         raise RuntimeError(f"could not fetch seed URL: {opts.target}")
+    seed = pages[0]
+    log.info("dast_fetch", status=seed.status, url=seed.url)
+    _check_headers(seed.resp_headers, report, seed.url)
 
-    # Check security headers and sensitive file exposures across ALL discovered pages
-    from kelan.dast.heuristics import grade_sensitive_files
-    checked_header_urls = set()
-    for page in pages:
-        if page.url not in checked_header_urls:
-            checked_header_urls.add(page.url)
-            _check_headers(page.resp_headers, report, page.url)
-            for file_finding in grade_sensitive_files(page.url, page.status, page.body):
-                report.add(file_finding)
+    if opts.crawl:
+        log.info("dast_crawl",
+                 pages=len(pages),
+                 forms=sum(len(p.forms) for p in pages),
+                 params=sum(len(p.params) for p in pages),
+                 links=sum(len(p.links) for p in pages))
+
+    login_forms = [
+        f for p in pages for f in p.forms if f.is_login
+    ]
+    report.meta = {
+        "pages": len(pages),
+        "forms": sum(len(p.forms) for p in pages),
+        "params": sum(len(p.params) for p in pages),
+        "login_forms": [
+            {"action": f.action, "method": f.method,
+             "fields": [x.name for x in f.fields]} for f in login_forms
+        ],
+    }
 
     targets = _build_targets(pages, fuzz_tokens=opts.fuzz_tokens)
     sem = asyncio.Semaphore(opts.concurrency)
-
     async with httpx.AsyncClient(timeout=opts.timeout, follow_redirects=True) as client:
         await _probe_targets(sem, client, targets, report, opts, headers)
         await _probe_api(sem, client, pages, report, opts, headers)
+        if "ratelimit" in opts.vectors:
+            rl_results = await _ratelimit_probe(opts.target, client)
+            rl_finding = grade_ratelimit_burst(rl_results)
+            if rl_finding:
+                report.add(rl_finding)
 
     if opts.use_llm and report.findings:
-        updates, summary = await summarize_findings(
-            opts.endpoint, opts.model, report.findings, opts.target, timeout=opts.timeout
-        )
-        for idx, item in updates.items():
-            if item.get("cwe_id"):
-                report.findings[idx].cwe = item["cwe_id"]
-            if item.get("title"):
-                report.findings[idx].title = item["title"]
-            if item.get("remediation"):
-                report.findings[idx].remediation = item["remediation"]
-        if summary:
-            report.risk_summary = summary
+        for f in report.findings:
+            if f.category in CATEGORY_CWE:
+                f_dict = {
+                    "category": f.category,
+                    "title": f.title,
+                    "remediation": f.remediation,
+                    "cwe": f.cwe,
+                    "severity": f.severity,
+                    "confidence": f.confidence,
+                    "evidence": [{"kind": "advisory", "detail": f.evidence, "ref": f.url, "snippet": f.payload or f.variant}]
+                }
+                enriched = await enrich_finding(f_dict, endpoint=opts.endpoint, model=opts.model)
+                f.title = enriched.get("title", f.title)
+                f.remediation = enriched.get("remediation", f.remediation)
+                f.cwe = enriched.get("cwe", f.cwe)
+        report.risk_summary = _builtin_summary(report)
+    else:
+        report.risk_summary = _builtin_summary(report)
 
     report.finalize()
+    log.info("dast_done", findings=len(report.findings), target=opts.target)
     return report
+
+
+def _builtin_summary(report: Report) -> str:
+    if not report.findings:
+        return "No confirmed weaknesses detected in scope."
+    top = sorted(report.findings,
+                 key=lambda f: SEV_ORDER.get(f.severity, 9))[:3]
+    return "Top risks: " + "; ".join(f"{f.severity} {f.cwe} {f.title} @ {f.url}" for f in top)
+
+
+def render_report(report: Report):
+    width = 72
+    flagged = report.findings
+    print("=" * width)
+    print("🛡️  KELAN DAST AGENT REPORT")
+    print("=" * width)
+    print(f"Target: {report.target}")
+    flawed = any(f.severity in ("CRITICAL", "HIGH", "MEDIUM") for f in flagged)
+    print(f"Flaw detected: {'YES ⚠️' if flawed else 'NO ✅'}")
+    stats = report.stats()
+    sev = stats["severities"]
+    print(f"Findings: " + ", ".join(f"{sev.get(s, 0)} {s}" for s in
+                                     ("CRITICAL", "HIGH", "MEDIUM", "LOW")) or "0")
+    missing = [f for f in flagged if f.category == "header"]
+    if missing:
+        print("\nMissing Security Headers:")
+        for f in missing:
+            print(f"  • {f.title.removeprefix('Missing security header: ')}")
+    surface = report.meta.get("login_forms") or []
+    if surface:
+        print("\nDiscovered login forms (attack surface):")
+        for lf in surface:
+            print(f"  • {lf['action']} [{lf['method'].upper()}] fields={lf['fields']}")
+    print("-" * width)
+    for f in flagged:
+        if f.category == "header":
+            continue
+        print(f"\n[{f.severity}] {f.cwe} — {f.title}")
+        print(f"  URL:       {f.url}")
+        print(f"  Param:     {f.param} ({f.method})  variant: {f.variant}")
+        print(f"  Evidence:  {f.evidence}")
+        print(f"  Remediation: {f.remediation}")
+        print(f"  Confidence: {f.confidence}")
+    print("-" * width)
+    if report.risk_summary:
+        print(f"Risk Summary: {report.risk_summary}")
+    print("=" * width)

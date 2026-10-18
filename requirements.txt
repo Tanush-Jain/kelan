@@ -54,10 +54,10 @@ pytest-cov==6.0.0
 httpx[test]==0.28.1
 factory-boy==3.3.1
 kyber-py==1.2.0
-tree-sitter==0.21.3
-tree-sitter-python==0.21.0
-tree-sitter-javascript==0.21.2
-tree-sitter-typescript==0.21.2
+tree-sitter>=0.21.3
+tree-sitter-python>=0.21.0
+tree-sitter-javascript>=0.21.2
+tree-sitter-typescript>=0.21.2
 
 
 

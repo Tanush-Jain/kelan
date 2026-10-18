@@ -30,17 +30,17 @@ backend:
 
 # ── Frontend (dashboard) ──────────────────────────────────────────────────────
 frontend:
-	@if [ -d "../kelan-web" ] && command -v node >/dev/null; then \
+	@if [ -d "kelan-dashboard" ]; then \
+		echo "Starting Kelan dashboard on http://localhost:7681..."; \
+		python3 -m http.server 7681 --directory kelan-dashboard; \
+	elif [ -d "../kelan-web" ] && command -v node >/dev/null; then \
 		echo "Starting frontend on http://localhost:5173..."; \
 		cd ../kelan-web && npm install --silent && npm run dev; \
-	elif [ -d "aitp-dashboard" ] && command -v node >/dev/null; then \
-		echo "Starting frontend on http://localhost:5173..."; \
-		cd aitp-dashboard && npm install --silent && npm run dev; \
 	elif [ -d "frontend" ] && command -v node >/dev/null; then \
 		echo "Starting frontend on http://localhost:5173..."; \
 		cd frontend && npm install --silent && npm run dev; \
 	else \
-		echo "No frontend directory found or Node.js not installed."; \
+		echo "No frontend directory found."; \
 		echo "Dashboard is served by FastAPI at http://localhost:3000"; \
 	fi
 
