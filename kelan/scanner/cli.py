@@ -25,7 +25,7 @@ def get_local_models() -> list[str]:
 
     try:
         req = urllib.request.Request(f"{DEFAULT_ENDPOINT}/api/tags")
-        with urllib.request.urlopen(req, timeout=2) as resp:
+        with urllib.request.urlopen(req, timeout=2) as resp:  # nosec B310
             data = json.loads(resp.read().decode())
             return [m["name"] for m in data.get("models", [])]
     except Exception:

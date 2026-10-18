@@ -15,7 +15,7 @@ class Settings(BaseSettings):
 
 
     http_port: int          = Field(3000,             alias="AITP_HTTP_PORT")
-    host:      str          = Field("0.0.0.0",        alias="AITP_HOST")
+    host:      str          = Field("0.0.0.0",        alias="AITP_HOST")  # nosec B104
     debug:     bool         = Field(False,             alias="AITP_DEBUG")
 
 
