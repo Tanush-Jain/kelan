@@ -10,6 +10,24 @@ from kelan.dast.pipeline import ScanOptions, render_report, run_scan
 DEFAULT_VECTORS = "xss,sqli,cmdi,traversal,ssti"
 
 
+import os
+import re
+from datetime import datetime
+
+
+def resolve_report_path(raw_path: str, target: str = "") -> str:
+    """Ensure report files are saved inside the dedicated 'reports/' directory."""
+    os.makedirs("reports", exist_ok=True)
+    if not raw_path:
+        slug = re.sub(r"[^a-zA-Z0-9_\-]", "_", target.replace("https://", "").replace("http://", ""))[:30].strip("_")
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"dast_{slug}_{ts}.json" if slug else f"dast_{ts}.json"
+        return os.path.join("reports", filename)
+    if not os.path.dirname(raw_path):
+        return os.path.join("reports", raw_path)
+    return raw_path
+
+
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(prog="kelan dast", description="Kelan DAST agent")
     p.add_argument("--target", required=True, help="seed URL")
@@ -25,7 +43,8 @@ def main(argv=None) -> int:
                    help="add encoding/obfuscation variants (WAF / ValidateRequest bypass attempts)")
     p.add_argument("--vectors", default=DEFAULT_VECTORS,
                    help=f"comma list of vectors (default: {DEFAULT_VECTORS})")
-    p.add_argument("--json", dest="json_out", help="write findings to JSON file")
+    p.add_argument("--json", dest="json_out", nargs="?", const="",
+                   help="write findings to JSON file (saved in reports/ folder)")
     p.add_argument("--ci-gate", choices=["critical", "high", "medium", "low"],
                    help="exit 1 if any finding at/above this severity")
     p.add_argument("--concurrency", type=int, default=2)
@@ -68,9 +87,10 @@ def main(argv=None) -> int:
         return 2
 
     render_report(report)
-    if args.json_out:
-        report.write_json(args.json_out)
-        print(f"\n📄 wrote {args.json_out}")
+    if args.json_out is not None:
+        json_path = resolve_report_path(args.json_out, args.target)
+        report.write_json(json_path)
+        print(f"\n📄 wrote {json_path}")
     if args.ci_gate:
         code = report.gate(args.ci_gate)
         print(f"🧪 CI gate ({args.ci_gate}): {'FAIL' if code else 'PASS'}")
