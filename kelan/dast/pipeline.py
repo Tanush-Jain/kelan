@@ -245,9 +245,15 @@ async def run_scan(opts: ScanOptions) -> Report:
     if not pages:
         raise RuntimeError(f"could not fetch seed URL: {opts.target}")
 
-    seed = pages[0]
-    log.info("dast_fetch", status=seed.status, url=seed.url)
-    _check_headers(seed.resp_headers, report, seed.url)
+    # Check security headers and sensitive file exposures across ALL discovered pages
+    from kelan.dast.heuristics import grade_sensitive_files
+    checked_header_urls = set()
+    for page in pages:
+        if page.url not in checked_header_urls:
+            checked_header_urls.add(page.url)
+            _check_headers(page.resp_headers, report, page.url)
+            for file_finding in grade_sensitive_files(page.url, page.status, page.body):
+                report.add(file_finding)
 
     targets = _build_targets(pages, fuzz_tokens=opts.fuzz_tokens)
     sem = asyncio.Semaphore(opts.concurrency)
