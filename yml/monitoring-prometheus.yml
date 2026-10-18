@@ -1,0 +1,23 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: kelan-gateway
+    static_configs:
+      - targets: ["gateway:8000"]
+    metrics_path: /metrics
+
+  - job_name: kelan-trust
+    static_configs:
+      - targets: ["trust:8001"]
+    metrics_path: /metrics
+
+  - job_name: kelan-core
+    static_configs:
+      - targets: ["core:8004"]
+    metrics_path: /metrics
+
+  - job_name: node-exporter
+    static_configs:
+      - targets: ["node-exporter:9100"]

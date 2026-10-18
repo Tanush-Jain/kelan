@@ -1,0 +1,27 @@
+# ──────────────────────────────────────────────────────
+# terraform.tfvars.example
+# Copy to terraform.tfvars and fill in your values.
+# Never commit terraform.tfvars to git (it's in .gitignore)
+# ──────────────────────────────────────────────────────
+
+# From: OCI Console → Profile → API Keys → Add API Key → Configuration preview
+tenancy_ocid     = "ocid1.tenancy.oc1..aaaaaaaxxxxxxxxxxxxxxx"
+user_ocid        = "ocid1.user.oc1..aaaaaaaxxxxxxxxxxxxxxx"
+fingerprint      = "[REDACTED_MAC]:[REDACTED_MAC]:66:77:88:99"
+private_key_path = "~/.oci/oci_api_key.pem"
+
+# Choose your home region (pick the closest):
+# us-ashburn-1 | us-phoenix-1 | eu-frankfurt-1 | ap-singapore-1 | uk-london-1
+region = "us-ashburn-1"
+
+# From: Identity & Security → Compartments → your compartment → copy OCID
+compartment_id = "ocid1.compartment.oc1..aaaaaaaxxxxxxxxxxxxxxx"
+
+# Your SSH public key (cat ~/.ssh/id_rsa.pub)
+ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAA... your@email.com"
+
+# Your home/office IP for SSH access — run: curl ifconfig.me
+your_home_ip = "1.2.3.4/32"
+
+# Optional: change the instance name
+instance_display_name = "kelan-security-demo"

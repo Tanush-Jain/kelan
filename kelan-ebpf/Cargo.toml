@@ -1,0 +1,10 @@
+[workspace]
+members = [
+    "kelan-ebpf-loader",
+]
+# kelan-ebpf-program uses a different build target (bpfel-unknown-none)
+# and MUST be excluded from the standard workspace.
+# It is compiled separately by kelan-ebpf-loader/build.rs on Linux only.
+exclude = [
+    "kelan-ebpf-program",
+]

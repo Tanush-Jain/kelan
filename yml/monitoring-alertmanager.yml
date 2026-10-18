@@ -1,0 +1,59 @@
+global:
+  resolve_timeout: 5m
+  smtp_from:        'kelan-alerts@kelan.io'
+  smtp_smarthost:   'smtp.gmail.com:587'
+  smtp_auth_username: '${ALERT_EMAIL}'
+  smtp_auth_password: '${ALERT_EMAIL_PASSWORD}'
+
+route:
+  receiver:         default
+  group_by:         [alertname, severity]
+  group_wait:       10s
+  group_interval:   5m
+  repeat_interval:  4h
+
+  routes:
+    # Critical alerts: email + Slack immediately
+    - match:
+        severity: critical
+      receiver:   critical
+      group_wait: 0s
+      repeat_interval: 1h
+
+    # Warning alerts: Slack only
+    - match:
+        severity: warning
+      receiver:   warning-slack
+
+receivers:
+  - name: default
+    email_configs:
+      - to: 'tanush@kelan.io'
+        subject: '[Kelan] Alert: {{ .GroupLabels.alertname }}'
+        body: |
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Details: {{ .Annotations.description }}
+          Time: {{ .StartsAt }}
+          {{ end }}
+
+  - name: critical
+    email_configs:
+      - to: 'tanush@kelan.io'
+        subject: '[CRITICAL] Kelan: {{ .GroupLabels.alertname }}'
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel:  '#kelan-alerts'
+        title:    ':red_circle: CRITICAL: {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *{{ .Annotations.summary }}*
+          {{ .Annotations.description }}
+          {{ end }}
+
+  - name: warning-slack
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL}'
+        channel:  '#kelan-alerts'
+        title:    ':warning: {{ .GroupLabels.alertname }}'
+        text:     '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'

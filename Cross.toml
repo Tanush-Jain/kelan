@@ -1,0 +1,15 @@
+# Cross.toml — cross-rs configuration for Linux ARM64 cross-compilation
+# Place at project root.  Used by `cross build` in GitHub Actions.
+# See: https://github.com/cross-rs/cross
+
+[target.aarch64-unknown-linux-gnu]
+# Use the maintained edge image (includes C toolchain + OpenSSL headers)
+image = "ghcr.io/cross-rs/aarch64-unknown-linux-gnu:edge"
+
+[target.aarch64-unknown-linux-gnu.env]
+# Pass OpenSSL location from the CI environment into the cross container
+passthrough = [
+    "OPENSSL_DIR",
+    "OPENSSL_STATIC",
+    "CARGO_TERM_COLOR",
+]

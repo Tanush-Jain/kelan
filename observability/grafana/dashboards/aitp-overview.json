@@ -1,0 +1,502 @@
+{
+    "annotations": {
+        "list": []
+    },
+    "editable": true,
+    "fiscalYearStartMonth": 0,
+    "graphTooltip": 1,
+    "id": null,
+    "links": [],
+    "liveNow": false,
+    "panels": [
+        {
+            "id": 1,
+            "title": "Active Sessions",
+            "type": "gauge",
+            "gridPos": {
+                "h": 6,
+                "w": 6,
+                "x": 0,
+                "y": 0
+            },
+            "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS}"
+            },
+            "targets": [
+                {
+                    "expr": "sum(aitp_sessions_active)",
+                    "legendFormat": "Active",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            },
+                            {
+                                "color": "yellow",
+                                "value": 100
+                            },
+                            {
+                                "color": "red",
+                                "value": 500
+                            }
+                        ]
+                    },
+                    "unit": "short",
+                    "min": 0,
+                    "max": 1000
+                },
+                "overrides": []
+            },
+            "options": {
+                "showThresholdLabels": false,
+                "showThresholdMarkers": true,
+                "reduceOptions": {
+                    "values": false,
+                    "calcs": [
+                        "lastNotNull"
+                    ],
+                    "fields": ""
+                }
+            }
+        },
+        {
+            "id": 2,
+            "title": "Revocations",
+            "type": "stat",
+            "gridPos": {
+                "h": 6,
+                "w": 6,
+                "x": 6,
+                "y": 0
+            },
+            "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS}"
+            },
+            "targets": [
+                {
+                    "expr": "sum(aitp_sessions_revoked_total)",
+                    "legendFormat": "Revocations",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            },
+                            {
+                                "color": "orange",
+                                "value": 10
+                            },
+                            {
+                                "color": "red",
+                                "value": 50
+                            }
+                        ]
+                    },
+                    "unit": "short"
+                },
+                "overrides": []
+            },
+            "options": {
+                "colorMode": "background",
+                "graphMode": "area",
+                "justifyMode": "auto",
+                "textMode": "auto",
+                "reduceOptions": {
+                    "values": false,
+                    "calcs": [
+                        "lastNotNull"
+                    ],
+                    "fields": ""
+                }
+            }
+        },
+        {
+            "id": 3,
+            "title": "Ollama Cache Hit Rate",
+            "type": "gauge",
+            "gridPos": {
+                "h": 6,
+                "w": 6,
+                "x": 12,
+                "y": 0
+            },
+            "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS}"
+            },
+            "targets": [
+                {
+                    "expr": "rate(kelan_trust_cache_total{result=\"hit\"}[5m]) / clamp_min(rate(kelan_trust_cache_total[5m]), 0.001) * 100",
+                    "legendFormat": "Hit Rate %",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "red",
+                                "value": null
+                            },
+                            {
+                                "color": "yellow",
+                                "value": 50
+                            },
+                            {
+                                "color": "green",
+                                "value": 80
+                            }
+                        ]
+                    },
+                    "unit": "percent",
+                    "min": 0,
+                    "max": 100
+                },
+                "overrides": []
+            },
+            "options": {
+                "showThresholdLabels": false,
+                "showThresholdMarkers": true,
+                "reduceOptions": {
+                    "values": false,
+                    "calcs": [
+                        "lastNotNull"
+                    ],
+                    "fields": ""
+                }
+            }
+        },
+        {
+            "id": 4,
+            "title": "Sessions by Intent",
+            "type": "piechart",
+            "gridPos": {
+                "h": 6,
+                "w": 6,
+                "x": 18,
+                "y": 0
+            },
+            "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS}"
+            },
+            "targets": [
+                {
+                    "expr": "sum by (intent) (aitp_sessions_total)",
+                    "legendFormat": "{{intent}}",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "short"
+                },
+                "overrides": []
+            },
+            "options": {
+                "legend": {
+                    "displayMode": "table",
+                    "placement": "right"
+                },
+                "pieType": "donut",
+                "tooltip": {
+                    "mode": "single"
+                },
+                "reduceOptions": {
+                    "values": false,
+                    "calcs": [
+                        "lastNotNull"
+                    ],
+                    "fields": ""
+                }
+            }
+        },
+        {
+            "id": 5,
+            "title": "Ollama Latency",
+            "type": "timeseries",
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 0,
+                "y": 6
+            },
+            "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS}"
+            },
+            "targets": [
+                {
+                    "expr": "histogram_quantile(0.50, sum(rate(kelan_ollama_latency_ms_bucket[5m])) by (le))",
+                    "legendFormat": "p50",
+                    "refId": "A"
+                },
+                {
+                    "expr": "histogram_quantile(0.95, sum(rate(kelan_ollama_latency_ms_bucket[5m])) by (le))",
+                    "legendFormat": "p95",
+                    "refId": "B"
+                },
+                {
+                    "expr": "histogram_quantile(0.99, sum(rate(kelan_ollama_latency_ms_bucket[5m])) by (le))",
+                    "legendFormat": "p99",
+                    "refId": "C"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "ms",
+                    "custom": {
+                        "drawStyle": "line",
+                        "lineInterpolation": "smooth",
+                        "fillOpacity": 10,
+                        "pointSize": 5,
+                        "showPoints": "auto"
+                    },
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            },
+                            {
+                                "color": "red",
+                                "value": 4000
+                            }
+                        ]
+                    }
+                },
+                "overrides": []
+            },
+            "options": {
+                "legend": {
+                    "displayMode": "list",
+                    "placement": "bottom"
+                },
+                "tooltip": {
+                    "mode": "multi"
+                }
+            }
+        },
+        {
+            "id": 6,
+            "title": "Trust Score Distribution",
+            "type": "histogram",
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 12,
+                "y": 6
+            },
+            "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS}"
+            },
+            "targets": [
+                {
+                    "expr": "sum(rate(aitp_trust_eval_duration_ms_bucket[5m])) by (le)",
+                    "legendFormat": "{{le}}",
+                    "refId": "A",
+                    "format": "heatmap"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "ms",
+                    "custom": {
+                        "fillOpacity": 80,
+                        "lineWidth": 1
+                    }
+                },
+                "overrides": []
+            },
+            "options": {
+                "bucketOffset": 0,
+                "combine": false,
+                "fillOpacity": 80,
+                "gradientMode": "scheme",
+                "legend": {
+                    "displayMode": "list",
+                    "placement": "bottom"
+                },
+                "tooltip": {
+                    "mode": "single"
+                }
+            }
+        },
+        {
+            "id": 7,
+            "title": "Packet Drop Reasons",
+            "type": "barchart",
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 0,
+                "y": 14
+            },
+            "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS}"
+            },
+            "targets": [
+                {
+                    "expr": "sum by (reason) (aitp_packets_dropped_total)",
+                    "legendFormat": "{{reason}}",
+                    "refId": "A"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "short",
+                    "custom": {
+                        "fillOpacity": 80,
+                        "lineWidth": 1,
+                        "gradientMode": "hue"
+                    },
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "blue",
+                                "value": null
+                            },
+                            {
+                                "color": "red",
+                                "value": 100
+                            }
+                        ]
+                    }
+                },
+                "overrides": []
+            },
+            "options": {
+                "orientation": "horizontal",
+                "xTickLabelRotation": 0,
+                "showValue": "auto",
+                "groupWidth": 0.7,
+                "barWidth": 0.9,
+                "legend": {
+                    "displayMode": "list",
+                    "placement": "bottom"
+                },
+                "tooltip": {
+                    "mode": "single"
+                }
+            }
+        },
+        {
+            "id": 8,
+            "title": "Handshake Duration",
+            "type": "timeseries",
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 12,
+                "y": 14
+            },
+            "datasource": {
+                "type": "prometheus",
+                "uid": "${DS_PROMETHEUS}"
+            },
+            "targets": [
+                {
+                    "expr": "histogram_quantile(0.50, sum(rate(aitp_handshake_duration_ms_bucket[5m])) by (le, node))",
+                    "legendFormat": "{{node}} p50",
+                    "refId": "A"
+                },
+                {
+                    "expr": "histogram_quantile(0.95, sum(rate(aitp_handshake_duration_ms_bucket[5m])) by (le, node))",
+                    "legendFormat": "{{node}} p95",
+                    "refId": "B"
+                }
+            ],
+            "fieldConfig": {
+                "defaults": {
+                    "unit": "ms",
+                    "custom": {
+                        "drawStyle": "line",
+                        "lineInterpolation": "smooth",
+                        "fillOpacity": 15,
+                        "pointSize": 5,
+                        "showPoints": "auto"
+                    },
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            },
+                            {
+                                "color": "red",
+                                "value": 5
+                            }
+                        ]
+                    }
+                },
+                "overrides": []
+            },
+            "options": {
+                "legend": {
+                    "displayMode": "list",
+                    "placement": "bottom"
+                },
+                "tooltip": {
+                    "mode": "multi"
+                }
+            }
+        }
+    ],
+    "refresh": "10s",
+    "schemaVersion": 39,
+    "tags": [
+        "aitp",
+        "trust-engine",
+        "ollama"
+    ],
+    "templating": {
+        "list": [
+            {
+                "current": {
+                    "selected": false,
+                    "text": "Prometheus",
+                    "value": "Prometheus"
+                },
+                "hide": 0,
+                "includeAll": false,
+                "name": "DS_PROMETHEUS",
+                "options": [],
+                "query": "prometheus",
+                "refresh": 1,
+                "regex": "",
+                "type": "datasource"
+            }
+        ]
+    },
+    "time": {
+        "from": "now-1h",
+        "to": "now"
+    },
+    "timepicker": {},
+    "timezone": "",
+    "title": "AITP Overview",
+    "uid": "aitp-overview",
+    "version": 1
+}

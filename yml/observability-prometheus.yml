@@ -1,0 +1,46 @@
+# ──────────────────────────────────────────────────────
+#  AITP Prometheus Configuration
+# ──────────────────────────────────────────────────────
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+  external_labels:
+    cluster: 'aitp-local'
+
+scrape_configs:
+  # ── AITP Node Alpha ──
+  - job_name: 'aitp-node-alpha'
+    static_configs:
+      - targets: ['aitp-node-alpha:9100']
+        labels:
+          node: 'alpha'
+          role: 'compute'
+
+  # ── AITP Node Beta ──
+  - job_name: 'aitp-node-beta'
+    static_configs:
+      - targets: ['aitp-node-beta:9100']
+        labels:
+          node: 'beta'
+          role: 'compute'
+
+  # ── Control Plane ──
+  - job_name: 'aitp-control-plane'
+    static_configs:
+      - targets: ['aitp-control-plane:9102']
+        labels:
+          role: 'control'
+
+  # ── Prometheus self-monitoring ──
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # ── AITP Web Master ──
+  - job_name: 'aitp-web'
+    static_configs:
+      - targets: ['host.docker.internal:3000', '172.20.0.1:3000']
+        labels:
+          role: 'frontend-backend'

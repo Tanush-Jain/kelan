@@ -1,0 +1,113 @@
+# ── Python ────────────────────────────────────────────────────────────────────
+.venv/
+venv/
+venv-*/
+env/
+ENV/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+*.egg
+MANIFEST
+.installed.cfg
+.pytest_cache/
+.coverage
+htmlcov/
+pip-audit-results.json
+pyright_before.log
+
+# ── Rust ──────────────────────────────────────────────────────────────────────
+target/
+Cargo.lock
+
+# ── Environment / Secrets ─────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+!.env.template
+*.env.backup
+*.env.local
+*.env.prod
+agent-identity.key
+secrets/
+credentials/
+config/secrets.toml
+
+# ── Certificates & Keys ───────────────────────────────────────────────────────
+certs/
+*.pem
+*.key
+*.crt
+*.pfx
+*.csr
+
+# ── Databases ─────────────────────────────────────────────────────────────────
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+data/
+
+# ── Node.js / Frontend ────────────────────────────────────────────────────────
+node_modules/
+**/node_modules/
+dist/
+.svelte-kit/
+.next/
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+*.log
+log/
+logs/
+
+# ── Git Backup ────────────────────────────────────────────────────────────────
+.git.backup/
+
+# ── IDE ───────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+.antigravitycli/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+pyrightconfig.json
+**/pyrightconfig.json
+
+# ── Docker ────────────────────────────────────────────────────────────────────
+.dockerignore
+
+# ── Temporary ─────────────────────────────────────────────────────────────────
+tmp/
+temp/
+*.tmp
+.git.backup/logs/refs/remotes/origin/main
+.rust_archive/aitp-server/:memory:
+.git.backup/logs/refs/remotes/origin/feat/ollama-integration
+.git.backup/logs/refs/remotes/origin/HEAD
+
+# ── Tarpaulin coverage ────────────────────────────────────────────────────────
+tarpaulin-report.html
+tarpaulin_output.log
+
+# Archived experiments — do not re-add
+.rust_archive/
+archive/
+fuzz/

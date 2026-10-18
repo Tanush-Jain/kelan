@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# kelan-scan — project CLI wrapper
+# Usage:
+#   ./kelan-scan                          (fully interactive)
+#   ./kelan-scan --target kelan/api       (non-interactive, flags forwarded)
+#   ./kelan-scan --target . --limit 20 --model qwen2.5-coder:latest
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PYTHON="${SCRIPT_DIR}/.venv/bin/python3"
+
+if [[ ! -x "$PYTHON" ]]; then
+    echo "❌  Virtual environment not found at ${SCRIPT_DIR}/.venv"
+    echo "    Run: python3 -m venv .venv && .venv/bin/pip install -r requirements.txt"
+    exit 1
+fi
+
+echo "🛡️  Kelan AI-native SAST Scanner"
+echo "──────────────────────────────────────"
+exec "$PYTHON" -m kelan.scanner.cli "$@"

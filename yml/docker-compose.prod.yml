@@ -1,0 +1,324 @@
+version: '3.8'
+
+# KELAN SECURITY - PRODUCTION DEPLOYMENT
+# This docker-compose file orchestrates all production services
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: kelan-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: kelan_db
+      POSTGRES_USER: kelan
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      # Security hardening
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../scripts/init_db.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
+      - ../scripts/security_db.sql:/docker-entrypoint-initdb.d/02_security.sql:ro
+    networks:
+      - kelan-backend
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U kelan -d kelan_db" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - SETGID
+      - SETUID
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /run/postgresql
+
+  # Redis for token revocation and rate limiting
+  redis:
+    image: redis:7-alpine
+    container_name: kelan-redis
+    restart: unless-stopped
+    command: >
+      redis-server --requirepass ${REDIS_PASSWORD} --maxmemory 256mb --maxmemory-policy allkeys-lru --save 60 1000 --appendonly yes --appendfsync everysec
+    volumes:
+      - redis_data:/data
+    networks:
+      - kelan-backend
+    healthcheck:
+      test: [ "CMD", "redis-cli", "--raw", "incr", "ping" ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  # KELAN Intelligence Core
+  kelan-server:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      args:
+        RUST_VERSION: 1.75
+    container_name: kelan-server
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      # Database
+      DATABASE_URL: postgresql://kelan:${DB_PASSWORD}@postgres:5432/kelan_db
+      DATABASE_MAX_CONNECTIONS: 20
+      DATABASE_MIN_CONNECTIONS: 5
+
+      # Redis
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      REDIS_MAX_CONNECTIONS: 20
+
+      # JWT
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRY_HOURS: 24
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      JWT_REFRESH_EXPIRY_DAYS: 30
+
+      # Ollama AI
+      OLLAMA_ENDPOINT: ${OLLAMA_ENDPOINT:-http://localhost:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-gemma3:9b}
+      OLLAMA_TIMEOUT_SECS: ${OLLAMA_TIMEOUT_SECS:-8}
+      KELAN_DEV_MODE: "false"
+
+      # Server
+      SERVER_HOST: 0.0.0.0
+      SERVER_PORT: 8443
+      TLS_CERT_PATH: /etc/kelan/certs/server.crt
+      TLS_KEY_PATH: /etc/kelan/certs/server.key
+
+      # Security
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
+      HSTS_ENABLED: true
+      CSP_ENABLED: true
+      RATE_LIMIT_REQUESTS_PER_MINUTE: 60
+      RATE_LIMIT_BURST: 10
+
+      # Logging
+      LOG_LEVEL: info
+      LOG_FORMAT: json
+      AUDIT_LOG_PATH: /var/log/kelan/audit.log
+      RUST_LOG: aitp_server=info,tower_http=debug
+      RUST_BACKTRACE: 0 # Disable backtraces in production
+
+      # Post-Quantum Crypto
+      PQ_ALGORITHM: ml-kem-768
+      HYBRID_MODE: true
+
+      # eBPF
+      EBPF_MODE: auto
+      EBPF_INTERFACE: eth0
+
+      # Monitoring
+      PROMETHEUS_PORT: 9090
+      METRICS_ENABLED: true
+
+      # Environment
+      ENVIRONMENT: production
+      APP_VERSION: ${APP_VERSION:-1.0.0}
+    ports:
+      - "8443:8443" # Main API (HTTPS)
+      - "9090:9090" # Metrics (internal only via nginx)
+    volumes:
+      - ../certs:/etc/kelan/certs:ro
+      - kelan_logs:/var/log/kelan
+      - /sys/kernel/debug:/sys/kernel/debug:ro # For eBPF
+    networks:
+      - kelan-backend
+      - kelan-frontend
+    security_opt:
+      - no-new-privileges:true
+      - apparmor=docker-default
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE # For binding to privileged ports
+      - NET_ADMIN # For eBPF
+      - SYS_ADMIN # For eBPF
+      - BPF # For eBPF
+    read_only: false # Need write access for eBPF maps
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "-k", "https://localhost:8443/api/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Nginx Reverse Proxy & Static File Server
+  nginx:
+    image: nginx:alpine
+    container_name: kelan-nginx
+    restart: unless-stopped
+    depends_on:
+      kelan-server:
+        condition: service_healthy
+    ports:
+      - "80:80" # HTTP (redirects to HTTPS)
+      - "443:443" # HTTPS
+    volumes:
+      - ../nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ../nginx/conf.d:/etc/nginx/conf.d:ro
+      - ../nginx/ssl:/etc/nginx/ssl:ro
+      - ../static:/usr/share/nginx/html:ro
+      - nginx_logs:/var/log/nginx
+      - nginx_cache:/var/cache/nginx
+    networks:
+      - kelan-frontend
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+      - CHOWN
+      - DAC_OVERRIDE
+      - SETGID
+      - SETUID
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/api/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    labels:
+      - "com.kelan.service=frontend"
+
+  # Prometheus Monitoring
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: kelan-prometheus
+    restart: unless-stopped
+    user: "65534:65534" # nobody:nogroup
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    volumes:
+      - ../yml/monitoring-prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../yml/monitoring-alerts-kelan.yml:/etc/prometheus/rules.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - kelan-backend
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Grafana Dashboard
+  grafana:
+    image: grafana/grafana:latest
+    container_name: kelan-grafana
+    restart: unless-stopped
+    user: "472:472" # grafana user
+    depends_on:
+      - prometheus
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
+      GF_SERVER_ROOT_URL: https://${DOMAIN}/grafana
+      GF_SECURITY_COOKIE_SECURE: true
+      GF_SECURITY_STRICT_TRANSPORT_SECURITY: true
+      GF_SECURITY_X_CONTENT_TYPE_OPTIONS: true
+      GF_SECURITY_X_XSS_PROTECTION: true
+      GF_USERS_ALLOW_SIGN_UP: false
+      GF_USERS_ALLOW_ORG_CREATE: false
+      GF_AUTH_ANONYMOUS_ENABLED: false
+      GF_INSTALL_PLUGINS: grafana-clock-panel,grafana-piechart-panel
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ../yml/monitoring-grafana-provisioning-dashboard.yml:/etc/grafana/provisioning/dashboards/dashboard.yaml:ro
+      - ../yml/monitoring-grafana-provisioning-datasource-prometheus.yml:/etc/grafana/provisioning/datasources/prometheus.yaml:ro
+      - ../monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    networks:
+      - kelan-backend
+      - kelan-frontend
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # AlertManager for Alert Routing
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: kelan-alertmanager
+    restart: unless-stopped
+    user: "65534:65534"
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+    volumes:
+      - ../yml/monitoring-alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager_data:/alertmanager
+    networks:
+      - kelan-backend
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+  alertmanager_data:
+    driver: local
+  kelan_logs:
+    driver: local
+  nginx_logs:
+    driver: local
+  nginx_cache:
+    driver: local
+
+networks:
+  kelan-backend:
+    driver: bridge
+    internal: true # Backend network is isolated
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+  kelan-frontend:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16

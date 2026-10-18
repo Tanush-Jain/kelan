@@ -1,0 +1,106 @@
+version: '3.8'
+
+# Monitoring stack — add to existing docker-compose.prod.yml with:
+# docker compose -f docker-compose.prod.yml -f docker-compose.monitoring.yml up -d
+
+services:
+
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'   # keep 30 days of data
+      - '--web.enable-lifecycle'               # hot-reload config
+      - '--web.enable-admin-api'
+    volumes:
+      - ../yml/monitoring-prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../yml/monitoring-alerts-kelan.yml:/etc/prometheus/alerts/kelan.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - kelan_internal
+      - monitoring
+    ports:
+      - "9090:9090"   # remove in prod, access via Grafana only
+    depends_on:
+      - kelan-server
+
+  grafana:
+    image: grafana/grafana:10.2.0
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER:       admin
+      GF_SECURITY_ADMIN_PASSWORD:   "${GRAFANA_PASSWORD:-kelan_grafana_admin}"
+      GF_USERS_ALLOW_SIGN_UP:       "false"
+      GF_SERVER_ROOT_URL:           "https://metrics.kelan.io"
+      GF_SMTP_ENABLED:              "true"
+      GF_SMTP_HOST:                 "smtp.gmail.com:587"
+      GF_SMTP_USER:                 "${ALERT_EMAIL}"
+      GF_SMTP_PASSWORD:             "${ALERT_EMAIL_PASSWORD}"
+      GF_ALERTING_ENABLED:          "true"
+      GF_UNIFIED_ALERTING_ENABLED:  "true"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ../yml/monitoring-grafana-provisioning-dashboard.yml:/etc/grafana/provisioning/dashboards/dashboard.yaml:ro
+      - ../yml/monitoring-grafana-provisioning-datasource-prometheus.yml:/etc/grafana/provisioning/datasources/prometheus.yaml:ro
+      - ../monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    networks:
+      - monitoring
+      - kelan_web
+    ports:
+      - "3001:3000"   # Grafana on port 3001 (3000 is Kelan server)
+    depends_on:
+      - prometheus
+
+  alertmanager:
+    image: prom/alertmanager:v0.26.0
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+    volumes:
+      - ../yml/monitoring-alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager_data:/alertmanager
+    networks:
+      - monitoring
+    environment:
+      ALERT_EMAIL:          "${ALERT_EMAIL}"
+      ALERT_EMAIL_PASSWORD: "${ALERT_EMAIL_PASSWORD}"
+      SLACK_WEBHOOK_URL:    "${SLACK_WEBHOOK_URL}"
+
+  node-exporter:
+    image: prom/node-exporter:v1.7.0
+    restart: unless-stopped
+    command:
+      - '--path.rootfs=/host'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    volumes:
+      - /:/host:ro,rslave
+    networks:
+      - monitoring
+    pid: host
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    restart: unless-stopped
+    environment:
+      DATA_SOURCE_NAME: "postgresql://kernex:${POSTGRES_PASSWORD}@postgres:5432/kernex?sslmode=disable"
+    networks:
+      - kelan_internal
+      - monitoring
+    depends_on:
+      - postgres
+
+volumes:
+  prometheus_data:
+  grafana_data:
+  alertmanager_data:
+
+networks:
+  monitoring:
+    internal: true
+  kelan_internal:
+    external: true   # uses existing network from docker-compose.prod.yml
+  kelan_web:
+    external: true

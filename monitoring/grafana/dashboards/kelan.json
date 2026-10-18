@@ -1,0 +1,258 @@
+{
+  "__inputs": [],
+  "__requires": [
+    { "type": "grafana", "id": "grafana", "name": "Grafana", "version": "10.0.0" }
+  ],
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "title": "Security Operations Center",
+      "type": "row"
+    },
+
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 50 },
+              { "color": "red", "value": 100 }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 },
+      "id": 1,
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background" },
+      "title": "Active Sessions",
+      "type": "stat",
+      "targets": [{ "expr": "kelan_active_sessions", "legendFormat": "" }]
+    },
+
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.1 },
+              { "color": "red", "value": 0.3 }
+            ]
+          },
+          "unit": "percentunit"
+        }
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 1 },
+      "id": 2,
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
+      "title": "Deny Rate",
+      "type": "stat",
+      "targets": [{
+        "expr": "rate(kelan_sessions_total{verdict='Deny'}[5m]) / rate(kelan_sessions_total[5m])",
+        "legendFormat": ""
+      }]
+    },
+
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] }, "unit": "short" }
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 1 },
+      "id": 3,
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
+      "title": "Quarantined Entities",
+      "type": "stat",
+      "targets": [{ "expr": "kelan_quarantined_entities", "legendFormat": "" }]
+    },
+
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] }, "unit": "short" }
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 1 },
+      "id": 4,
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
+      "title": "Threats Today",
+      "type": "stat",
+      "targets": [{ "expr": "increase(kelan_threat_incidents_total[24h])", "legendFormat": "" }]
+    },
+
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 1 },
+      "id": 5,
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value" },
+      "title": "WebSocket Subscribers",
+      "type": "stat",
+      "targets": [{ "expr": "kelan_ws_subscribers", "legendFormat": "" }]
+    },
+
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 1 },
+      "id": 6,
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value" },
+      "title": "Active XDP Permits",
+      "type": "stat",
+      "targets": [{ "expr": "kelan_ebpf_active_permits", "legendFormat": "" }]
+    },
+
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "custom": { "lineWidth": 2 }, "unit": "short" } },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 5 },
+      "id": 10,
+      "title": "Sessions per Second — by Verdict",
+      "type": "timeseries",
+      "targets": [
+        { "expr": "rate(kelan_sessions_total{verdict='Allow'}[1m])",   "legendFormat": "Allow" },
+        { "expr": "rate(kelan_sessions_total{verdict='Monitor'}[1m])", "legendFormat": "Monitor" },
+        { "expr": "rate(kelan_sessions_total{verdict='Deny'}[1m])",    "legendFormat": "Deny" }
+      ]
+    },
+
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "custom": { "lineWidth": 2 }, "unit": "short" } },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 5 },
+      "id": 11,
+      "title": "eBPF XDP — Packets per Second",
+      "type": "timeseries",
+      "targets": [
+        { "expr": "rate(kelan_ebpf_packets_total{action='pass'}[1m])",    "legendFormat": "Pass" },
+        { "expr": "rate(kelan_ebpf_packets_total{action='drop'}[1m])",    "legendFormat": "Drop" },
+        { "expr": "rate(kelan_ebpf_packets_total{action='bypass'}[1m])",  "legendFormat": "Bypass" }
+      ]
+    },
+
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 13 },
+      "id": 200,
+      "title": "Trust Engine Performance",
+      "type": "row"
+    },
+
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "custom": { "lineWidth": 2 }, "unit": "ms" } },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 14 },
+      "id": 20,
+      "title": "Handshake Latency — P50 / P95 / P99",
+      "type": "timeseries",
+      "targets": [
+        { "expr": "histogram_quantile(0.50, rate(kelan_handshake_duration_ms_bucket[5m]))", "legendFormat": "P50" },
+        { "expr": "histogram_quantile(0.95, rate(kelan_handshake_duration_ms_bucket[5m]))", "legendFormat": "P95" },
+        { "expr": "histogram_quantile(0.99, rate(kelan_handshake_duration_ms_bucket[5m]))", "legendFormat": "P99" }
+      ]
+    },
+
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "custom": { "lineWidth": 2 }, "unit": "ms" } },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 14 },
+      "id": 21,
+      "title": "Ollama API Latency — P50 / P95 / P99",
+      "type": "timeseries",
+      "targets": [
+        { "expr": "histogram_quantile(0.50, rate(kelan_ollama_latency_ms_bucket[5m]))", "legendFormat": "P50" },
+        { "expr": "histogram_quantile(0.95, rate(kelan_ollama_latency_ms_bucket[5m]))", "legendFormat": "P95" },
+        { "expr": "histogram_quantile(0.99, rate(kelan_ollama_latency_ms_bucket[5m]))", "legendFormat": "P99" }
+      ]
+    },
+
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "percentunit" } },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 22 },
+      "id": 22,
+      "title": "Trust Cache Hit Rate",
+      "type": "timeseries",
+      "targets": [{
+        "expr": "rate(kelan_trust_cache_total{result='hit'}[5m]) / rate(kelan_trust_cache_total[5m])",
+        "legendFormat": "Cache Hit Rate"
+      }]
+    },
+
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "custom": { "lineWidth": 2 }, "unit": "short" } },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 22 },
+      "id": 23,
+      "title": "Trust Score Distribution (last hour)",
+      "type": "histogram",
+      "targets": [{ "expr": "kelan_trust_score_bucket", "legendFormat": "{{verdict}}" }]
+    },
+
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 30 },
+      "id": 300,
+      "title": "Sentinel & Threat Response",
+      "type": "row"
+    },
+
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "custom": { "lineWidth": 2 }, "unit": "short" } },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 31 },
+      "id": 30,
+      "title": "Anomalies Detected — by Type",
+      "type": "timeseries",
+      "targets": [
+        { "expr": "rate(kelan_anomalies_total{anomaly_type='NewPeer'}[5m])",              "legendFormat": "NewPeer" },
+        { "expr": "rate(kelan_anomalies_total{anomaly_type='LateralMovement'}[5m])",      "legendFormat": "LateralMovement" },
+        { "expr": "rate(kelan_anomalies_total{anomaly_type='ExfiltrationPattern'}[5m])",  "legendFormat": "ExfiltrationPattern" },
+        { "expr": "rate(kelan_anomalies_total{anomaly_type='TrustScoreDrop'}[5m])",       "legendFormat": "TrustScoreDrop" },
+        { "expr": "rate(kelan_anomalies_total{anomaly_type='IntentDeviation'}[5m])",      "legendFormat": "IntentDeviation" }
+      ]
+    },
+
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "custom": { "lineWidth": 2 }, "unit": "ms" } },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 31 },
+      "id": 31,
+      "title": "Anomaly Detection Latency (event-driven)",
+      "type": "timeseries",
+      "targets": [
+        { "expr": "histogram_quantile(0.50, rate(kelan_anomaly_detection_ms_bucket{signal_type='critical'}[5m]))", "legendFormat": "Critical P50" },
+        { "expr": "histogram_quantile(0.99, rate(kelan_anomaly_detection_ms_bucket{signal_type='critical'}[5m]))", "legendFormat": "Critical P99" }
+      ]
+    }
+  ],
+
+  "refresh": "30s",
+  "schemaVersion": 37,
+  "style": "dark",
+  "tags": ["kelan", "security"],
+  "templating": { "list": [] },
+  "time": { "from": "now-6h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Kelan Security — Intelligence Core",
+  "uid": "kelan-intelligence-core",
+  "version": 1
+}

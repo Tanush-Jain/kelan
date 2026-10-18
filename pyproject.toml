@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kelan-core"
+version = "0.1.0"
+requires-python = ">=3.11"
+
+[tool.setuptools.packages.find]
+include = ["kelan*"]
+
+[project.scripts]
+# Installs 'kelan' as a shell command that dispatches subcommands.
+# Run:  pip install -e .  to activate.
+kelan = "kelan.scanner.entrypoint:main"
+
+
+[tool.pytest.ini_options]
+asyncio_default_fixture_loop_scope = "function"
+
+[tool.coverage.run]
+source = ["kelan"]
+omit = [
+  "kelan/tests/*",
+  "kelan/server.py",
+  "kelan/enforcement/ebpf_bridge.py",   # eBPF is hardware-specific
+  "kelan/api/websocket/*",
+  "**/__init__.py"
+]
+
+[tool.coverage.report]
+fail_under = 60
+show_missing = true
+skip_covered = true
+
+[tool.ruff.lint]
+ignore = ["E402", "E701", "E702", "E722", "F841"]
+
+[tool.mypy]
+ignore_missing_imports = true
+disable_error_code = ["call-arg", "var-annotated"]
+

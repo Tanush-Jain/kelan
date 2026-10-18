@@ -1,0 +1,76 @@
+# ╔══════════════════════════════════════════════════════════╗
+# ║           AITP Node Configuration Template               ║
+# ║     Adaptive Intent Transport Protocol — v0.1            ║
+# ╚══════════════════════════════════════════════════════════╝
+#
+# Copy this file to your working directory as `aitp.toml`
+# and customise for your deployment.
+#
+# Environment variables override TOML values (prefix: AITP_).
+# Example: AITP_NODE_LISTEN_PORT=9999
+
+# ── Node identity & networking ──────────────────────────────
+
+[node]
+name = "aitp-node-alpha"
+entity_type = "Service"                    # Human | AiModel | Service | Device
+identity_key_path = "./keys/node.key"      # Ed25519 keypair file (auto-generated if missing)
+listen_address = "0.0.0.0"
+listen_port = 9999
+log_level = "info"                         # trace | debug | info | warn | error
+log_format = "json"                        # json | pretty
+
+# ── Control plane registration ──────────────────────────────
+
+[control_plane]
+address = "http://localhost:8080"
+heartbeat_interval_secs = 30
+registration_timeout_secs = 5
+
+# ── UDP transport tuning ────────────────────────────────────
+
+[transport]
+max_concurrent_sessions = 10000
+handshake_timeout_secs = 5
+handshake_max_retries = 3
+session_idle_timeout_secs = 300
+max_packet_size_bytes = 65507              # Max UDP payload
+congestion_window_initial = 10
+rtt_probe_interval_ms = 500
+
+# ── Trust engine ────────────────────────────────────────────
+
+[trust]
+default_policy = "deny"                    # allow | deny | monitor
+trust_eval_timeout_ms = 5                  # Hard cutoff — fallback if exceeded
+fallback_on_timeout = "monitor"            # What to do if AI engine times out
+min_trust_score_allow = 128
+min_trust_score_monitor = 64
+
+# ── AI engine (trust scoring backend) ───────────────────────
+
+[ai_engine]
+mode = "rules"                             # rules | ollama | hybrid
+ollama_api_key = ""                        # Set via env: AITP_AI_ENGINE_OLLAMA_API_KEY
+ollama_base_url = "http://localhost:11434"
+ollama_model = "llama3.2"
+ollama_timeout_ms = 4000                   # Must leave 1ms budget for overhead
+ollama_cache_ttl_secs = 60                 # Cache identical contexts
+ollama_max_rps = 100                       # Rate limit to avoid quota burn
+rules_weight = 0.4                         # In hybrid mode: rules contribute 40%
+ollama_weight = 0.6                        # Ollama contributes 60%
+
+# ── Observability ───────────────────────────────────────────
+
+[observability]
+prometheus_port = 9100
+otlp_endpoint = ""                         # OpenTelemetry collector endpoint
+session_log_path = "/var/log/aitp/sessions.jsonl"
+metrics_interval_secs = 15
+
+# ── eBPF kernel enforcement ─────────────────────────────────
+
+[ebpf]
+enabled = false                            # Set true on Linux with privileged container
+xdp_interface = "eth0"
+permit_map_capacity = 65536

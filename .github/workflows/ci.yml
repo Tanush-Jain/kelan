@@ -1,0 +1,146 @@
+name: Kelan Security CI
+
+on:
+  push:
+    branches: [main, dev, "feature/*"]
+  pull_request:
+    branches: [main]
+
+env:
+  PYTHON_VERSION: "3.12"
+  OLLAMA_MODEL: "qwen2.5:3b"
+  DATABASE_URL: "sqlite+aiosqlite:///./test.db"
+  JWT_SECRET: "ci-test-secret-minimum-32-chars!!"
+  REQUIRE_PQ: "false"
+  OLLAMA_ENDPOINT: "http://localhost:11434"
+
+jobs:
+  # ─────────────────────────────────────────────
+  # JOB 1: Secret scanning
+  # ─────────────────────────────────────────────
+  secrets-scan:
+    name: Secret Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: TruffleHog Secret Scan
+        uses: trufflesecurity/trufflehog@main
+        with:
+          extra_args: --only-verified
+        continue-on-error: true
+
+  # ─────────────────────────────────────────────
+  # JOB 2: Python SAST & Linting
+  # ─────────────────────────────────────────────
+  python-sast-lint:
+    name: Python SAST & Lint
+    runs-on: ubuntu-latest
+    needs: secrets-scan
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install Linting & SAST Tools
+        run: |
+          pip install ruff bandit pip-audit mypy
+
+      - name: Ruff Linter Check
+        run: |
+          ruff check .
+
+      - name: Mypy Typecheck
+        run: |
+          mypy kelan/ --ignore-missing-imports
+
+      - name: Bandit Security Scan
+        run: |
+          bandit -r kelan/ -ll -ii --exclude kelan/tests
+
+      - name: Dependency Vulnerability Audit (pip-audit)
+        run: |
+          pip install -r requirements.txt
+          pip-audit -r requirements.txt
+
+  # ─────────────────────────────────────────────
+  # JOB 3: Python Tests
+  # ─────────────────────────────────────────────
+  python-test:
+    name: Python Tests
+    runs-on: ubuntu-latest
+    needs: python-sast-lint
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install Dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run Test Suite with Coverage
+        run: |
+          python -m pytest \
+            --cov=kelan \
+            --cov-config=pyproject.toml \
+            --cov-report=xml \
+            --cov-report=term-missing \
+            --cov-fail-under=60 \
+            -v --tb=short
+
+      - name: Upload Coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: coverage.xml
+        continue-on-error: true
+
+  # ─────────────────────────────────────────────
+  # JOB 4: Rust Tests & Clippy
+  # ─────────────────────────────────────────────
+  rust-ci:
+    name: Rust Clippy & Test
+    runs-on: ubuntu-latest
+    needs: secrets-scan
+    env:
+      BPF_LINKER_REQUIRED: "false"
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Rust Toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+          components: clippy, rustfmt
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            libpcap-dev \
+            libpcap0.8-dev
+
+      - name: Cargo Format Check
+        run: |
+          cargo fmt --all -- --check
+
+      - name: Cargo Clippy
+        run: |
+          cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Cargo Test
+        run: |
+          cargo test --workspace --verbose

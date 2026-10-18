@@ -1,0 +1,11 @@
+[advisories]
+ignore = [
+    "RUSTSEC-2023-0071", # rsa: Marvin Attack (side-channel). No fixed upgrade available in sqlx 0.8.
+    "RUSTSEC-2026-0049", # rustls-webpki: CRL matching logic error. Transitive through pinned tokio-tungstenite.
+]
+
+[output]
+quiet = false
+deny = ["unsound", "yanked"]
+format = "terminal"
+show_tree = true
