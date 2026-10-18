@@ -111,7 +111,7 @@ class HybridTrustEngine:
         self.ollama = ollama
         self.cb     = CircuitBreaker(threshold, recovery)
         self._hooks: list[VerdictHook] = []
-        self._counts = dict(total=0, allow=0, deny=0, monitor=0, fallbacks=0)
+        self._counts = {"total": 0, "allow": 0, "deny": 0, "monitor": 0, "fallbacks": 0}
 
     def on_verdict(self, fn: VerdictHook):
         self._hooks.append(fn)
@@ -138,7 +138,7 @@ class HybridTrustEngine:
                 else:
                     self.cb.success()
                 OLLAMA_LATENCY.observe(time.monotonic() - t0)
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001
                 self.cb.failure()
                 verdict = _fallback(session)
                 self._counts["fallbacks"] += 1
@@ -162,7 +162,7 @@ class HybridTrustEngine:
         for hook in self._hooks:
             try:
                 await hook(payload)
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001
                 log.error("hook_error", error=str(exc))
 
         return verdict
