@@ -233,7 +233,7 @@ async def main(argv=None) -> int:
                         help="Write JSON report to file")
     args = parser.parse_args(argv)
 
-    print(f"\n🕵️  Kelan DAST Agent")
+    print("\n🕵️  Kelan DAST Agent")
     print(f"   Target:  {args.target}")
     print(f"   Model:   {args.model}\n")
 
