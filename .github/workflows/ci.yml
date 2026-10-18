@@ -51,7 +51,7 @@ jobs:
 
       - name: Install Linting & SAST Tools
         run: |
-          pip install ruff bandit pip-audit mypy
+          pip install ruff==0.16.2 bandit pip-audit mypy
 
       - name: Ruff Linter Check
         run: |

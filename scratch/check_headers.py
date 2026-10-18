@@ -1,6 +1,7 @@
 import asyncio
-import httpx
+
 from kelan.dast.crawler import Crawler
+
 
 async def main():
     crawler = Crawler(seed="https://www.erasurehq.in/", max_pages=1, max_depth=1)
