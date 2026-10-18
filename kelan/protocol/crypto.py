@@ -7,21 +7,22 @@
 
 
 
-import os
 import hashlib
+import os
 from dataclasses import dataclass
 
+from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric.ed25519 import (
-    Ed25519PrivateKey, Ed25519PublicKey,
+    Ed25519PrivateKey,
+    Ed25519PublicKey,
 )
 from cryptography.hazmat.primitives.asymmetric.x25519 import (
-    X25519PrivateKey, X25519PublicKey,
+    X25519PrivateKey,
+    X25519PublicKey,
 )
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
-from cryptography.hazmat.primitives import hashes
-from cryptography.exceptions import InvalidSignature
-
 
 
 def ed25519_generate() -> tuple[bytes, bytes]:

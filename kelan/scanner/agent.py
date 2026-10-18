@@ -18,8 +18,6 @@ import argparse
 import asyncio
 import json
 import sys
-from typing import Optional
-
 import urllib.parse
 
 import httpx
@@ -81,7 +79,7 @@ PROBE_PAYLOADS = [
 ]
 
 
-async def _fetch(client: httpx.AsyncClient, url: str) -> Optional[httpx.Response]:
+async def _fetch(client: httpx.AsyncClient, url: str) -> httpx.Response | None:
     try:
         resp = await client.get(url, follow_redirects=True, timeout=10.0)
         log.info("dast_fetch", url=url, status=resp.status_code)
@@ -179,7 +177,7 @@ async def analyze_live_endpoint(
     target_url: str,
     model: str = DEFAULT_MODEL,
     ollama_endpoint: str = DEFAULT_ENDPOINT,
-    json_out: Optional[str] = None,
+    json_out: str | None = None,
 ) -> dict:
     log.info("dast_start", target=target_url, model=model)
 

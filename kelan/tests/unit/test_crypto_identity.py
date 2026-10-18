@@ -1,6 +1,7 @@
 
 from kelan.crypto.identity import generate_keypair, sign, verify
-from kelan.crypto.kem import mlkem_keygen, mlkem_encap, mlkem_decap
+from kelan.crypto.kem import mlkem_decap, mlkem_encap, mlkem_keygen
+
 
 def test_identity_signature_roundtrip():
     sk, pk = generate_keypair()

@@ -1,7 +1,7 @@
 import sys
 from unittest import mock
-import pytest
-from kelan.cli.main import main, cmd_menu
+
+from kelan.cli.main import cmd_menu, main
 
 
 @mock.patch("kelan.cli.main.cmd_menu")

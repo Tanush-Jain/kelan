@@ -1,5 +1,5 @@
 
-from kelan.ai.ollama_client import _parse, Verdict
+from kelan.ai.ollama_client import Verdict, _parse
 
 
 class TestParser:

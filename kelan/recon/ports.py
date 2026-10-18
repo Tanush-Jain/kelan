@@ -2,8 +2,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import AsyncGenerator
-
+from collections.abc import AsyncGenerator
 
 DEFAULT_PORTS = [
     21, 22, 23, 25, 53, 80, 110, 111, 135, 139, 143, 443, 445, 993, 995,
@@ -15,7 +14,7 @@ async def scan_port(host: str, port: int, timeout: float = 0.5) -> dict:
     try:
         conn = asyncio.open_connection(host, port)
         reader, writer = await asyncio.wait_for(conn, timeout=timeout)
-    except asyncio.TimeoutError:
+    except TimeoutError:
         return {"port": port, "status": "FILTERED", "banner": ""}
     except Exception:
         return {"port": port, "status": "CLOSED", "banner": ""}

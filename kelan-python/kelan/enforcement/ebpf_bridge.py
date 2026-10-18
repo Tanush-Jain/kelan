@@ -9,7 +9,7 @@ import json
 import os
 import socket
 import time
-from typing import Optional
+
 import structlog
 
 log = structlog.get_logger()
@@ -78,7 +78,7 @@ class EbpfBridge:
         """Update per-IP rate limit in the eBPF token-bucket map."""
         return await self._send({"cmd": "set_rate_limit", "ip": ip, "pps": pps})
 
-    async def report_drop_count(self) -> Optional[int]:
+    async def report_drop_count(self) -> int | None:
         """
         Request the current XDP drop counter from the eBPF loader.
         Returns None if not available.

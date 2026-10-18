@@ -1,9 +1,8 @@
 
 from __future__ import annotations
 
-from kelan.core.finding import Finding
-from kelan.core.plugin import PluginResult, ScanContext, ScanPlugin, ScopeKind
 from kelan.analyze.ratelimit import audit_codebase
+from kelan.core.plugin import PluginResult, ScanContext, ScanPlugin, ScopeKind
 
 
 class AnalyzeRatelimitPlugin(ScanPlugin):

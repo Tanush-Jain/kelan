@@ -15,11 +15,9 @@ from __future__ import annotations
 
 import ast
 import re
-import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import Optional
 
 from kelan.core.finding import Confidence, Finding, Severity
 
@@ -86,7 +84,7 @@ def _probe_char(pattern: str) -> str:
     return "a"
 
 
-def _validate_redos(pattern: str, timeout: float = 1.5) -> Optional[bool]:
+def _validate_redos(pattern: str, timeout: float = 1.5) -> bool | None:
 
     probe = _probe_char(pattern)
 
@@ -120,7 +118,7 @@ _SIZE_GUARDS = re.compile(
 _LOOP_OPEN = re.compile(r"(for|while)\s*\(")
 _GROWTH_OP = re.compile(r"\.push\s*\(|\+=|\.concat\s*\(")
 _EVAL = re.compile(r"\b(?:eval|exec)\s*\(")
-_SHELL_TRUE = re.compile(r"shell\s*=\s*True", re.I)
+_SHELL_TRUE = re.compile(r"shell\s*=\s*True", re.IGNORECASE)
 _SUBPROCESS = re.compile(r"\bsubprocess\.(?:run|Popen|call|check_output|check_call)\s*\(")
 _OS_SYSTEM = re.compile(r"\bos\.system\s*\(")
 _PICKLE = re.compile(r"\bpickle\.(?:loads?|Unpickler)\s*\(")

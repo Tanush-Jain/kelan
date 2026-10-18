@@ -8,7 +8,7 @@ import re
 import sys
 from datetime import datetime
 
-from kelan.dast.pipeline import ScanOptions, run_scan, render_report
+from kelan.dast.pipeline import ScanOptions, render_report, run_scan
 
 DEFAULT_VECTORS = "xss,sqli,cmdi,traversal,ssti"
 

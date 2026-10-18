@@ -1,11 +1,13 @@
 from unittest import mock
-import pytest
+
 import httpx
 
-from kelan.dast.heuristics import grade_idor, reflected, sql_error_hint, traversal_hit, ssti_hit
 from kelan.dast.bypass import build_probes
-from kelan.dast.report import Report, Finding
-from kelan.dast.pipeline import _check_headers, _builtin_summary
+from kelan.dast.heuristics import (
+    grade_idor,
+)
+from kelan.dast.pipeline import _builtin_summary, _check_headers
+from kelan.dast.report import Finding, Report
 
 
 def test_grade_idor_non_200():

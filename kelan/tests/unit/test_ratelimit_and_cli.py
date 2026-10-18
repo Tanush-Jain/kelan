@@ -1,11 +1,9 @@
-import pytest
 import tempfile
 from pathlib import Path
 
-from kelan.core.finding import Severity
-from kelan.analyze.ratelimit import audit_codebase, _tagged_usages
+from kelan.analyze.ratelimit import audit_codebase
 from kelan.dast.heuristics import grade_ratelimit_burst
-from kelan.run import detect_scope, ScopeKind
+from kelan.run import ScopeKind, detect_scope
 
 
 def test_static_ratelimit_analysis():

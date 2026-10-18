@@ -1,7 +1,6 @@
 
 import json
 
-
 SCANNER_JSON_SCHEMA = {
     "type": "object",
     "properties": {

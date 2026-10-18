@@ -1,16 +1,24 @@
-from unittest import mock
-import pytest
-import tempfile
 import json
+import tempfile
 from pathlib import Path
+from unittest import mock
 
-from kelan.core.finding import Finding, Evidence, Severity, Confidence, FindingSet
+import pytest
+
+from kelan.core.finding import Confidence, Finding, FindingSet, Severity
 from kelan.core.plugin import (
-    ScopeKind, ScanTarget, ScanConfig, ScanContext, ScanPlugin, PluginRegistry,
-    _topo_order, Scheduler, PluginResult
+    PluginRegistry,
+    PluginResult,
+    ScanConfig,
+    ScanContext,
+    ScanPlugin,
+    ScanTarget,
+    Scheduler,
+    ScopeKind,
+    _topo_order,
 )
-from kelan.plugins.sca import ScaPlugin
 from kelan.plugins.ports import PortsPlugin
+from kelan.plugins.sca import ScaPlugin
 
 
 def test_topo_order():

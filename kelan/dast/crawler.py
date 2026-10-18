@@ -10,8 +10,7 @@ import asyncio
 import re
 from dataclasses import dataclass, field
 from html.parser import HTMLParser
-from typing import Optional
-from urllib.parse import urljoin, urldefrag, urlparse, parse_qsl
+from urllib.parse import parse_qsl, urldefrag, urljoin, urlparse
 
 import httpx
 import structlog
@@ -34,8 +33,8 @@ SKIP_EXT = {
 }
 
 
-TOKEN_HINT = re.compile(r"(^|[_\-])(csrf|xsrf|nonce|token|captcha|honeypot)([_\-]|$)", re.I)
-ASP_NET_HIDDEN = re.compile(r"^__", re.I)
+TOKEN_HINT = re.compile(r"(^|[_\-])(csrf|xsrf|nonce|token|captcha|honeypot)([_\-]|$)", re.IGNORECASE)
+ASP_NET_HIDDEN = re.compile(r"^__", re.IGNORECASE)
 
 
 @dataclass
@@ -75,7 +74,7 @@ class _HtmlParser(HTMLParser):
         self.links: list[str] = []
         self.forms: list[Form] = []
         self._in_title = False
-        self._current: Optional[Form] = None
+        self._current: Form | None = None
 
     def handle_starttag(self, tag, attrs):
         a = dict(attrs)
@@ -125,7 +124,7 @@ class _HtmlParser(HTMLParser):
 class Crawler:
     def __init__(self, seed: str, max_pages: int = 15, max_depth: int = 3,
                  delay: float = 0.5, timeout: float = 15.0,
-                 external: bool = False, headers: Optional[dict] = None):
+                 external: bool = False, headers: dict | None = None):
         self.seed = seed
         self.max_pages = max_pages
         self.max_depth = max_depth
@@ -135,7 +134,7 @@ class Crawler:
         self.headers = {**DEFAULT_HEADERS, **(headers or {})}
         self._base_host = urlparse(seed).netloc.lower()
         self._seen: set[str] = set()
-        self._client: Optional[httpx.AsyncClient] = None
+        self._client: httpx.AsyncClient | None = None
 
     def _canon(self, url: str) -> str:
         return urldefrag(url)[0].rstrip("/") or urldefrag(url)[0]

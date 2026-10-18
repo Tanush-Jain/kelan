@@ -1,9 +1,8 @@
 """
 Pydantic request/response models for the Kelan Security FastAPI server.
 """
-from typing import Optional
-from pydantic import BaseModel, Field
 
+from pydantic import BaseModel, Field
 
 # ── Requests ─────────────────────────────────────────────────────────────────
 
@@ -13,11 +12,11 @@ class EnrollRequest(BaseModel):
     name: str = Field(default="", description="Human-readable entity name")
     version: int = Field(default=1, description="Protocol version")
     # Cryptographic material (optional during testing)
-    x25519_public_key: Optional[str] = Field(default=None, description="X25519 DH public key (hex)")
-    kem_public_key: Optional[str] = Field(default=None, description="ML-KEM-768 public key (hex)")
-    signature: Optional[str] = Field(default=None, description="Ed25519 signature (hex)")
-    nonce: Optional[str] = Field(default=None, description="Random nonce (hex)")
-    source_ip: Optional[str] = Field(default=None, description="Reported source IP")
+    x25519_public_key: str | None = Field(default=None, description="X25519 DH public key (hex)")
+    kem_public_key: str | None = Field(default=None, description="ML-KEM-768 public key (hex)")
+    signature: str | None = Field(default=None, description="Ed25519 signature (hex)")
+    nonce: str | None = Field(default=None, description="Random nonce (hex)")
+    source_ip: str | None = Field(default=None, description="Reported source IP")
 
     model_config = {"json_schema_extra": {"example": {
         "entity_id": "prod-api-server-01",
@@ -31,10 +30,10 @@ class HandshakeRequest(BaseModel):
     entity_id: str
     phase: int = Field(..., ge=1, le=5, description="AITP handshake phase (1-5)")
     intent: str = Field(default="INIT_SESSION")
-    x25519_public_key: Optional[str] = None
-    kem_ciphertext: Optional[str] = None
-    signature: Optional[str] = None
-    session_token: Optional[str] = None
+    x25519_public_key: str | None = None
+    kem_ciphertext: str | None = None
+    signature: str | None = None
+    session_token: str | None = None
 
 
 class XdpDropReport(BaseModel):
@@ -61,7 +60,7 @@ class EnrollResponse(BaseModel):
     verdict: str
     confidence: float
     reason: str
-    permit_token: Optional[str]
+    permit_token: str | None
     action: str
 
 

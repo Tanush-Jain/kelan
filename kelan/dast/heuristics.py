@@ -3,11 +3,13 @@ from __future__ import annotations
 
 import re
 
+from kelan.dast.report import Finding
+
 SQL_ERROR_HINTS = re.compile(
     r"(sqlsyntax|syntax error|unclosed quotation|incorrect syntax|"
     r"you have an error in your sql|mysql_fetch|ora-\d{5}|"
     r"microsoft ole db|postgresql|sqlite3\.(operational|error)|"
-    r"pg_query|exception.*jdbc|invalid query)", re.I
+    r"pg_query|exception.*jdbc|invalid query)", re.IGNORECASE
 )
 
 
@@ -46,13 +48,10 @@ def grade_idor(resp_a, resp_b) -> tuple[str, str]:
     return ("weak", f"responses differ slightly (Δ{diff}B)")
 
 
-def grade_ratelimit_burst(responses: list[dict]) -> Optional[Finding]:
+def grade_ratelimit_burst(responses: list[dict]) -> Finding | None:
 
 
 
-    from typing import Optional
-    from kelan.dast.report import Finding
-    
     if len(responses) < 2:
         return None
     baseline_429 = sum(1 for r in responses if r.get("code") == 429)

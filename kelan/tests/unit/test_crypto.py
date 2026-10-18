@@ -1,12 +1,20 @@
 
 import pytest
+
 from kelan.protocol.crypto import (
-    ed25519_generate, ed25519_sign, ed25519_verify,
-    is_valid_ed25519_sig,
-    x25519_generate, x25519_exchange,
-    hkdf_derive, aes_gcm_encrypt, aes_gcm_decrypt,
-    kem_generate, kem_encapsulate, kem_decapsulate,
+    aes_gcm_decrypt,
+    aes_gcm_encrypt,
     derive_session_key,
+    ed25519_generate,
+    ed25519_sign,
+    ed25519_verify,
+    hkdf_derive,
+    is_valid_ed25519_sig,
+    kem_decapsulate,
+    kem_encapsulate,
+    kem_generate,
+    x25519_exchange,
+    x25519_generate,
 )
 
 

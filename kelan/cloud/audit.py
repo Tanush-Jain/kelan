@@ -6,9 +6,9 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import re
 import shutil
-import json
 from pathlib import Path
 
 import httpx
@@ -43,7 +43,7 @@ CRED_RULES = [
      re.compile(r"\bsk-proj-[0-9A-Za-z_-]{20,}"), Severity.HIGH),
 ]
 META_IP = "169.254.169.254"
-S3_PUBLIC_RE = re.compile(r"(?:https?://)?([a-z0-9.-]+)\.s3\.(?:[a-z0-9-]+\.)?amazonaws\.com", re.I)
+S3_PUBLIC_RE = re.compile(r"(?:https?://)?([a-z0-9.-]+)\.s3\.(?:[a-z0-9-]+\.)?amazonaws\.com", re.IGNORECASE)
 
 
 def audit_creds(root: Path) -> list[Finding]:

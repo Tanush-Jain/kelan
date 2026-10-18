@@ -1,7 +1,8 @@
 
 import time
 import uuid
-from sqlalchemy import Column, String, Float, Integer, Boolean, Text, Index
+
+from sqlalchemy import Boolean, Column, Float, Index, Integer, String, Text
 from sqlalchemy.orm import DeclarativeBase
 
 

@@ -5,9 +5,9 @@ Run: .venv/bin/python -m pytest -x --tb=short -q
 """
 import asyncio
 import json
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
 
 # ── helpers ────────────────────────────────────────────────────────────────────
 
@@ -122,8 +122,9 @@ class TestOllamaClientSessionLeak:
 
     def test_no_aiohttp_in_ollama_client(self):
         """aiohttp was the leaking library in the Rust migration. Must not appear."""
-        import kelan.ai.ollama_client as mod
         import inspect
+
+        import kelan.ai.ollama_client as mod
         src = inspect.getsource(mod)
         assert "aiohttp" not in src, (
             "aiohttp found in ollama_client.py — this would cause memory leaks!"
@@ -131,8 +132,9 @@ class TestOllamaClientSessionLeak:
 
     def test_no_per_request_client_creation_in_generate(self):
         """_generate() must not create a new httpx.AsyncClient inline."""
-        import kelan.ai.ollama_client as mod
         import inspect
+
+        import kelan.ai.ollama_client as mod
         src = inspect.getsource(mod.OllamaClient._generate)
         assert "httpx.AsyncClient(" not in src, (
             "httpx.AsyncClient() found inside _generate() — this leaks clients "
@@ -397,7 +399,7 @@ class TestFallbackRules:
 
 class TestHybridTrustEngine:
     async def test_uses_fallback_when_circuit_open(self):
-        from kelan.ai.engine import HybridTrustEngine, CircuitState
+        from kelan.ai.engine import CircuitState, HybridTrustEngine
         mock_ollama = MagicMock()
         mock_ollama.evaluate_session = AsyncMock()
         engine = HybridTrustEngine(ollama=mock_ollama, failure_threshold=3, recovery_timeout=30)
@@ -772,6 +774,7 @@ class TestDatabaseSessionLeak:
         All DB access must go through `async with get_db() as db:`.
         """
         import inspect
+
         import kelan.server.main as main_mod
         src = inspect.getsource(main_mod)
         assert "_session_factory()" not in src, (
@@ -831,8 +834,9 @@ class TestStatsEndpoint:
         assert m.STATS_TTL > 0
 
     async def test_get_verdicts_returns_dict_with_total(self):
-        import kelan.server.main as m
         import kelan.protocol.session as sm_mod
+        import kelan.server.main as m
+
         from kelan.ai.ollama_client import TrustVerdict, Verdict
         sm = sm_mod.SessionManager(capacity=100)
         for i in range(5):
@@ -860,6 +864,7 @@ class TestStatsEndpoint:
     def test_no_plain_list_module_globals_in_server(self):
         """VERIFY (FIX 3): no bare `= []` at module level in server/main.py."""
         import inspect
+
         import kelan.server.main as m
         src = inspect.getsource(m)
         bad = [

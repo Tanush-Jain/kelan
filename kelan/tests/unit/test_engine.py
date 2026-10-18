@@ -1,9 +1,11 @@
 
 import asyncio
-import pytest
 from unittest.mock import AsyncMock
-from kelan.ai.engine import HybridTrustEngine, CircuitBreaker, CBState, _fallback
-from kelan.ai.ollama_client import TrustVerdict, Verdict, OllamaClient
+
+import pytest
+
+from kelan.ai.engine import CBState, CircuitBreaker, HybridTrustEngine, _fallback
+from kelan.ai.ollama_client import OllamaClient, TrustVerdict, Verdict
 
 
 class TestCircuitBreaker:

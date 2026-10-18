@@ -6,7 +6,7 @@
 import asyncio
 import json
 from pathlib import Path
-from typing import Optional
+
 import structlog
 
 log = structlog.get_logger()
@@ -19,7 +19,7 @@ class EbpfBridge:
 
     def __init__(self, iface: str = "eth0"):
         self.iface  = iface
-        self._proc: Optional[asyncio.subprocess.Process] = None
+        self._proc: asyncio.subprocess.Process | None = None
         self._mode  = "software"
 
     async def start(self):

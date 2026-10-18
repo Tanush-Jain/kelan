@@ -1,13 +1,15 @@
 
+from unittest.mock import AsyncMock
+
 import pytest
 import pytest_asyncio
-from unittest.mock import AsyncMock
-from httpx import AsyncClient, ASGITransport
+from httpx import ASGITransport, AsyncClient
 
-from kelan.ai.ollama_client import TrustVerdict, Verdict, OllamaClient
 from kelan.ai.engine import HybridTrustEngine
-from kelan.protocol.handshake import HandshakeManager
+from kelan.ai.ollama_client import OllamaClient, TrustVerdict, Verdict
 from kelan.db.database import init_db
+from kelan.protocol.handshake import HandshakeManager
+
 
 @pytest.fixture(scope="module")
 def anyio_backend():
@@ -32,8 +34,8 @@ async def client():
     s.engine  = HybridTrustEngine(mock_ollama)
     s.engine.on_verdict(s._on_verdict)
 
-    from kelan.sentinel.detector import SentinelDetector
     from kelan.enforcement.ebpf_bridge import EbpfBridge
+    from kelan.sentinel.detector import SentinelDetector
     s.sentinel     = SentinelDetector()
     s.ebpf         = AsyncMock(spec=EbpfBridge)
     s.ebpf.mode    = "software"

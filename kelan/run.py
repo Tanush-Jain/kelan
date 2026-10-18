@@ -6,11 +6,15 @@ import asyncio
 import json
 import os
 import sys
-from pathlib import Path
-from typing import Optional
 
-from kelan.core.finding import Severity, Confidence
-from kelan.core.plugin import PluginRegistry, Scheduler, ScanTarget, ScopeKind, ScanConfig
+from kelan.core.finding import Severity
+from kelan.core.plugin import (
+    PluginRegistry,
+    ScanConfig,
+    ScanTarget,
+    Scheduler,
+    ScopeKind,
+)
 from kelan.plugins import register_all
 
 
@@ -24,7 +28,7 @@ def detect_scope(target: str) -> ScopeKind:
     return ScopeKind.HOST
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     argv = list(argv) if argv is not None else sys.argv[1:]
     
     parser = argparse.ArgumentParser(description="Kelan — AI-native plugin scheduler")
@@ -84,8 +88,8 @@ def main(argv: Optional[list[str]] = None) -> int:
     if args.show:
         try:
             from rich.console import Console
-            from rich.table import Table
             from rich.panel import Panel
+            from rich.table import Table
             console = Console()
             
             console.print(Panel(f"[bold cyan]Scan Results for {target.display()}[/bold cyan]", expand=False))
@@ -114,10 +118,10 @@ def main(argv: Optional[list[str]] = None) -> int:
                 console.print(f"  [dim]Location:[/dim] {f.location}")
                 if f.remediation:
                     console.print(f"  [green]Remediation:[/green] {f.remediation}")
-                for e in f.evidence:
-                    console.print(f"  [cyan]Evidence ({e.kind}):[/cyan] {e.detail}")
-                    if e.snippet:
-                        console.print(f"    [dim]{e.snippet}[/dim]")
+                for ev in f.evidence:
+                    console.print(f"  [cyan]Evidence ({ev.kind}):[/cyan] {ev.detail}")
+                    if ev.snippet:
+                        console.print(f"    [dim]{ev.snippet}[/dim]")
         except ImportError:
             width = 72
             print("=" * width)
@@ -126,8 +130,8 @@ def main(argv: Optional[list[str]] = None) -> int:
             for f in findings:
                 print(f"[{f.severity.value}] {f.cwe} — {f.title} ({f.plugin})")
                 print(f"  Location: {f.location}")
-                for e in f.evidence:
-                    print(f"  Evidence [{e.kind}]: {e.detail}")
+                for ev in f.evidence:
+                    print(f"  Evidence [{ev.kind}]: {ev.detail}")
             print("=" * width)
             
     if args.json:

@@ -15,12 +15,16 @@ import time
 import uuid
 from dataclasses import dataclass, field
 from enum import IntEnum
-from typing import Optional
 
 from .crypto import (
-    ed25519_verify, is_valid_ed25519_sig,
-    x25519_generate, x25519_exchange,
-    kem_encapsulate, kem_decapsulate, kem_generate, derive_session_key,
+    derive_session_key,
+    ed25519_verify,
+    is_valid_ed25519_sig,
+    kem_decapsulate,
+    kem_encapsulate,
+    kem_generate,
+    x25519_exchange,
+    x25519_generate,
 )
 
 
@@ -43,17 +47,17 @@ class PendingSession:
     entity_id:        str
     intent:           str
     nonce_c:          str
-    kem_pk_c:         Optional[bytes]
-    x25519_pk_c:      Optional[bytes]
+    kem_pk_c:         bytes | None
+    x25519_pk_c:      bytes | None
     phase:            Phase = Phase.SYN
 
     x25519_sk_s:      bytes = field(default_factory=lambda: os.urandom(32))
     x25519_pk_s:      bytes = field(default_factory=lambda: os.urandom(32))
-    kem_ct_s:         Optional[bytes] = None
-    kem_sk_s:         Optional[bytes] = None
-    kem_pk_s:         Optional[bytes] = None
-    session_key:      Optional[bytes] = None
-    transcript_hash:  Optional[str]   = None
+    kem_ct_s:         bytes | None = None
+    kem_sk_s:         bytes | None = None
+    kem_pk_s:         bytes | None = None
+    session_key:      bytes | None = None
+    transcript_hash:  str | None   = None
     created_at:       float = field(default_factory=time.time)
 
     def is_expired(self, ttl: float = 60.0) -> bool:
@@ -76,8 +80,8 @@ class HandshakeManager:
         entity_id:       str,
         intent:          str,
         nonce_c:         str,
-        x25519_pk_c_hex: Optional[str],
-        kem_pk_c_hex:    Optional[str],
+        x25519_pk_c_hex: str | None,
+        kem_pk_c_hex:    str | None,
     ) -> PendingSession:
         if self.require_pq and not kem_pk_c_hex:
             raise HandshakeError("ML-KEM public key required (require_pq=true)")

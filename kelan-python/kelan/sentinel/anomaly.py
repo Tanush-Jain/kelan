@@ -11,7 +11,7 @@ All state is bounded using deque(maxlen=N) — no unbounded memory growth.
 import time
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
-from typing import Optional
+
 import structlog
 
 log = structlog.get_logger()
@@ -19,7 +19,7 @@ log = structlog.get_logger()
 
 @dataclass
 class AnomalyEvent:
-    entity_id: Optional[str]
+    entity_id: str | None
     anomaly_type: str
     severity: float          # 0.0 – 1.0
     details: dict

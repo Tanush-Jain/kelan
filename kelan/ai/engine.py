@@ -3,11 +3,14 @@
 
 
 import time
+from collections.abc import Awaitable, Callable
 from enum import Enum
-from typing import Awaitable, Callable, cast
+from typing import cast
+
 import structlog
+from prometheus_client import REGISTRY, Counter, Gauge, Histogram
+
 from .ollama_client import OllamaClient, TrustVerdict, Verdict
-from prometheus_client import Counter, Histogram, Gauge, REGISTRY
 
 if "kelan_verdicts_total" in REGISTRY._names_to_collectors:
     VERDICTS = cast(Counter, REGISTRY._names_to_collectors["kelan_verdicts_total"])

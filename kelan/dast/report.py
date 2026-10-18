@@ -5,8 +5,7 @@ import json
 import os
 import tempfile
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 
 SEV_ORDER = {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3, "INFO": 4}
 
@@ -46,7 +45,7 @@ class Finding:
     variant: str = ""
     confidence: str = "medium"
     detected_at: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+        default_factory=lambda: datetime.now(UTC).isoformat()
     )
 
     def key(self) -> tuple:
@@ -57,8 +56,8 @@ class Report:
     def __init__(self, target: str, model: str):
         self.target = target
         self.model = model
-        self.started_at = datetime.now(timezone.utc).isoformat()
-        self.finished_at: Optional[str] = None
+        self.started_at = datetime.now(UTC).isoformat()
+        self.finished_at: str | None = None
         self.findings: list[Finding] = []
         self.meta: dict = {}
         self.risk_summary: str = ""
@@ -79,7 +78,7 @@ class Report:
         )
 
     def finalize(self):
-        self.finished_at = datetime.now(timezone.utc).isoformat()
+        self.finished_at = datetime.now(UTC).isoformat()
         self.sort()
 
     def stats(self) -> dict:

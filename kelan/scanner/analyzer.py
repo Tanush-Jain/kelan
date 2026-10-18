@@ -2,13 +2,12 @@
 import asyncio
 import json
 import re
-from typing import Any, Optional
+from typing import Any
 
 import structlog
 
 from kelan.ai.ollama_client import OllamaClient
 from kelan.scanner.prompts import (
-    SCANNER_JSON_SCHEMA,
     SCANNER_SYSTEM_PROMPT,
     build_scan_prompt,
 )
@@ -23,7 +22,7 @@ FINDING_KEYS = (
 )
 
 
-def _extract_json_object(text: str) -> Optional[dict]:
+def _extract_json_object(text: str) -> dict | None:
 
     if not text:
         return None
@@ -115,7 +114,7 @@ class VulnerabilityAnalyzer:
                 )
                 return dict(SAFE_DEFAULT)
             return _validate_result(data)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             log.warning("scanner_timeout", chunk=chunk.get("file_path"))
         except Exception as exc:
             log.warning(

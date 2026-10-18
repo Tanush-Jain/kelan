@@ -1,8 +1,16 @@
 
 import json
+
 import pytest
-from kelan.protocol.handshake import HandshakeManager, HandshakeError, Phase, PendingSession
+
 from kelan.protocol.crypto import ed25519_generate, ed25519_sign, x25519_generate
+from kelan.protocol.handshake import (
+    HandshakeError,
+    HandshakeManager,
+    PendingSession,
+    Phase,
+)
+
 
 def test_pending_session_expiration():
     sess = PendingSession(

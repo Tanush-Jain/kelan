@@ -7,12 +7,12 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, field
-from typing import Callable, Optional
+from collections.abc import Callable
+from dataclasses import dataclass
 
 import httpx
 
-from kelan.core.finding import Confidence, Finding, Severity, Evidence
+from kelan.core.finding import Confidence, Finding, Severity
 
 CATEGORY_CWE = {"runtime": "CWE-1333", "cloud": "CWE-798",
                 "port": "CWE-1032", "dast": "CWE-79", "sca": "CWE-1104"}

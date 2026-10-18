@@ -12,17 +12,17 @@
 
 
 from __future__ import annotations
+
 import re
 from pathlib import Path
+
 from kelan.core.finding import Confidence, Finding, Severity
 
-
-
-_BUCKET_RESET = re.compile(r"token_bucket\s*(\.\w+)?\s*=|Bucket\(|new\s+Limiter|RateLimiter\(", re.I)
-_WALL_CLOCK = re.compile(r"time\.now|time\.time\(\)|datetime\.now|System\.currentTimeMillis", re.I)
-_MONOTONIC_OK = re.compile(r"time\.monotonic|Stopwatch\.getTimestamp\(\)", re.I)
-_FORWARDED = re.compile(r"X-Forwarded-For|X-Real-IP|cf-connecting-ip|remote_addr\s*=\s*.*headers", re.I)
-_CLIENT_KEY = re.compile(r"key\s*=\s*\w+(userId|username|id|client)|make_key\(|key_func\(", re.I)
+_BUCKET_RESET = re.compile(r"token_bucket\s*(\.\w+)?\s*=|Bucket\(|new\s+Limiter|RateLimiter\(", re.IGNORECASE)
+_WALL_CLOCK = re.compile(r"time\.now|time\.time\(\)|datetime\.now|System\.currentTimeMillis", re.IGNORECASE)
+_MONOTONIC_OK = re.compile(r"time\.monotonic|Stopwatch\.getTimestamp\(\)", re.IGNORECASE)
+_FORWARDED = re.compile(r"X-Forwarded-For|X-Real-IP|cf-connecting-ip|remote_addr\s*=\s*.*headers", re.IGNORECASE)
+_CLIENT_KEY = re.compile(r"key\s*=\s*\w+(userId|username|id|client)|make_key\(|key_func\(", re.IGNORECASE)
 
 
 def _tagged_usages(path: Path) -> list[tuple[int, str, str]]:

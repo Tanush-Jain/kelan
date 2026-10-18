@@ -1,6 +1,6 @@
-import pytest
-from kelan.core.finding import Finding, Severity, Confidence
 from kelan.chains.correlation import correlate
+from kelan.core.finding import Confidence, Finding, Severity
+
 
 def test_chains_correlate_debug_port():
     findings = [

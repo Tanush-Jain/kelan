@@ -14,14 +14,14 @@ Usage in route handlers:
         # rollback is automatic on exception
 """
 import os
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator, Optional
 
 import structlog
 from sqlalchemy import Column, DateTime, Float, Integer, String, Text
 from sqlalchemy.ext.asyncio import (
-    AsyncSession,
     AsyncEngine,
+    AsyncSession,
     async_sessionmaker,
     create_async_engine,
 )
@@ -67,8 +67,8 @@ class AnomalyEvent(Base):
 
 # ── Engine + session factory (module-level singletons) ───────────────────────
 
-_engine: Optional[AsyncEngine] = None
-_session_factory: Optional[async_sessionmaker] = None
+_engine: AsyncEngine | None = None
+_session_factory: async_sessionmaker | None = None
 
 
 async def init_db() -> None:

@@ -9,10 +9,10 @@ import json
 import os
 import tempfile
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 SEVERITY_ORDER = ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"]
 
@@ -25,7 +25,7 @@ class Severity(str, Enum):
     INFO = "INFO"
 
     @classmethod
-    def from_any(cls, value: Any) -> "Severity":
+    def from_any(cls, value: Any) -> Severity:
         if isinstance(value, Severity):
             return value
         s = str(value or "INFO").upper()
@@ -43,7 +43,7 @@ class Confidence(str, Enum):
     STRONG = "strong"
 
     @classmethod
-    def from_any(cls, value: Any) -> "Confidence":
+    def from_any(cls, value: Any) -> Confidence:
         if isinstance(value, Confidence):
             return value
         c = str(value or "none").lower()
@@ -54,7 +54,7 @@ class Confidence(str, Enum):
         return {"none": 0, "weak": 1, "medium": 2, "strong": 3}[self.value]
 
     @staticmethod
-    def at_least(conf: "Confidence", minimum: "Confidence") -> bool:
+    def at_least(conf: Confidence, minimum: Confidence) -> bool:
         return conf.rank >= minimum.rank
 
 
@@ -85,11 +85,11 @@ class Finding:
     target: str = ""
     location: str = ""
     detected_at: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat())
+        default_factory=lambda: datetime.now(UTC).isoformat())
     extra: dict = field(default_factory=dict)
 
     def add_evidence(self, kind: str, detail: str, ref: str = "",
-                     snippet: str = "", **kw) -> "Finding":
+                     snippet: str = "", **kw) -> Finding:
         self.evidence.append(Evidence(kind, detail, ref, snippet, kw))
         return self
 
