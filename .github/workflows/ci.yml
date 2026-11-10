@@ -28,7 +28,7 @@ jobs:
           fetch-depth: 0
 
       - name: TruffleHog Secret Scan
-        uses: trufflesecurity/trufflehog@main
+        uses: trufflesecurity/trufflehog@v3.88.5
         with:
           extra_args: --only-verified
         continue-on-error: true
@@ -90,6 +90,7 @@ jobs:
       - name: Install Dependencies
         run: |
           pip install -r requirements.txt
+          pip install -e .
 
       - name: Run Test Suite with Coverage
         run: |

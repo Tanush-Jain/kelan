@@ -1,5 +1,6 @@
 
 from functools import lru_cache
+import secrets
 
 from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -15,7 +16,7 @@ class Settings(BaseSettings):
 
 
     http_port: int          = Field(3000,             alias="AITP_HTTP_PORT")
-    host:      str          = Field("0.0.0.0",        alias="AITP_HOST")  # nosec B104
+    host:      str          = Field("127.0.0.1",        alias="AITP_HOST")
     debug:     bool         = Field(False,             alias="AITP_DEBUG")
 
 
@@ -32,7 +33,7 @@ class Settings(BaseSettings):
     ollama_max_tokens:  int   = Field(300,                      alias="OLLAMA_MAX_TOKENS")
 
 
-    jwt_secret:  str  = Field("changeme_32chars", alias="KELAN_JWT_SECRET")
+    jwt_secret:  str  = Field(default_factory=lambda: secrets.token_hex(32), alias="KELAN_JWT_SECRET")
     require_pq:  bool = Field(True,               alias="REQUIRE_PQ")
 
 

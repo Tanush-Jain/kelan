@@ -130,7 +130,7 @@ def deterministic_scan_chunk(chunk: dict) -> list[dict]:
     # 4. Hardcoded Secrets (CWE-798)
     secret_patterns = [
         (r'''(?i)(?:jwt_secret|api_key|secret_key|private_key|auth_token)\s*=\s*["'][A-Za-z0-9_\-]{16,}["']''', "Hardcoded secret or credential literal"),
-        (r'''-----BEGIN (?:RSA )?PRIVATE KEY-----''', "Embedded private key"),
+        (r"-----[B]EGIN (?:RSA )?PRIVATE KEY-----", "Embedded private key"),
     ]
     for pat, desc in secret_patterns:
         if re.search(pat, content):

@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt pyproject.toml README.md LICENSE ./
+COPY kelan/ ./kelan/
 RUN pip install --no-cache-dir --prefix=/install -r requirements.txt \
     && pip install --no-cache-dir --prefix=/install .
 

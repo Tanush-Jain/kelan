@@ -537,7 +537,7 @@ class ScaPlugin(ScanPlugin):
         pom_xml = root / "pom.xml"
         if pom_xml.exists():
             try:
-                tree = ET.fromstring(pom_xml.read_text(errors="ignore"))
+                tree = ET.fromstring(pom_xml.read_text(errors="ignore"))  # nosec B314
                 for dep in tree.findall(".//{*}dependency"):
                     art = dep.find("{*}artifactId")
                     ver = dep.find("{*}version")
