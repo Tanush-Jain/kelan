@@ -28,7 +28,7 @@ jobs:
           fetch-depth: 0
 
       - name: TruffleHog Secret Scan
-        uses: trufflesecurity/trufflehog@v3.88.5
+        uses: trufflesecurity/trufflehog@v3.99.8
         with:
           extra_args: --only-verified
         continue-on-error: true
