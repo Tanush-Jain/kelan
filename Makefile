@@ -1,4 +1,16 @@
-.PHONY: dev build test clean stop logs frontend backend check
+.PHONY: dev build test clean stop logs frontend backend check eval
+
+# ── Evaluation Harness ─────────────────────────────────────────────────────────
+eval:
+	@if [ -f ".venv/bin/python" ]; then \
+		.venv/bin/python eval/run_eval.py; \
+	elif [ -f "venv/bin/python" ]; then \
+		venv/bin/python eval/run_eval.py; \
+	elif [ -f "../venv/bin/python" ]; then \
+		../venv/bin/python eval/run_eval.py; \
+	else \
+		python3 eval/run_eval.py; \
+	fi
 
 # ── Default: start the full stack ────────────────────────────────────────────
 dev: check

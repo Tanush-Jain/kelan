@@ -65,7 +65,8 @@ exclude = [
   "build",
   "dist",
   ".venv",
-  "venv"
+  "venv",
+  "eval"
 ]
 
 [tool.ruff.lint]

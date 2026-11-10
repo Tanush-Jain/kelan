@@ -1,0 +1,62 @@
+{
+  "eval/corpus/regression/sql_injection_sample.py": [
+    { "cwe": "CWE-89", "line": 5, "title": "SQL Injection" },
+    { "cwe": "CWE-78", "line": 6, "title": "Command Injection" }
+  ],
+  "eval/corpus/python/vulnerable/sqli_concat.py": [
+    { "cwe": "CWE-89", "line": 8, "title": "SQL Injection" }
+  ],
+  "eval/corpus/python/vulnerable/cmd_injection.py": [
+    { "cwe": "CWE-78", "line": 6, "title": "Command Injection" },
+    { "cwe": "CWE-78", "line": 12, "title": "Command Injection" }
+  ],
+  "eval/corpus/python/vulnerable/path_traversal.py": [
+    { "cwe": "CWE-22", "line": 7, "title": "Path Traversal" }
+  ],
+  "eval/corpus/python/vulnerable/deserialization.py": [
+    { "cwe": "CWE-502", "line": 6, "title": "Insecure Deserialization" },
+    { "cwe": "CWE-502", "line": 11, "title": "Insecure Deserialization" }
+  ],
+  "eval/corpus/python/vulnerable/ssrf.py": [
+    { "cwe": "CWE-918", "line": 5, "title": "SSRF" }
+  ],
+  "eval/corpus/python/vulnerable/weak_crypto.py": [
+    { "cwe": "CWE-327", "line": 5, "title": "Weak Crypto" }
+  ],
+  "eval/corpus/python/vulnerable/dangerous_eval.py": [
+    { "cwe": "CWE-95", "line": 3, "title": "Dangerous Eval" }
+  ],
+  "eval/corpus/javascript/vulnerable/sqli_template.js": [
+    { "cwe": "CWE-89", "line": 3, "title": "SQL Injection" }
+  ],
+  "eval/corpus/javascript/vulnerable/xss_sink.js": [
+    { "cwe": "CWE-79", "line": 4, "title": "XSS Sink" },
+    { "cwe": "CWE-79", "line": 9, "title": "XSS Sink" }
+  ],
+  "eval/corpus/javascript/vulnerable/cmd_injection.js": [
+    { "cwe": "CWE-78", "line": 5, "title": "Command Injection" }
+  ],
+  "eval/corpus/javascript/vulnerable/path_traversal.js": [
+    { "cwe": "CWE-22", "line": 6, "title": "Path Traversal" }
+  ],
+  "eval/corpus/javascript/vulnerable/dangerous_eval.js": [
+    { "cwe": "CWE-95", "line": 3, "title": "Dangerous Eval" }
+  ],
+  "eval/corpus/heldout/heldout_py_app.py": [
+    { "cwe": "CWE-89", "line": 16, "title": "SQL Injection", "reachability": "reachable" },
+    { "cwe": "CWE-78", "line": 21, "title": "Command Injection", "reachability": "unreachable" }
+  ],
+  "eval/corpus/heldout/heldout_js_app.js": [
+    { "cwe": "CWE-89", "line": 7, "title": "SQL Injection", "reachability": "reachable" },
+    { "cwe": "CWE-78", "line": 12, "title": "Command Injection", "reachability": "unreachable" }
+  ],
+  "eval/corpus/python/safe/safe_db.py": [],
+  "eval/corpus/python/safe/safe_cmd.py": [],
+  "eval/corpus/python/safe/safe_crypto.py": [],
+  "eval/corpus/python/safe/safe_deser.py": [],
+  "eval/corpus/python/safe/safe_path.py": [],
+  "eval/corpus/javascript/safe/safe_query.js": [],
+  "eval/corpus/javascript/safe/safe_dom.js": [],
+  "eval/corpus/javascript/safe/safe_cmd.js": [],
+  "eval/corpus/javascript/safe/safe_hash.js": []
+}

@@ -43,6 +43,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--plugins", action="store_true", help="List all registered plugins and exit")
     parser.add_argument("--allow-network", action="store_true", help="Allow plugins to make outbound network calls (default: false, local-first)")
     parser.add_argument("--online", action="store_true", help="Allow online live queries to OSV (default: false, local intelligence store only)")
+    parser.add_argument("--model", default=os.getenv("KELAN_MODEL", "qwen2.5-coder:latest"), help="Model name for LLM triage (default: qwen2.5-coder:latest)")
     
     args = parser.parse_args(argv)
     
@@ -71,8 +72,8 @@ def main(argv: list[str] | None = None) -> int:
         "allow_network": bool(args.allow_network or args.online),
         "online": bool(args.online or args.allow_network),
         "ollama": {
-            "endpoint": "http://127.0.0.1:11434",
-            "model": "qwen2.5-coder:latest"
+            "endpoint": os.getenv("OLLAMA_ENDPOINT", "http://127.0.0.1:11434"),
+            "model": args.model
         }
     })
     
