@@ -30,12 +30,12 @@ check:
 # ── Backend (Intelligence Core server) ───────────────────────────────────────
 backend:
 	@echo "Starting Intelligence Core on http://localhost:3000..."
-	@if [ -f "../venv/bin/python" ]; then \
-		../venv/bin/python scripts/start_server.py; \
+	@if [ -f ".venv/bin/python" ]; then \
+		.venv/bin/python scripts/start_server.py; \
 	elif [ -f "venv/bin/python" ]; then \
 		venv/bin/python scripts/start_server.py; \
-	elif [ -f ".venv/bin/python" ]; then \
-		.venv/bin/python scripts/start_server.py; \
+	elif [ -f "../venv/bin/python" ]; then \
+		../venv/bin/python scripts/start_server.py; \
 	else \
 		python3 scripts/start_server.py; \
 	fi
@@ -44,10 +44,17 @@ backend:
 frontend:
 	@if [ -d "kelan-dashboard" ]; then \
 		echo "Starting Kelan dashboard on http://localhost:7681..."; \
-		if [ -d "kelan-dashboard/dist" ]; then \
-			python3 -m http.server 7681 --directory kelan-dashboard/dist; \
+		if [ -f ".venv/bin/python" ]; then \
+			PY=".venv/bin/python"; \
+		elif [ -f "venv/bin/python" ]; then \
+			PY="venv/bin/python"; \
 		else \
-			python3 -m http.server 7681 --directory kelan-dashboard; \
+			PY="python3"; \
+		fi; \
+		if [ -d "kelan-dashboard/dist" ]; then \
+			$$PY -m http.server 7681 --directory kelan-dashboard/dist; \
+		else \
+			$$PY -m http.server 7681 --directory kelan-dashboard; \
 		fi; \
 	elif [ -d "../kelan-web" ] && command -v node >/dev/null; then \
 		echo "Starting frontend on http://localhost:5173..."; \
@@ -66,12 +73,12 @@ build:
 
 # ── Run all tests ─────────────────────────────────────────────────────────────
 test:
-	@if [ -f "../venv/bin/pytest" ]; then \
-		../venv/bin/pytest; \
+	@if [ -f ".venv/bin/pytest" ]; then \
+		.venv/bin/pytest; \
 	elif [ -f "venv/bin/pytest" ]; then \
 		venv/bin/pytest; \
-	elif [ -f ".venv/bin/pytest" ]; then \
-		.venv/bin/pytest; \
+	elif [ -f "../venv/bin/pytest" ]; then \
+		../venv/bin/pytest; \
 	else \
 		pytest; \
 	fi
