@@ -127,7 +127,7 @@ jobs:
 
       - name: Generate CycloneDX Software Bill of Materials (SBOM)
         run: |
-          cyclonedx-py environment --output-format json --outfile dist\kelan-sbom.cdx.json
+          cyclonedx-py environment --output-format json --output-file dist\kelan-sbom.cdx.json
 
       - name: Package portable ZIP bundle
         run: |

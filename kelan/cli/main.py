@@ -70,7 +70,7 @@ def _load_extension_commands() -> dict[str, Any]:
     return cmds
 
 
-def _usage() -> int:
+def _usage(code: int = 0) -> int:
     exts = _load_extension_commands()
     ext_list = ""
     if exts:
@@ -95,7 +95,7 @@ def _usage() -> int:
         "  --dashboard    launch local web dashboard"
         + ext_list
     )
-    return 2
+    return code
 
 
 def _start_dashboard_server() -> subprocess.Popen | None:
