@@ -91,6 +91,7 @@ def main(argv: list[str] | None = None) -> int:
         
     sca_res = results.get("sca")
     intel_updated = sca_res.meta.get("intel_last_updated") if sca_res else None
+    staleness_warn = sca_res.meta.get("staleness_warning") if sca_res else None
 
     if args.show:
         try:
@@ -102,6 +103,8 @@ def main(argv: list[str] | None = None) -> int:
             console.print(Panel(f"[bold cyan]Scan Results for {target.display()}[/bold cyan]", expand=False))
             if intel_updated:
                 console.print(f"[dim]Vulnerability Intelligence Last Updated: {intel_updated}[/dim]")
+            if staleness_warn:
+                console.print(f"[yellow]⚠️  {staleness_warn}[/yellow]")
             
             table = Table(title="Findings Summary")
             table.add_column("Severity", justify="left")
@@ -135,6 +138,10 @@ def main(argv: list[str] | None = None) -> int:
             width = 72
             print("=" * width)
             print("KELAN UNIFIED SCAN REPORT")
+            if intel_updated:
+                print(f"Vulnerability Intelligence Last Updated: {intel_updated}")
+            if staleness_warn:
+                print(f"[WARNING] {staleness_warn}")
             print("=" * width)
             for f in findings:
                 print(f"[{f.severity.value}] {f.cwe} — {f.title} ({f.plugin})")

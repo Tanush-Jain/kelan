@@ -110,9 +110,14 @@ def cmd_export_bundle(argv: list[str]) -> int:
 
 
 def cmd_intel(argv: list[str]) -> int:
-    if not argv:
-        print("usage: kelan intel <trending | search <query>>")
-        return 2
+    if not argv or argv[0] in ("-h", "--help", "help"):
+        print(
+            "usage: kelan intel <trending | search <query>>\n\n"
+            "subcommands:\n"
+            "  trending  display recently added KEVs, 7-day EPSS risers, and scan matches\n"
+            "  search    search advisories by CVE, GHSA, or package name"
+        )
+        return 0
 
     subcmd = argv[0]
     subargs = argv[1:]
