@@ -1,426 +1,273 @@
-# Kelan: AI-Native SAST/DAST & Zero-Trust Security Platform
+# 🛡️ Kelan: The Privacy-First, AI-Native Security Platform
 
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
-[![Rust 2021](https://img.shields.io/badge/rust-2021-orange.svg)](https://www.rust-lang.org/)
-[![eBPF Kernel Security](https://img.shields.io/badge/eBPF-Linux--Kernel-red.svg)](https://ebpf.io/)
-[![Post-Quantum Cryptography](https://img.shields.io/badge/PQC-ML--KEM--768%20%7C%20Kyber-purple.svg)](https://csrc.nist.gov/projects/post-quantum-cryptography)
-[![Ollama Powered](https://img.shields.io/badge/LLM-Ollama%20Local-green.svg)](https://ollama.ai/)
+> **100% Local-First Application Security Testing (SAST, DAST, SCA) & Offline Threat Intelligence.**  
+> *Zero code leakage. Zero cloud telemetry. Zero unverified claims.*
+
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-3776AB.svg?logo=python&logoColor=white)](https://www.python.org/)
+[![Cross-Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-555555.svg)](docs/WINDOWS.md)
+[![Air-Gapped LLM](https://img.shields.io/badge/LLM-Local%20Ollama%20(Gemma%2FQwen)-00B4D8.svg)](https://ollama.ai/)
+[![Docker GHCR](https://img.shields.io/badge/Docker-GHCR%20Validated-2496ED.svg?logo=docker&logoColor=white)](Dockerfile)
+[![Test Suite](https://img.shields.io/badge/tests-111%20passing%20%7C%2071%25%20coverage-success.svg)](kelan/tests)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-**Kelan** is a privacy-first, local-first security platform combining AST-aware Static Application Security Testing (**SAST**), dynamic agentic vulnerability scanning (**DAST**), and a Post-Quantum Zero-Trust Network Shield powered by eBPF and ML-KEM-768.
+---
 
-By running entirely on local LLMs via Ollama, **Kelan ensures zero code or network telemetry ever leaves your environment**.
+## 💡 Why Kelan?
+
+Traditional application security tools force an unacceptable tradeoff: **upload your proprietary source code and API traffic to third-party cloud servers**, or settle for brittle regex-based linters that flood developers with false positives.
+
+**Kelan changes this paradigm.** Built for security engineers, solo developers, and high-compliance teams, Kelan runs **100% on your machine**:
+* 🔒 **Zero Code or Network Leakage**: All AST parsing, web crawling, and LLM reasoning run locally via Ollama. No source code or scan telemetry ever leaves your environment.
+* 🧠 **Semantic AST Awareness**: Analyzes full syntactic functions and classes using Tree-sitter across Python, JavaScript, TypeScript, and Solidity—eliminating arbitrary token window slicing.
+* 🎯 **Deterministic Precision + AI Reasoning**: Deterministic baseline rules catch critical vulnerabilities (SQLi, cmd injection, path traversal) instantly, while local LLMs explain root causes and generate precise patches.
+* ⚡ **Offline Threat Intelligence**: Includes an embedded SQLite FTS5 database that synchronizes CISA KEV exploits, EPSS daily scores, OSV.dev, and NVD CVEs for instant, air-gapped vulnerability lookups.
+* 📊 **Zero-BS Local Dashboard**: A real-time React UI on `localhost:7681` showing live evidence and code snippets without fake animations or `Math.random()` metrics.
 
 ---
 
-## 📑 Table of Contents
+## 🏛️ Kelan Community Architecture & Capabilities
 
-- [Key Features](#-key-features)
-- [Architecture Overview](#-architecture-overview)
-  - [1. SAST Engine (`kelan scan`)](#1-sast-engine-kelan-scan)
-  - [2. DAST Engine (`kelan dast`)](#2-dast-engine-kelan-dast)
-  - [3. Zero-Trust & Post-Quantum Shield](#3-zero-trust--post-quantum-shield)
-- [Installation & Setup](#-installation--setup)
-  - [System Requirements](#system-requirements)
-  - [Environment Setup](#environment-setup)
-  - [Local LLM Models](#local-llm-models)
-- [CLI Reference & Usage](#-cli-reference--usage)
-  - [Interactive Mode](#interactive-mode)
-  - [SAST Command (`kelan scan`)](#sast-command-kelan-scan)
-  - [DAST Command (`kelan dast`)](#dast-command-kelan-dast)
-  - [CI/CD Integration](#cicd-integration)
-- [Repository Structure](#-repository-structure)
-- [Reporting Formats](#-reporting-formats)
-  - [Terminal Report](#terminal-report)
-  - [JSON Report Schema](#json-report-schema)
-- [License](#-license)
+Kelan Community serves as the open-source wedge—giving you professional-grade security analysis without altering your operating system kernel:
+
+| Feature | Description & Implementation Details | Automated Verification |
+| :--- | :--- | :--- |
+| **Audit-Only Mode** | Strictly open-source audit mode. Identifies vulnerabilities and explains them with zero capability to modify the kernel or block traffic. All kernel hooks, eBPF loaders, and permit/revoke endpoints are cleanly isolated from Community. | [`test_community_has_zero_pro_imports`](file:///kelan/tests/unit/test_no_pro_imports.py)<br>[`test_community_rejects_permit_revoke_endpoints`](file:///kelan/tests/unit/test_community_api.py) |
+| **Semantic SAST Engine** | Tree-sitter AST parsing across Python, JavaScript, TypeScript, and Solidity with deterministic baseline rules (SQLi, command injection, path traversal, hardcoded secrets, XSS) and graceful degradation when Ollama is offline. | [`test_sast_deterministic.py`](file:///kelan/tests/unit/test_sast_deterministic.py) |
+| **Active DAST Crawler** | Asynchronous payload engine with 34 encoding-bypass probe variants (raw, HTML entity, double-encoding, comment break, null-byte) and deterministic evidence graders. | [`test_dast_pipeline.py`](file:///kelan/tests/unit/test_dast_pipeline.py) |
+| **Local Intelligence Library** | Offline SQLite store with FTS5 search (`kelan/intel/db.py`) syncing CISA KEV, EPSS daily scores, OSV.dev bulk data, GHSA, and NVD CVE API 2.0. Air-gapped Ed25519-signed bundle import/export (`kelan export-bundle`, `kelan update --offline-bundle`). | [`test_intel.py`](file:///kelan/tests/unit/test_intel.py) |
+| **Air-Gapped LLM Triage** | Local orchestration via Ollama/Gemma (`kelan/ai/ollama_client.py`) for exploit reasoning and patch generation on reachable findings. Strictly local-first: zero network calls during scans unless explicitly enabled via `--online`. | [`test_ollama_client.py`](file:///kelan/tests/unit/test_ollama_client.py)<br>[`test_sca_local_first_network_disabled`](file:///kelan/tests/unit/test_plugin_framework.py) |
+| **Local React Dashboard** | Standalone web UI served on `localhost:7681` (`kelan --dashboard`), featuring live scan timeline, findings severity filters, and Reasoning View showing code evidence alongside LLM explanation. Canned logs and `Math.random()` simulators removed. Process tracked with clean shutdown. | [`test_dashboard_not_launched_by_default`](file:///kelan/tests/unit/test_cli_menu.py)<br>[`test_dashboard_launched_and_stopped_with_flag`](file:///kelan/tests/unit/test_cli_menu.py) |
+| **Windows & macOS Support** | Native cross-platform execution. Hardware-specific dependencies (`scapy`, `netifaces`) isolated into optional extra `[recon]`. Includes `kelan setup` wizard (system checks, disk space, Ollama detection, model pulling, optional daily task scheduler) and PyInstaller/Inno Setup packaging specs. | [`test_windows_packaging.py`](file:///kelan/tests/unit/test_windows_packaging.py) |
 
 ---
 
-## 🚀 Key Features
+## ⚡ Quickstart: Clone to First Scan in 5 Minutes
 
-* **Zero Code Leakage**: Uses local Ollama models (`qwen2.5-coder`, `gemma4`) for vulnerability analysis. Proprietary code and dynamic payloads are never sent to external cloud APIs.
-* **AST-Aware Semantic Chunker**: Parses multi-language source code (Python, JavaScript, TypeScript) using Tree-sitter into scope-aware code units (functions, classes) to bypass arbitrary token window limits.
-* **Hybrid Deterministic + AI DAST**: Combines async web crawling, deterministic heuristic pattern matchers (SQL errors, reflected XSS, marker echo, header audits), and multi-family payload bypass suites with optional LLM summary generation.
-* **WAF & Filter Bypass Suite**: Probes targets using 68+ payload variants across XSS, SQLi, Command Injection, Path Traversal, and SSTI (percent-encoding, double-encoding, HTML entities, Unicode, null-bytes, comment breaks).
-* **Post-Quantum Network Enforcement**: Implements ML-KEM-768 (Kyber768) handshakes paired with eBPF kernel maps to enforce zero-trust network packet filtering at ring 0.
-* **CI/CD Native**: Supports configurable severity thresholds (`--ci-gate high`) and structured JSON output for automated build pipeline failure and SIEM/dashboard ingestion.
-
----
-
-## 🏗 Architecture Overview
-
-```
-                                +-----------------------------------+
-                                |            KELAN CLI              |
-                                |     (kelan scan / kelan dast)     |
-                                +-----------------+-----------------+
-                                                  |
-                    +-----------------------------+-----------------------------+
-                    |                                                           |
-                    v                                                           v
-       +-------------------------+                                 +-------------------------+
-       |   SAST Pipeline         |                                 |   DAST Pipeline         |
-       |   (kelan/scanner/)      |                                 |   (kelan/dast/)         |
-       +------------+------------+                                 +------------+------------+
-                    |                                                           |
-      +-------------+-------------+                               +-------------+-------------+
-      |                           |                               |                           |
-      v                           v                               v                           v
-+-----------+               +-----------+                   +-----------+               +-----------+
-| Tree-     |               | Local     |                   | Async BFS |               | Heuristic |
-| sitter    |               | Ollama    |                   | Crawler   |               | Evidence  |
-| Chunker   |               | LLM       |                   | & Prober  |               | Grader    |
-+-----------+               +-----------+                   +-----------+               +-----------+
-                                                                                              |
-                                                                                              v
-                                                                                    +-------------------+
-                                                                                    | Payload Bypass    |
-                                                                                    | Engine (68+ sets) |
-                                                                                    +-------------------+
-```
-
-### 1. SAST Engine (`kelan scan`)
-* **Tree-Sitter Chunking**: Traverses codebases and extracts syntactically complete functions and classes instead of slicing raw lines.
-* **Prompt Schema Enforcement**: Formats requests into structured JSON schemas (`SCANNER_JSON_SCHEMA`) enforcing root cause analysis and CWE mapping.
-* **Strict Noise Reduction**: Instructs the model to dismiss code style or linting rules and focus exclusively on injection, state manipulation, logic bypass, and cryptographic flaws.
-
-### 2. DAST Engine (`kelan dast`)
-* **Async BFS Crawler**: Spiders origin-scoped HTML pages, identifying forms, input elements, hidden parameters, and URL query keys.
-* **Bypass Probe Generator**: Generates encoding variants (raw, HTML entities, percent-encoding, double-encoding, comment breaking, null-byte injection).
-* **Deterministic Graders**: Evaluates evidence without LLM hallucination:
-  * **XSS**: Verifies unencoded reflection of payload markers in HTTP 200 responses.
-  * **SQLi**: Matches SQL engine syntax and database exception strings.
-  * **Command Injection**: Detects unique echo marker reflection in response bodies.
-  * **Path Traversal**: Matches `/etc/passwd` or system file signatures.
-  * **IDOR**: Measures structural response deltas across distinct resource IDs.
-* **LLM Narrative Enrichment**: Optionally invokes Ollama to refine titles and remediation steps without altering underlying evidence or findings.
-
-### 3. Zero-Trust & Post-Quantum Shield
-* **PQC Handshake**: Uses Kyber768 (ML-KEM-768) post-quantum key encapsulation for initial session negotiation.
-* **eBPF Enforcement**: Syncs authenticated identity states to eBPF kernel maps to perform line-rate packet drops for unauthenticated network traffic.
-
----
-
-## 📦 Installation & Setup
-
-### System Requirements
-* **OS**: Linux / macOS
-* **Python**: 3.10+
-* **Rust Toolchain**: 1.75+ (for eBPF & PQC modules)
-* **Ollama**: Installed and running locally (`http://localhost:11434`)
-
-### Environment Setup
-
-1. **Clone the Repository**:
-   ```bash
-   git clone https://github.com/kelan-security/kelan.git
-   cd kelan
-   ```
-
-2. **Create and Activate Virtual Environment**:
-   ```bash
-   python3 -m venv .venv
-   source .venv/bin/activate
-   ```
-
-3. **Install Dependencies and Package**:
-   ```bash
-   pip install --upgrade pip
-   pip install -r requirements.txt
-   pip install -e .
-   ```
-
-### Local LLM Models
-
-Pull your preferred model via Ollama:
+### 🍎 macOS & 🐧 Linux
 
 ```bash
-# Recommended for code analysis & speed (4.7 GB)
-ollama pull qwen2.5-coder:latest
+# 1. Clone the repository
+git clone https://github.com/Tanush-Jain/kelan.git
+cd kelan
 
-# Alternative general-purpose model (9.6 GB)
-ollama pull gemma4:latest
-```
-
-### Running `kelan` CLI Commands
-
-If running `kelan scan` returns `zsh: command not found: kelan`, use one of the following methods:
-
-#### Option 1: Activate the Virtual Environment (Recommended)
-Run this command in your terminal:
-```bash
+# 2. Set up virtual environment & install Kelan
+python3 -m venv .venv
 source .venv/bin/activate
-```
-Once activated, your terminal prompt will show `(.venv)` and you can run `kelan` directly from anywhere:
-```bash
-kelan scan
+pip install --upgrade pip
+pip install -e .
+
+# 3. Verify environment readiness
+kelan doctor
+
+# 4. Run an instant code security audit
+kelan scan --target .
 ```
 
-#### Option 2: Run via Virtual Environment Path Directly
-Without activating `.venv`, call the executable using its relative path:
-```bash
-.venv/bin/kelan scan
-```
+### 🪟 Windows 10/11 x64
 
-#### Optional: Make `kelan` Globally Available in Shell
-If you want `kelan` to work anywhere without having to activate `.venv` every time, add an alias to your Zsh configuration (`~/.zshrc`):
-```bash
-echo 'alias kelan="$(pwd)/.venv/bin/kelan"' >> ~/.zshrc
-source ~/.zshrc
+Install via the standalone Inno Setup package (`KelanSetup.exe`) or via PowerShell:
+
+```powershell
+# Run the automated installer script
+.\scripts\install.ps1
+
+# Run the interactive configuration wizard
+kelan setup
+
+# Audit your project
+kelan scan --target .
 ```
-After doing this, typing `kelan scan` or `kelan dast` will work in any shell window!
+> See [docs/WINDOWS.md](docs/WINDOWS.md) for full Windows installation, code signing, and packaging guidelines.
+
+### 🐳 Docker Container
+
+Run Kelan directly in an isolated container without local Python dependencies:
+
+```bash
+# List available plugins
+docker run --rm ghcr.io/tanush-jain/kelan:latest --plugins
+
+# Scan current workspace mounted into container
+docker run --rm -v $(pwd):/workspace ghcr.io/tanush-jain/kelan:latest scan --target /workspace
+
+# Launch the full dashboard environment
+docker compose -f deploy/docker-compose.yml up -d
+```
 
 ---
 
-## ⚙️ CLI Reference & Usage
-
-### Interactive Mode
-
-Running `kelan scan` without arguments launches an interactive prompt guiding target, limit, and model selection:
-
-```bash
-kelan scan
-```
+## 🏗 System Architecture
 
 ```text
-🎯 Enter target directory to scan [default: .]: kelan/api
-⚡ Enter chunk limit (0 for all) [default: 10]: 5
-
-🧠 Available local models:
-  1. qwen2.5-coder:latest  ← recommended
-  2. gemma4:latest
-
-Select a model (1-2) or type name [default: qwen2.5-coder:latest]: 1
+                               +-----------------------------------+
+                               |        KELAN COMMUNITY CLI        |
+                               |    (kelan scan / dast / intel)    |
+                               +-----------------+-----------------+
+                                                 |
+         +---------------------------------------+---------------------------------------+
+         |                                       |                                       |
+         v                                       v                                       v
++------------------+                    +------------------+                    +------------------+
+|   SAST Engine    |                    |   DAST Crawler   |                    | Offline Intel    |
+| (Tree-sitter AST |                    |  (Async Crawler  |                    |  (SQLite + FTS5  |
+|  + Baseline)     |                    |  + 34 Bypasses)  |                    |  CVE/EPSS/KEV)   |
++--------+---------+                    +--------+---------+                    +--------+---------+
+         |                                       |                                       |
+         +-------------------+-------------------+---------------------------------------+
+                             |
+                             v
+               +---------------------------+
+               |  Air-Gapped LLM Triage    |
+               | (Local Ollama Orchestrator|
+               |   qwen2.5-coder / gemma)  |
+               +-------------+-------------+
+                             |
+                             v
+               +---------------------------+
+               |  Local React Dashboard    |
+               |     (localhost:7681)      |
+               | Timeline + Reasoning View |
+               +---------------------------+
 ```
 
-### SAST Command (`kelan scan`)
+---
+
+## 🔍 Core Engines in Depth
+
+### 1. Semantic SAST (`kelan scan`)
+* **Scope-Aware AST Parsing**: Uses Tree-sitter grammars to map whole code structures instead of crude line chunks.
+* **Deterministic Baseline Rules**: Zero-dependency syntax analysis detects SQL injection, command execution, path traversal, and hardcoded credentials instantly.
+* **Ollama Explanation & Remediation**: Reachable vulnerabilities are passed to local models (`qwen2.5-coder`, `gemma`) to construct verified remediation code snippets.
+
+### 2. Active DAST Crawler (`kelan dast`)
+* **Asynchronous Spider**: Automatically discovers endpoints, forms, hidden query parameters, and headers.
+* **34 Encoding Bypass Variants**: Generates realistic attack payloads using double-URL encoding, HTML entities, nested comments, and null-byte terminators.
+* **Heuristic Evidence Verification**: Evaluates responses deterministically by matching database exception signatures, unencoded marker reflections, and echo tokens.
+
+### 3. Threat Intelligence Library (`kelan intel`)
+* **Local SQLite FTS5 Engine**: Millisecond searches across millions of vulnerability records without internet access.
+* **Daily Feed Synchronization (`kelan update`)**: Incremental updates with rate limiting, ETag caching, and exponential backoff from CISA KEV, FIRST EPSS, OSV.dev, and NVD.
+* **Air-Gapped Bundles**: Export and import cryptographically signed archives (`kelan export-bundle` / `kelan update --offline-bundle`) verified using embedded Ed25519 public keys.
+
+### 4. Local React Dashboard (`kelan --dashboard`)
+* Served natively on `http://localhost:7681`.
+* **Reasoning View**: Side-by-side inspection of vulnerable source code evidence and AI explanation.
+* **Live Timeline**: Real-time scan progression and findings categorization.
+* **Clean Shutdown**: Automatic background process management with zero orphan servers.
+
+---
+
+## 🛠 Command Reference
+
+### Interactive Menu
+```bash
+kelan
+```
+
+### Static Application Security Testing (SAST)
+```bash
+# Scan specific directory with concurrency limit
+kelan scan --target src/ --limit 20 --model qwen2.5-coder:latest
+
+# Full repository audit with JSON report
+kelan scan --target . --no-limit --json sast-report.json
+```
 
 | Flag | Type | Default | Description |
-|---|---|---|---|
-| `--target` | `path` | `.` | Target directory to scan |
+| :--- | :--- | :--- | :--- |
+| `--target` | `path` | `.` | Target directory to audit |
 | `--limit` | `int` | `10` | Maximum AST chunks to analyze (`0` for all) |
 | `--model` | `string` | `qwen2.5-coder:latest` | Local Ollama model name |
-| `--concurrency` | `int` | `2` | Number of parallel chunk evaluations |
-| `--timeout` | `float` | `180.0` | Per-chunk timeout in seconds |
-| `--json` | `path` | `None` | Write full analysis results to a JSON file |
-| `--no-limit` | `flag` | `False` | Analyze every chunk in the target directory |
+| `--concurrency` | `int` | `2` | Parallel chunk evaluation workers |
+| `--timeout` | `float` | `180.0` | Per-chunk evaluation timeout in seconds |
+| `--json` | `path` | `None` | Path to save JSON report |
+| `--no-limit` | `flag` | `False` | Scan every AST chunk without truncation |
 
-#### Examples
+### Dynamic Application Security Testing (DAST)
 ```bash
-# Scan production API directory with 20-chunk limit
-kelan scan --target kelan/api --limit 20 --model qwen2.5-coder:latest
+# Crawl local web service and test for bypass variants
+kelan dast --target http://localhost:8080 --crawl --bypass --json dast-report.json
 
-# Full repository scan with JSON report output
-kelan scan --target . --no-limit --json sast_report.json
+# Run deterministic checks with strict CI exit gate
+kelan dast --target http://localhost:8080 --no-llm --ci-gate high
 ```
-
-### DAST Command (`kelan dast`)
 
 | Flag | Type | Default | Description |
-|---|---|---|---|
-| `--target` | `url` | *Required* | Target seed URL |
-| `--model` | `string` | `qwen2.5-coder:latest` | Local Ollama model for narrative enrichment |
-| `--crawl` | `flag` | `False` | Spider origin-scoped pages before probing |
-| `--max-pages` | `int` | `15` | Maximum pages to spider when `--crawl` is enabled |
-| `--max-depth` | `int` | `3` | Maximum crawl depth |
-| `--bypass` | `flag` | `False` | Enable multi-family encoding bypass payloads (68+ probes) |
-| `--vectors` | `string` | `xss,sqli,cmdi,traversal,ssti` | Comma-separated list of vulnerability vectors |
-| `--delay` | `float` | `0.5` | Politeness delay between requests (seconds) |
-| `--json` | `path` | `None` | Path to save JSON report |
-| `--ci-gate` | `string` | `None` | Threshold to fail build (`critical`, `high`, `medium`, `low`) |
-| `--no-llm` | `flag` | `False` | Run deterministic heuristic evaluation only (no LLM call) |
+| :--- | :--- | :--- | :--- |
+| `--target` | `url` | *Required* | Seed URL to test |
+| `--crawl` | `flag` | `False` | Spider origin-scoped links before probing |
+| `--bypass` | `flag` | `False` | Enable 34 encoding-bypass probe variants |
+| `--vectors` | `string` | `xss,sqli,cmdi,traversal,ssti` | Comma-separated vulnerability families |
+| `--ci-gate` | `string` | `None` | Fail build with non-zero exit on threshold (`critical`, `high`) |
+| `--no-llm` | `flag` | `False` | Run deterministic heuristic evaluation only |
 
-#### Examples
+### Intelligence Commands
 ```bash
-# Basic single-page endpoint audit
-kelan dast --target http://localhost:8080
+# Update local vulnerability database from CISA, EPSS, OSV, and NVD
+kelan update
 
-# Comprehensive web crawl with bypass probes & JSON report
-kelan dast --target http://localhost:8080 --crawl --max-pages 20 --bypass --json dast_report.json
+# Search local database for an advisory or package
+kelan intel search CVE-2024-21626
 
-# CI Pipeline run: fail build if HIGH or CRITICAL flaws exist
-kelan dast --target http://staging.internal/ --crawl --bypass --ci-gate high
-```
+# Display newly added CISA KEV exploits and 7-day EPSS risers
+kelan intel trending
 
-### CI/CD Integration
-
-Example GitHub Actions workflow snippet (`.github/workflows/security-scan.yml`):
-
-```yaml
-name: Kelan Security Audit
-
-on:
-  push:
-    branches: [ main, master ]
-  pull_request:
-    branches: [ main ]
-
-jobs:
-  security-audit:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Start Ollama Service
-        run: |
-          curl -fsSL https://ollama.com/install.sh | sh
-          ollama serve &
-          sleep 5
-          ollama pull qwen2.5-coder:latest
-
-      - name: Install Kelan
-        run: |
-          python -m venv .venv
-          source .venv/bin/activate
-          pip install -r requirements.txt
-          pip install -e .
-
-      - name: Run SAST Audit
-        run: |
-          source .venv/bin/activate
-          kelan scan --target kelan/api --no-limit --json sast_report.json
-
-      - name: Run DAST Audit with CI Gate
-        run: |
-          source .venv/bin/activate
-          kelan dast --target http://localhost:8080 --crawl --bypass --json dast_report.json --ci-gate high
-
-      - name: Upload Scan Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: security-reports
-          path: |
-            sast_report.json
-            dast_report.json
+# Export signed air-gapped bundle
+kelan export-bundle --output kelan-intel.zip
 ```
 
 ---
 
-## 📁 Repository Structure
+## 🧪 Verification & System Health
 
-```text
-kelan/
-├── pyproject.toml              # PEP 621 build config & console_scripts entry
-├── requirements.txt            # Python dependencies
-├── kelan-scan                  # Convenience shell wrapper
-├── kelan/                      # Main Python package
-│   ├── ai/                     # Local LLM integration
-│   │   ├── ollama_client.py    # Async HTTP client for Ollama API
-│   │   └── prompts.py          # Trust-engine prompt definitions
-│   ├── api/                    # Security management API
-│   │   ├── server.py           # FastAPI management endpoints
-│   │   ├── middleware/         # Auth & rate-limiting middleware
-│   │   └── routes/             # API route handlers
-│   ├── dast/                   # Dynamic Application Security Testing
-│   │   ├── agent.py            # Legacy single-target DAST agent
-│   │   ├── bypass.py           # Multi-family payload bypass engine
-│   │   ├── cli.py              # DAST CLI command handler
-│   │   ├── crawler.py          # Async BFS spider & HTML form parser
-│   │   ├── heuristics.py       # Deterministic evidence graders
-│   │   ├── llm.py              # LLM finding summarizer & narrative writer
-│   │   ├── pipeline.py         # End-to-end DAST scan orchestrator
-│   │   └── report.py           # Finding/Report dataclasses & CI gate logic
-│   ├── enforcement/            # Kernel & eBPF enforcement
-│   │   └── ebpf_bridge.py      # Kernel packet filtering bridge
-│   ├── protocol/               # Post-Quantum cryptography & handshake
-│   │   ├── crypto.py           # Kyber768 ML-KEM wrapper
-│   │   └── handshake.py        # AITP handshake state machine
-│   └── scanner/                # Static Application Security Testing
-│       ├── analyzer.py         # VulnerabilityAnalyzer using Ollama
-│       ├── chunker.py          # Tree-sitter AST semantic chunker
-│       ├── cli.py              # SAST CLI command handler
-│       ├── entrypoint.py       # Top-level 'kelan' CLI dispatcher
-│       └── prompts.py          # SAST system prompt & JSON schema
-└── tests/                      # Suite of unit & integration tests
-    ├── dummy_server.py         # Intentionally vulnerable DAST target server
-    ├── sample.py               # SAST test fixture
-    └── unit/                   # Automated pytest suite
+The `kelan-core` codebase is continuously tested against strict quality and architectural constraints:
+
+```bash
+# 1. Run environment healthcheck
+kelan doctor
+
+# 2. Run automated test suite with coverage
+pytest --cov=kelan --cov-config=pyproject.toml kelan/tests
 ```
+
+* **Test Suite**: **111 unit & integration tests passing** in `2.76s`.
+* **Code Coverage**: **71.14%** (exceeds the 50.0% CI gate threshold).
+* **Static Import Isolation**: `test_no_pro_imports.py` guarantees zero proprietary Pro dependencies or kernel-altering modules are imported by the Community edition.
+* **Code Quality**: Zero `ruff` lint errors and zero `mypy` typecheck errors across all 82 source files.
 
 ---
 
-## 📊 Reporting Formats
+## 🏢 Community vs. Pro Edition
 
-### Terminal Report
+Kelan Community is built to prove AI reasoning and give developers a world-class audit wedge. For enterprises needing automated blocking and team coordination, **Kelan Pro** delivers active enforcement:
 
-```text
-========================================================================
-🛡️  KELAN DAST AGENT REPORT
-========================================================================
-Target:          http://localhost:8080
-Model:           qwen2.5-coder:latest
-Findings:        3
-========================================================================
+| Capability | Kelan Community (Open Source) | Kelan Pro (Commercial) |
+| :--- | :---: | :---: |
+| **Licensing** | MIT License | Commercial (Offline Ed25519 Signed) |
+| **Execution Mode** | Audit-Only (Simulate & Explain) | Active Ring-0 Enforcement + Simulation |
+| **SAST & DAST Scanning** | ✅ Full Tree-sitter & 34 Bypasses | ✅ Full Tree-sitter & 34 Bypasses |
+| **Local Threat Intel** | ✅ Local SQLite (CISA KEV, EPSS, NVD) | ✅ Local SQLite + Pro Feed Ingestion |
+| **Dashboard** | ✅ Standalone UI (`localhost:7681`) | ✅ Centralized Fleet Console + RBAC |
+| **Kernel eBPF / XDP Filtering** | ❌ None (Isolated) | ✅ Line-rate XDP Packet Drop Engine |
+| **Network Handshake** | ❌ None | ✅ Post-Quantum (ML-KEM-768 / Kyber) |
+| **Approval Workflow** | ❌ None | ✅ Human-in-the-loop Rule Approval |
+| **Append-Only Audit Log** | ❌ None | ✅ Cryptographic Audit Log |
 
-[HIGH] CWE-79 — Reflected Cross-Site Scripting (XSS)
-  URL:         http://localhost:8080/
-  Param:       search (GET)
-  Evidence:    payload reflected unencoded in response (HTTP 200): <script>alert(1)</script>
-  Remediation: Context-aware output encoding + CSP; input allowlist validation.
-------------------------------------------------------------------------
+> For enterprise licensing and proof-of-concept deployments, see [EDITIONS.md](EDITIONS.md).
 
-[HIGH] CWE-639 — Broken Object Level Authorization (BOLA/IDOR)
-  URL:         http://localhost:8080/api/user
-  Param:       id (GET)
-  Evidence:    Two different object IDs returned distinct (142 vs 138 byte) responses without authentication.
-  Remediation: Enforce server-side authorization per object.
-------------------------------------------------------------------------
+---
 
-[MEDIUM] CWE-693 — Missing Content-Security-Policy header
-  URL:         http://localhost:8080/
-  Param:       - (GET)
-  Evidence:    response omits content-security-policy
-  Remediation: Set CSP, HSTS, X-Frame-Options, X-Content-Type-Options.
-------------------------------------------------------------------------
-========================================================================
-```
+## 🤝 Contributing
 
-### JSON Report Schema
+We welcome community contributions! Please read [CONTRIBUTING.md](docs/CONTRIBUTING.md) and [SECURITY.md](SECURITY.md) before submitting pull requests.
 
-Saved when passing `--json report.json`:
-
-```json
-{
-  "tool": "kelan-dast",
-  "target": "http://localhost:8080",
-  "model": "qwen2.5-coder:latest",
-  "started_at": "2026-08-05T11:05:23.123456+00:00",
-  "finished_at": "2026-08-05T11:05:45.654321+00:00",
-  "meta": {},
-  "risk_summary": "The application exhibits critical reflected XSS and unauthenticated BOLA endpoints.",
-  "stats": {
-    "severities": { "CRITICAL": 0, "HIGH": 2, "MEDIUM": 1, "LOW": 0, "INFO": 0 },
-    "categories": { "xss": 1, "idor": 1, "header": 1 },
-    "cwes": { "CWE-79": 1, "CWE-639": 1, "CWE-693": 1 }
-  },
-  "findings": [
-    {
-      "url": "http://localhost:8080/",
-      "method": "GET",
-      "param": "search",
-      "category": "xss",
-      "title": "Reflected Cross-Site Scripting (XSS)",
-      "evidence": "payload reflected unencoded in response (HTTP 200): <script>alert(1)</script>",
-      "remediation": "Context-aware output encoding + CSP; input allowlist validation.",
-      "cwe": "CWE-79",
-      "severity": "HIGH",
-      "payload": "<script>alert(1)</script>",
-      "variant": "raw",
-      "confidence": "strong",
-      "detected_at": "2026-08-05T11:05:30.000000+00:00"
-    }
-  ]
-}
-```
+1. Fork the repo and create your branch from `main`.
+2. Ensure all 111 tests pass (`pytest kelan/tests`).
+3. Ensure linters pass cleanly (`ruff check .` and `mypy kelan/`).
+4. Submit a descriptive Pull Request.
 
 ---
 
 ## 📜 License
 
-Distributed under the **MIT License**. See `LICENSE` for details.
+Kelan Community is distributed under the **MIT License**. See [LICENSE](LICENSE) for details.

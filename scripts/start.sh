@@ -82,17 +82,17 @@ echo -e "${GREEN}✓ Build complete${NC}"
 echo -e "${YELLOW}[3/6] Starting infrastructure...${NC}"
 
 # Clean up any orphans first
-docker compose -f yml/docker-compose.yml -f yml/docker-compose.dev.yml down --remove-orphans 2>/dev/null \
+docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.dev.yml down --remove-orphans 2>/dev/null \
     || true
 
 # Start all infrastructure including postgres
-docker compose -f yml/docker-compose.yml -f yml/docker-compose.dev.yml up -d postgres prometheus grafana
+docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.dev.yml up -d postgres prometheus grafana
 
 # Wait for postgres specifically
 echo "Waiting for PostgreSQL to be ready..."
 POSTGRES_READY=false
 for i in {1..30}; do
-    if docker compose -f yml/docker-compose.yml -f yml/docker-compose.dev.yml exec -T postgres \
+    if docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.dev.yml exec -T postgres \
         pg_isready -U kelan 2>/dev/null; then
         POSTGRES_READY=true
         break
@@ -103,7 +103,7 @@ done
 
 if [ "$POSTGRES_READY" = false ]; then
     echo -e "${RED}✗ PostgreSQL failed to start${NC}"
-    docker compose -f yml/docker-compose.yml -f yml/docker-compose.dev.yml logs postgres | tail -20
+    docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.dev.yml logs postgres | tail -20
     exit 1
 fi
 

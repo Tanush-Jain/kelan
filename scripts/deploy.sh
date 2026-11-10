@@ -165,8 +165,8 @@ fi
 echo ""
 echo -e "${YELLOW}[4/9] Building Docker image...${NC}"
 
-COMPOSE_FILE="yml/docker-compose.prod.yml"
-[[ "$DEPLOYMENT_MODE" == "dev" ]] && COMPOSE_FILE="yml/docker-compose.yml"
+COMPOSE_FILE="deploy/docker-compose.prod.yml"
+[[ "$DEPLOYMENT_MODE" == "dev" ]] && COMPOSE_FILE="deploy/docker-compose.yml"
 
 if [[ -f "$COMPOSE_FILE" ]]; then
     docker compose -f "$COMPOSE_FILE" build --quiet kelan-server 2>&1 | tail -3
@@ -215,8 +215,8 @@ if [[ -f "$COMPOSE_FILE" ]]; then
     echo -e "${GREEN}✓ Services started${NC}"
     
     # Also start monitoring stack if available
-    if [[ -f "yml/docker-compose.monitoring.yml" ]]; then
-        docker compose -f "yml/docker-compose.monitoring.yml" up -d 2>/dev/null || true
+    if [[ -f "deploy/docker-compose.monitoring.yml" ]]; then
+        docker compose -f "deploy/docker-compose.monitoring.yml" up -d 2>/dev/null || true
         echo -e "${GREEN}✓ Monitoring stack started${NC}"
     fi
 fi

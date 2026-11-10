@@ -117,6 +117,38 @@ async def test_sca_manifest_parsing():
 
 
 @pytest.mark.asyncio
+async def test_sca_local_first_network_disabled(tmp_path):
+    req_file = tmp_path / "requirements.txt"
+    req_file.write_text("requests==2.31.0\n")
+
+    target = ScanTarget(ScopeKind.CODEBASE, str(tmp_path))
+    ctx = ScanContext(target, ScanConfig(values={"allow_network": False}), tmp_path)
+
+    sca = ScaPlugin()
+    with mock.patch("shutil.which", return_value=None):
+        res = await sca.run(ctx)
+        assert res.meta.get("network_call") == "disabled"
+        assert "Local-first active" in res.meta.get("notice", "")
+        assert len(res.findings) == 0
+
+
+@pytest.mark.asyncio
+async def test_sca_network_enabled_error_surfaced(tmp_path):
+    req_file = tmp_path / "requirements.txt"
+    req_file.write_text("requests==2.31.0\n")
+
+    target = ScanTarget(ScopeKind.CODEBASE, str(tmp_path))
+    ctx = ScanContext(target, ScanConfig(values={"allow_network": True}), tmp_path)
+
+    sca = ScaPlugin()
+    with mock.patch("shutil.which", return_value=None), \
+         mock.patch.object(sca, "_osv_query", side_effect=Exception("Connection refused")):
+        res = await sca.run(ctx)
+        assert res.meta.get("network_call") == "enabled (api.osv.dev)"
+        assert any("OSV query error" in err for err in res.errors)
+
+
+@pytest.mark.asyncio
 @mock.patch("kelan.plugins.ports.scan_host")
 async def test_ports_plugin_scanning(mock_scan):
 

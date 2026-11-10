@@ -35,12 +35,39 @@ class PortsPlugin(ScanPlugin):
         ports = cfg.get("ports") or DEFAULT_PORTS
         timeout = cfg.get("timeout", 0.5)
         concurrency = cfg.get("concurrency", 50)
-
-        log.info("ports_scan_start", host=host, port_count=len(ports))
-        findings = []
-        open_http_urls = []
+        scan_mode = cfg.get("mode", "tcp_connect")
 
         pr = PluginResult(plugin=self.name)
+
+        # Check for optional recon extra (scapy, netifaces)
+        has_recon_extra = True
+        try:
+            import netifaces  # noqa: F401
+            import scapy  # noqa: F401
+        except ImportError:
+            has_recon_extra = False
+
+        if scan_mode in ("syn", "raw") and not has_recon_extra:
+            err_msg = (
+                "Raw packet recon requires the [recon] extra (scapy, netifaces). "
+                "Install with: pip install kelan[recon]. On Windows, Npcap is also required."
+            )
+            pr.errors.append(err_msg)
+            pr.meta["recon_degraded"] = True
+            pr.meta["recon_notice"] = (
+                "Advanced raw packet scanning unavailable without kelan[recon]. "
+                "Degrading to standard TCP connect socket scan."
+            )
+            log.warning("recon_ports_degraded", reason=err_msg)
+        elif not has_recon_extra:
+            pr.meta["recon_notice"] = (
+                "Optional [recon] extra (scapy, netifaces) not installed. "
+                "Running in standard TCP connect mode. Install with: pip install kelan[recon] (Npcap required on Windows)."
+            )
+
+        log.info("ports_scan_start", host=host, port_count=len(ports), mode=scan_mode)
+        findings = []
+        open_http_urls = []
 
         async for res in scan_host(host, ports, timeout=timeout, concurrency=concurrency):
             if res["status"] == "OPEN":
@@ -78,10 +105,10 @@ class PortsPlugin(ScanPlugin):
                     open_http_urls.append(f"https://{host}:{port}")
 
         pr.findings = findings
-        pr.meta = {
+        pr.meta.update({
             "open_ports": [f.location for f in findings],
             "open_http_urls": open_http_urls,
-        }
+        })
         
 
         if open_http_urls:

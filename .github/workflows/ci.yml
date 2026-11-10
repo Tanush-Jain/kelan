@@ -108,11 +108,12 @@ jobs:
         continue-on-error: true
 
   # ─────────────────────────────────────────────
-  # JOB 4: Rust Tests & Clippy
+  # JOB 4: Rust Tests & Clippy (runs only if Rust workspace is present)
   # ─────────────────────────────────────────────
   rust-ci:
     name: Rust Clippy & Test
     runs-on: ubuntu-latest
+    if: hashFiles('Cargo.toml') != ''
     needs: secrets-scan
     env:
       BPF_LINKER_REQUIRED: "false"
@@ -151,6 +152,7 @@ jobs:
   frontend-build:
     name: Frontend React Build
     runs-on: ubuntu-latest
+    if: hashFiles('kelan-dashboard/package.json') != ''
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4

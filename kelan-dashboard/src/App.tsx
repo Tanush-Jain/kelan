@@ -465,88 +465,74 @@ export default function App() {
     { name: 'CWE-639 (IDOR)', value: 4 }
   ]);
 
-  // System Metric State loops (simulate fluctuating metrics)
-  const [cpu, setCpu] = useState(24);
-  const [ram, setRam] = useState(48);
-  const [disk, setDisk] = useState(62);
-  const [inferenceSpeed, setInferenceSpeed] = useState(28.4);
-  const [packetsDropped, setPacketsDropped] = useState(1480);
-  const [activeConns, setActiveConns] = useState(42);
+  // System Metric State loops (populated by /api/stats)
+  const [cpu, setCpu] = useState(0);
+  const [ram, setRam] = useState(0);
+  const [disk, setDisk] = useState(0);
+  const [inferenceSpeed, setInferenceSpeed] = useState(0);
+  const [packetsDropped, setPacketsDropped] = useState(0);
+  const [activeConns, setActiveConns] = useState(0);
 
   // Sparkline history data for visualization
-  const [cpuHistory, setCpuHistory] = useState([20, 22, 25, 24, 23, 26, 24]);
-  const [ramHistory, setRamHistory] = useState([47, 48, 48, 48, 48, 49, 48]);
+  const [cpuHistory, setCpuHistory] = useState([0, 0, 0, 0, 0, 0, 0]);
+  const [ramHistory, setRamHistory] = useState([0, 0, 0, 0, 0, 0, 0]);
 
   const logsEndRef = useRef<HTMLDivElement>(null);
 
-  // Fluctuating metric simulator
+  // Fetch real metrics from Kelan API (/api/stats)
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCpu(prev => {
-        const next = Math.max(10, Math.min(95, prev + Math.floor(Math.random() * 7) - 3));
-        setCpuHistory(hist => [...hist.slice(1), next]);
-        return next;
-      });
-      setRam(prev => {
-        const next = Math.max(30, Math.min(90, prev + Math.floor(Math.random() * 3) - 1));
-        setRamHistory(hist => [...hist.slice(1), next]);
-        return next;
-      });
-      setDisk(prev => Math.max(20, Math.min(99, prev + (Math.random() > 0.95 ? 1 : 0))));
-      setInferenceSpeed(prev => parseFloat(Math.max(20, Math.min(45, prev + (Math.random() * 2 - 1))).toFixed(1)));
-      setPacketsDropped(prev => prev + (Math.random() > 0.7 ? Math.floor(Math.random() * 5) : 0));
-      setActiveConns(prev => Math.max(5, Math.min(150, prev + Math.floor(Math.random() * 5) - 2)));
-    }, 2000);
-    return () => clearInterval(timer);
+    let isMounted = true;
+    const fetchStats = async () => {
+      try {
+        const res = await fetch('/api/stats');
+        if (res.ok) {
+          const data = await res.json();
+          if (isMounted) {
+            setPacketsDropped(data.packets_dropped ?? 0);
+            setActiveConns(data.requests ?? data.verdicts_total ?? 0);
+            if (data.circuit_state) {
+              setCpuHistory(prev => [...prev.slice(1), data.allow ?? 0]);
+            }
+          }
+        }
+      } catch {
+        // Server offline or not serving /api/stats
+      }
+    };
+    fetchStats();
+    const timer = setInterval(fetchStats, 3000);
+    return () => {
+      isMounted = false;
+      clearInterval(timer);
+    };
   }, []);
 
-  // Scan elapsed time and progress simulator
+  // Poll real verdicts and scan events when active
   useEffect(() => {
     let timer: any;
     if (isScanning) {
+      const fetchVerdicts = async () => {
+        try {
+          const res = await fetch('/api/verdicts?limit=10');
+          if (res.ok) {
+            const data = await res.json();
+            const list = data.verdicts || [];
+            if (list.length > 0) {
+              const formatted = list.map((v: any) => 
+                `[VERDICT] Session: ${v.session_id || 'n/a'} | Entity: ${v.entity_id || 'unknown'} | Verdict: ${v.verdict || 'MONITOR'} (conf: ${v.confidence || 'n/a'})`
+              );
+              setScanLogs(prev => Array.from(new Set([...prev, ...formatted])));
+            }
+          }
+        } catch {
+          // Server offline
+        }
+      };
+
       timer = setInterval(() => {
         setScanElapsedTime(prev => prev + 1);
-        setScanProgress(prev => {
-          if (prev >= 100) {
-            setIsScanning(false);
-            // Append final log
-            setScanLogs(logs => [
-              ...logs,
-              `[SUCCESS] Scan complete. Found: 1 CRITICAL, 3 HIGH, 4 MEDIUM findings.`,
-              `[REPORT] SARIF/JSON report saved to target directory.`
-            ]);
-            // Update charts slightly
-            setVulnData(prev => [
-              { name: 'CRITICAL', value: prev[0].value + 1, color: SEVERITIES.CRITICAL.color },
-              { name: 'HIGH', value: prev[1].value + 3, color: SEVERITIES.HIGH.color },
-              { name: 'MEDIUM', value: prev[2].value + 4, color: SEVERITIES.MEDIUM.color },
-              { name: 'LOW', value: prev[3].value + 2, color: SEVERITIES.LOW.color }
-            ]);
-            return 100;
-          }
-          const step = Math.floor(Math.random() * 15) + 5;
-          const next = Math.min(100, prev + step);
-
-          // Add random scanning log items
-          if (next > prev) {
-            const simulatedLogs = [
-              `[SCANNER] Auditing directory structure...`,
-              `[SAST] Tree-sitter semantic chunking initiated...`,
-              `[OLLAMA] Evaluating chunk 14/158... (Gemma 4)`,
-              `[DAST] Crawling form routes... discovered 12 input params`,
-              `[DAST] Form validation payload sent: <img src=x onerror=alert(1)>`,
-              `[DAST] Target returned 200 Reflection for payload: bypass verified!`,
-              `[eBPF] Syn flood monitoring: no anomalies detected.`,
-              `[SCA] Parsing requirements.txt... matched 42 dependency locks.`,
-              `[CHAINS] Correlating static code injection to dynamic crawler outputs...`
-            ];
-            const logItem = simulatedLogs[Math.floor(Math.random() * simulatedLogs.length)];
-            setScanLogs(logs => [...logs, logItem]);
-          }
-
-          return next;
-        });
-      }, 1000);
+        fetchVerdicts();
+      }, 2000);
     }
     return () => clearInterval(timer);
   }, [isScanning]);
@@ -563,9 +549,10 @@ export default function App() {
     setScanProgress(0);
     setScanElapsedTime(0);
     setScanLogs([
-      `[INIT] Scanning initiated against target: ${scanTarget}`,
-      `[CONFIG] Scan Type: ${scanType.toUpperCase()} | Model: qwen2.5-coder`,
-      `[PORTS] Running TCP connect scan on target ports...`
+      `[INIT] Scan target set to: ${scanTarget}`,
+      `[CONFIG] Scope: ${scanType.toUpperCase()} | Model: qwen2.5-coder`,
+      `[INFO] Listening for engine verdicts from Kelan API (/api/verdicts)...`,
+      `[HINT] To execute a scan locally, run 'kelan run ${scanTarget} --show' in your terminal.`
     ]);
   };
 

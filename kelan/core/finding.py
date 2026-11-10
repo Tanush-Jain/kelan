@@ -165,12 +165,15 @@ class FindingSet:
         return {"stats": self.stats(),
                 "findings": [f.to_dict() for f in self.items]}
 
-    def write_json(self, path: str) -> None:
+    def write_json(self, path: str, intel_updated: str | None = None) -> None:
         fd, tmp = tempfile.mkstemp(
             dir=os.path.dirname(os.path.abspath(path)) or ".")
         try:
             with os.fdopen(fd, "w", encoding="utf-8") as fh:
-                json.dump(self.to_dict(), fh, indent=2)
+                data = self.to_dict()
+                if intel_updated:
+                    data["intel_last_updated"] = intel_updated
+                json.dump(data, fh, indent=2)
             os.replace(tmp, path)
         except Exception:
             try:
@@ -179,7 +182,7 @@ class FindingSet:
                 pass
             raise
 
-    def write_html(self, path: str, tool_name: str = "kelan") -> None:
+    def write_html(self, path: str, tool_name: str = "kelan", intel_updated: str | None = None) -> None:
         sev_color = {"CRITICAL": "#dc2626", "HIGH": "#ea580c", "MEDIUM": "#d97706",
                      "LOW": "#2563eb", "INFO": "#6b7280"}
         rows = []
@@ -191,6 +194,7 @@ class FindingSet:
                 f"<td>{f.confidence.value}</td><td>{f.cwe}</td>"
                 f"<td>{f.plugin}</td><td>{f.title}</td>"
                 f"<td><code>{f.location}</code></td><td>{ev}</td></tr>")
+        intel_badge = f" | <span style='color:#6b7280'>Intelligence Updated: {intel_updated}</span>" if intel_updated else ""
         html = f"""<!DOCTYPE html><html><head><meta charset="utf-8">
 <title>{tool_name} report</title>
 <style>body{{font-family:system-ui,sans-serif;margin:2rem}}
@@ -199,7 +203,7 @@ padding:.5rem;text-align:left;font-size:.9rem}}
 .sev{{color:#fff;padding:.15rem .5rem;border-radius:.25rem}}
 code{{background:#f4f4f5;padding:.1rem .3rem}}</style></head><body>
 <h1>{tool_name} — scan report</h1>
-<p>{len(self.items)} findings</p>
+<p>{len(self.items)} findings{intel_badge}</p>
 <table><thead><tr><th>Severity</th><th>Confidence</th><th>CWE</th>
 <th>Plugin</th><th>Title</th><th>Location</th><th>Evidence</th></tr></thead>
 <tbody>{''.join(rows)}</tbody></table></body></html>"""

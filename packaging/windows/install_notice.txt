@@ -1,0 +1,16 @@
+========================================================================
+                      Kelan Community for Windows
+========================================================================
+
+Note: Kernel eBPF/XDP network enforcement is Linux-only. On Windows,
+Kelan runs in audit, SAST, DAST, and SCA analysis modes.
+
+System Requirements:
+- Windows 10/11 x64 (64-bit)
+- 5 GB free disk space (recommended for local LLM models & intelligence)
+- Ollama for Windows (https://ollama.com/download/OllamaSetup.exe)
+- Optional packet capture [recon] requires Npcap (https://npcap.com)
+
+After setup completes, you can run 'kelan setup' to verify your
+environment and configure local AI models.
+

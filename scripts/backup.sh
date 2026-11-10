@@ -12,7 +12,7 @@ NC='\033[0m'
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
-COMPOSE_FILE="${1:-$ROOT_DIR/yml/docker-compose.prod.yml}"
+COMPOSE_FILE="${1:-$ROOT_DIR/deploy/docker-compose.prod.yml}"
 BACKUP_ROOT="$HOME/kelan/backups"
 DATE=$(date +%Y%m%d_%H%M%S)
 BACKUP_DIR="$BACKUP_ROOT/$DATE"
@@ -42,10 +42,10 @@ tar -czf "$BACKUP_DIR/config_$DATE.tar.gz" \
     --exclude="target" \
     --exclude="node_modules" \
     .env.example \
-    yml/ \
+    deploy/ \
     nginx/ \
-    yml/docker-compose.prod.yml \
-    yml/docker-compose.monitoring.yml \
+    deploy/docker-compose.prod.yml \
+    deploy/docker-compose.monitoring.yml \
     2>/dev/null || true
 echo -e "${GREEN}  ✓ Config archive: $BACKUP_DIR/config_$DATE.tar.gz${NC}"
 

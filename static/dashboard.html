@@ -577,7 +577,7 @@
 
                             // Push new verdict history
                             const newVerdict = {
-                                session_id: data.session_id || Math.random().toString(),
+                                session_id: data.session_id || 'unspecified-session',
                                 entity_id: data.entity_id || 'unknown',
                                 verdict: data.verdict || 'MONITOR',
                                 confidence: data.confidence || 0.9,
@@ -612,10 +612,11 @@
                             
                             // Update radar
                             if (data.verdict === 'DENY') {
+                                const hash = (data.entity_id || '').split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
                                 radarNodes.value.push({
                                     id: Date.now(),
-                                    x: Math.floor(Math.random() * 60) + 20,
-                                    y: Math.floor(Math.random() * 60) + 20,
+                                    x: (hash % 60) + 20,
+                                    y: ((hash * 7) % 60) + 20,
                                     color: 'bg-rose-500',
                                     label: `Threat: ${data.entity_id}`,
                                     ip: '192.168.1.100',

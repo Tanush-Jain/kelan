@@ -46,9 +46,10 @@ class SastPlugin(ScanPlugin):
 
         pr = PluginResult(plugin=self.name)
         n_files = n_chunks = 0
+        llm_offline_count = 0
 
         async def analyze_file(path: Path) -> list[Finding]:
-            nonlocal n_files, n_chunks
+            nonlocal n_files, n_chunks, llm_offline_count
             try:
 
                 with open(path, "rb") as fh:
@@ -74,30 +75,27 @@ class SastPlugin(ScanPlugin):
             findings: list[Finding] = []
             for chunk in chunks:
                 verdict = await analyzer.analyze_chunk(chunk)
+                if verdict.get("llm_offline"):
+                    llm_offline_count += 1
                 if verdict.get("has_security_flaw"):
-                    f = Finding(
-                        plugin="sast",
-                        category="sast",
-                        title=verdict.get("findings", [{}])[0].get(
-                            "title", "SAST finding")
-                        if verdict.get("findings") else "SAST finding",
-                        severity=Severity.from_any(
-                            verdict.get("findings", [{}])[0].get(
-                                "severity", "MEDIUM"))
-                        if verdict.get("findings") else Severity.MEDIUM,
-                        cwe=verdict.get("findings", [{}])[0].get("cwe", "CWE-710")
-                        if verdict.get("findings") else "CWE-710",
-                        remediation=verdict.get("findings", [{}])[0].get(
-                            "remediation", "") if verdict.get("findings") else "",
-                        location=f"{path}:{chunk.get('start_line', 1)}",
-                        target=str(path),
-                    )
-                    f.add_evidence("advisory",
-                                   verdict.get("findings", [{}])[0].get(
-                                       "description", ""),
-                                   ref=f"{path}:{chunk.get('start_line', 1)}")
-                    f.confidence = Confidence.MEDIUM
-                    findings.append(f)
+                    for item in verdict.get("findings", []):
+                        f = Finding(
+                            plugin="sast",
+                            category="sast",
+                            title=item.get("title", "SAST finding"),
+                            severity=Severity.from_any(item.get("severity", "MEDIUM")),
+                            cwe=item.get("cwe_id", item.get("cwe", "CWE-710")),
+                            remediation=item.get("remediation", ""),
+                            location=f"{path}:{chunk.get('start_line', 1)}",
+                            target=str(path),
+                        )
+                        f.add_evidence(
+                            "advisory",
+                            item.get("description", ""),
+                            ref=f"{path}:{chunk.get('start_line', 1)}",
+                        )
+                        f.confidence = Confidence.STRONG if verdict.get("llm_offline") else Confidence.MEDIUM
+                        findings.append(f)
             return findings
 
         files = [p for p in root.rglob("*")
@@ -120,5 +118,11 @@ class SastPlugin(ScanPlugin):
             else:
                 pr.findings.extend(r)
 
-        pr.meta = {"files_scanned": n_files, "chunks_scanned": n_chunks}
+        pr.meta = {
+            "files_scanned": n_files,
+            "chunks_scanned": n_chunks,
+            "llm_status": "online" if llm_offline_count == 0 else "offline (deterministic fallback active)",
+        }
+        if llm_offline_count > 0:
+            pr.errors.append("Ollama LLM was unreachable during SAST scan; deterministic rule engine was used.")
         return pr

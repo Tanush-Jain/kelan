@@ -41,6 +41,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--ci-gate", choices=["critical", "high", "medium", "low"], help="Fail build if findings exist at/above this severity")
     parser.add_argument("--show", action="store_true", help="Print findings cleanly to console")
     parser.add_argument("--plugins", action="store_true", help="List all registered plugins and exit")
+    parser.add_argument("--allow-network", action="store_true", help="Allow plugins to make outbound network calls (default: false, local-first)")
+    parser.add_argument("--online", action="store_true", help="Allow online live queries to OSV (default: false, local intelligence store only)")
     
     args = parser.parse_args(argv)
     
@@ -66,6 +68,8 @@ def main(argv: list[str] | None = None) -> int:
     
     config = ScanConfig(values={
         "use_llm": True,
+        "allow_network": bool(args.allow_network or args.online),
+        "online": bool(args.online or args.allow_network),
         "ollama": {
             "endpoint": "http://127.0.0.1:11434",
             "model": "qwen2.5-coder:latest"
@@ -85,6 +89,9 @@ def main(argv: list[str] | None = None) -> int:
         scheduler.cleanup()
         return 2
         
+    sca_res = results.get("sca")
+    intel_updated = sca_res.meta.get("intel_last_updated") if sca_res else None
+
     if args.show:
         try:
             from rich.console import Console
@@ -93,6 +100,8 @@ def main(argv: list[str] | None = None) -> int:
             console = Console()
             
             console.print(Panel(f"[bold cyan]Scan Results for {target.display()}[/bold cyan]", expand=False))
+            if intel_updated:
+                console.print(f"[dim]Vulnerability Intelligence Last Updated: {intel_updated}[/dim]")
             
             table = Table(title="Findings Summary")
             table.add_column("Severity", justify="left")
@@ -135,7 +144,7 @@ def main(argv: list[str] | None = None) -> int:
             print("=" * width)
             
     if args.json:
-        findings.write_json(args.json)
+        findings.write_json(args.json, intel_updated=intel_updated)
         print(f"[*] wrote JSON report to {args.json}")
         
     if args.sarif:
@@ -145,7 +154,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"[*] wrote SARIF report to {args.sarif}")
         
     if args.html:
-        findings.write_html(args.html)
+        findings.write_html(args.html, intel_updated=intel_updated)
         print(f"[*] wrote HTML report to {args.html}")
         
     scheduler.cleanup()

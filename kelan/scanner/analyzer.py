@@ -74,6 +74,79 @@ def _validate_result(data: Any) -> dict:
     return {"has_security_flaw": has_flaw, "findings": findings}
 
 
+def deterministic_scan_chunk(chunk: dict) -> list[dict]:
+    findings = []
+    content = chunk.get("content", "")
+    file_path = chunk.get("file_path", "")
+
+    # 1. SQL Injection (CWE-89)
+    sqli_patterns = [
+        (r'''(?i)\b(?:execute|raw_query|cursor\.execute)\s*\(\s*f["'].*?SELECT.*?\{''', "f-string formatted SQL query"),
+        (r'''(?i)\b(?:execute|raw_query|cursor\.execute)\s*\(\s*["'].*?SELECT.*?%s.*?["']\s*%''', "% formatted SQL query"),
+        (r'''(?i)\b(?:execute|raw_query|cursor\.execute)\s*\(\s*["'].*?SELECT.*?\s*["']\s*\+''', "concatenated SQL query"),
+        (r'''(?i)\b(?:SELECT|INSERT|UPDATE|DELETE)\b.*?\bFROM\b.*?["']\s*\+\s*[a-zA-Z0-9_]+''', "SQL query string concatenation"),
+    ]
+    for pat, desc in sqli_patterns:
+        if re.search(pat, content):
+            findings.append({
+                "cwe_id": "CWE-89",
+                "severity": "CRITICAL",
+                "title": f"SQL Injection: {desc}",
+                "description": f"Potential SQL injection detected via unparameterized query construction in {file_path}.",
+                "root_cause_analysis": "Dynamic parameters concatenated directly into SQL statements without parameter binding.",
+                "remediation": "Use parameterized queries or ORM query abstractions (e.g. cursor.execute('SELECT * FROM tbl WHERE id = %s', (val,))).",
+            })
+            break
+
+    # 2. Command Injection (CWE-78)
+    cmdi_patterns = [
+        (r'''(?i)\b(?:subprocess\.(?:Popen|run|call|check_call|check_output))\s*\([^)]*shell\s*=\s*True''', "subprocess execution with shell=True"),
+        (r'''(?i)\bos\.(?:system|popen)\s*\(\s*(?:f["']|.*?[\+\%])''', "os.system or os.popen with dynamic arguments"),
+        (r'''(?i)\bexec\s*\(\s*(?:req|request|user_input|param)''', "dynamic code execution with user parameters"),
+    ]
+    for pat, desc in cmdi_patterns:
+        if re.search(pat, content):
+            findings.append({
+                "cwe_id": "CWE-78",
+                "severity": "HIGH",
+                "title": f"OS Command Injection: {desc}",
+                "description": f"Unsanitized command execution detected in {file_path}.",
+                "root_cause_analysis": "External commands executed through a shell with variables that could contain shell metacharacters.",
+                "remediation": "Pass command arguments as an array without shell=True, or use shlex.quote() to sanitize parameters.",
+            })
+            break
+
+    # 3. Insecure Deserialization (CWE-502)
+    if re.search(r'''(?i)\bpickle\.(?:loads|load)\b''', content):
+        findings.append({
+            "cwe_id": "CWE-502",
+            "severity": "HIGH",
+            "title": "Insecure Deserialization: pickle usage",
+            "description": "Arbitrary code execution risk from untrusted pickle deserialization.",
+            "root_cause_analysis": "pickle can instantiate arbitrary Python objects and execute constructor payloads.",
+            "remediation": "Use safer serialization formats such as JSON or Protocol Buffers.",
+        })
+
+    # 4. Hardcoded Secrets (CWE-798)
+    secret_patterns = [
+        (r'''(?i)(?:jwt_secret|api_key|secret_key|private_key|auth_token)\s*=\s*["'][A-Za-z0-9_\-]{16,}["']''', "Hardcoded secret or credential literal"),
+        (r'''-----BEGIN (?:RSA )?PRIVATE KEY-----''', "Embedded private key"),
+    ]
+    for pat, desc in secret_patterns:
+        if re.search(pat, content):
+            findings.append({
+                "cwe_id": "CWE-798",
+                "severity": "HIGH",
+                "title": f"Hardcoded Credential: {desc}",
+                "description": "Sensitive credential or private key material found hardcoded in source.",
+                "root_cause_analysis": "Secrets checked directly into source code risk exposure across repositories and builds.",
+                "remediation": "Move credentials to environment variables or a secret management service.",
+            })
+            break
+
+    return findings
+
+
 class VulnerabilityAnalyzer:
 
 
@@ -95,7 +168,7 @@ class VulnerabilityAnalyzer:
         self._timeout = timeout
 
     async def analyze_chunk(self, chunk: dict) -> dict:
-
+        det_findings = deterministic_scan_chunk(chunk)
         try:
             raw = await asyncio.wait_for(
                 self._client.generate_json(
@@ -112,8 +185,20 @@ class VulnerabilityAnalyzer:
                     "scanner_unparseable_response",
                     chunk=chunk.get("file_path"),
                 )
-                return dict(SAFE_DEFAULT)
-            return _validate_result(data)
+                return {
+                    "has_security_flaw": bool(det_findings),
+                    "findings": det_findings,
+                    "llm_offline": False,
+                }
+            validated = _validate_result(data)
+            # Merge deterministic findings without duplicate CWEs
+            existing_cwes = {f.get("cwe_id") for f in validated.get("findings", [])}
+            for df in det_findings:
+                if df.get("cwe_id") not in existing_cwes:
+                    validated["findings"].append(df)
+            validated["has_security_flaw"] = bool(validated["findings"])
+            validated["llm_offline"] = False
+            return validated
         except TimeoutError:
             log.warning("scanner_timeout", chunk=chunk.get("file_path"))
         except Exception as exc:
@@ -122,7 +207,11 @@ class VulnerabilityAnalyzer:
                 error=str(exc),
                 chunk=chunk.get("file_path"),
             )
-        return dict(SAFE_DEFAULT)
+        return {
+            "has_security_flaw": bool(det_findings),
+            "findings": det_findings,
+            "llm_offline": True,
+        }
 
     async def close(self) -> None:
         await self._client.close()

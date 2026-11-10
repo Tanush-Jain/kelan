@@ -35,3 +35,21 @@ def test_menu_sast(mock_prompt_ask, mock_delegate):
     
     mock_delegate.assert_called_once()
     assert sys.argv == ["kelan", "./my-target", "--show"]
+
+
+@mock.patch("kelan.cli.main._start_dashboard_server")
+@mock.patch("kelan.cli.main._delegate", return_value=0)
+def test_dashboard_not_launched_by_default(mock_delegate, mock_start_dash):
+    main(["run", "target"])
+    mock_start_dash.assert_not_called()
+
+
+@mock.patch("kelan.cli.main._stop_dashboard_server")
+@mock.patch("kelan.cli.main._start_dashboard_server")
+@mock.patch("kelan.cli.main._delegate", return_value=0)
+def test_dashboard_launched_and_stopped_with_flag(mock_delegate, mock_start_dash, mock_stop_dash):
+    mock_proc = mock.MagicMock()
+    mock_start_dash.return_value = mock_proc
+    main(["run", "target", "--dashboard"])
+    mock_start_dash.assert_called_once()
+    mock_stop_dash.assert_called_once_with(mock_proc)

@@ -107,7 +107,28 @@ temp/
 tarpaulin-report.html
 tarpaulin_output.log
 
+# ── Reports & Generated Outputs ───────────────────────────────────────────────
+reports/
+report.html
+sast-report.json
+scratch/
+kelan-scan
+SOUL.md
+*.zip
+.kelan/
+
 # Archived experiments — do not re-add
 .rust_archive/
 archive/
 fuzz/
+
+# Local intelligence data
+data/*.db
+data/*.zip
+
+# Separate private editions
+kelan-pro/
+kelan_pro/
+kelan-console/
+kelan_console/
+

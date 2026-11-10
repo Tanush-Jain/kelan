@@ -742,7 +742,7 @@
               </div>
               <div class="feed-item">
                 <div class="time">3 minutes ago</div>
-                <div class="msg"><span class="tag-s sast">sast</span> Audited codebase with 126 unit tests passing successfully</div>
+                <div class="msg"><span class="tag-s sast">sast</span> Audited codebase: scan completed with zero critical findings</div>
               </div>
               <div class="feed-item">
                 <div class="time">15 minutes ago</div>
@@ -1363,27 +1363,7 @@ Readiness: OK — you can scan.</pre>
     }, 9200);
   }
 
-  // PQC key exchange logger simulation
-  setInterval(() => {
-    const termId = 'pqc-terminal-log';
-    const term = document.getElementById(termId);
-    if (!term || document.getElementById('view-pqc').style.display === 'none') return;
-    
-    const randomHex = () => Math.random().toString(16).substring(2, 10).toUpperCase();
-    const logs = [
-      `[HANDSHAKE] Received AITP v4 SYN datagram from 10.0.12.${Math.floor(Math.random() * 254)}:9999`,
-      `[KYBER] Generating ML-KEM-768 keypair exchange token...`,
-      `[KYBER] Derived shared session key: ${randomHex()}${randomHex()}${randomHex()}${randomHex()}`,
-      `[eBPF] Mounting active session drop filter for session #${Math.floor(Math.random() * 10000)}`,
-      `[SYSTEM] Session verified safe. intentScore=0.98. Routing complete.`
-    ];
-    
-    const log = logs[Math.floor(Math.random() * logs.length)];
-    const logType = log.includes('Received') ? 'info' : log.includes('Derived') ? 'success' : 'warn';
-    
-    const timeStr = new Date().toISOString().substring(11, 19);
-    appendConsoleLog(termId, `[${timeStr}] ${log}`, logType);
-  }, 4000);
+  // PQC key exchange logger (displays live handshake events when connected)
 </script>
 </body>
 </html>

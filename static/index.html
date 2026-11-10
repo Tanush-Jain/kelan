@@ -2155,20 +2155,20 @@
         </div>
         <div class="stats-grid">
           <div class="stat-item">
-            <h3>&lt;5ms</h3>
-            <p>AI Trust Eval</p>
+            <h3>Local</h3>
+            <p>Ollama Inference</p>
           </div>
           <div class="stat-item">
-            <h3>&lt;1μs</h3>
-            <p>eBPF Revocation</p>
+            <h3>eBPF/XDP</h3>
+            <p>Kernel Drops</p>
           </div>
           <div class="stat-item">
-            <h3>131</h3>
-            <p>Tests Passing</p>
+            <h3>Post-Quantum</h3>
+            <p>ML-KEM-768</p>
           </div>
           <div class="stat-item">
-            <h3>5</h3>
-            <p>AI Providers</p>
+            <h3>8</h3>
+            <p>Scan Plugins</p>
           </div>
         </div>
       </section>
@@ -2651,15 +2651,15 @@ Deny:    score &lt;  <span class="num">64</span>    <span class="cm">// Drop pac
             <div class="primitive-badge">05</div>
             <div>
               <h3>eBPF Wire-Speed Enforcement</h3>
-              <p class="primitive-subtitle">Verdicts are enforced at the kernel layer via eBPF/XDP. Denied packets are dropped in &lt;1μs, with sub-millisecond revocation.</p>
+              <p class="primitive-subtitle">Verdicts are enforced directly at the kernel layer via eBPF/XDP without user-space round-trips.</p>
             </div>
           </div>
 
           <div class="primitive-content">
             <div class="primitive-prose">
               <p>The final primitive is enforcement. AITP doesn't just evaluate trust—it *implements* it at the network layer using eBPF (extended Berkeley Packet Filter).</p>
-              <p>Every packet is checked against the active session map. If the packet matches a denied session or an unknown entity, it is dropped at XDP (eXpress Data Path) — before it even reaches user-space code. This is why AITP achieves &lt;1μs revocation latency.</p>
-              <p>Session revocation is also instant: the control plane sends a single command to remove the entry from the eBPF map, and all matching packets are immediately dropped.</p>
+              <p>Every packet is checked against the active session map. If the packet matches a denied session or an unknown entity, it is dropped at XDP (eXpress Data Path) directly in the driver before reaching user-space code.</p>
+              <p>Session revocation is also immediate: the control plane updates the eBPF map entry, and matching packets are dropped by the kernel filter.</p>
             </div>
 
             <div class="primitive-diagram-container">
@@ -2689,7 +2689,7 @@ Deny:    score &lt;  <span class="num">64</span>    <span class="cm">// Drop pac
                 <text x="310" y="145" text-anchor="middle" font-size="11" font-weight="bold" fill="var(--error)">DROP</text>
                 
                 <!-- Latency note -->
-                <text x="220" y="180" text-anchor="middle" font-size="10" opacity="0.7" font-weight="bold">&lt;1μs decision</text>
+                <text x="220" y="180" text-anchor="middle" font-size="10" opacity="0.7" font-weight="bold">In-Kernel Decision</text>
               </svg>
             </div>
           </div>
@@ -2737,7 +2737,7 @@ Deny:    score &lt;  <span class="num">64</span>    <span class="cm">// Drop pac
               <text x="500" y="300" text-anchor="middle" font-size="10" opacity="0.7">[Verdict, SessionID, TTL]</text>
               
               <!-- Final note -->
-              <text x="500" y="380" text-anchor="middle" font-size="11" font-weight="bold" opacity="0.8">eBPF enforces verdict at wire speed (&lt;1μs)</text>
+              <text x="500" y="380" text-anchor="middle" font-size="11" font-weight="bold" opacity="0.8">eBPF in-kernel verdict enforcement</text>
             </svg>
           </div>
         </div>
@@ -2916,7 +2916,7 @@ Deny:    score &lt;  <span class="num">64</span>    <span class="cm">// Drop pac
                     <li><span class="mono">[feat]</span> Full Web Dashboard with Real-time TUI mirroring</li>
                     <li><span class="mono">[feat]</span> Ollama (Gemma3) integration for intent evaluation</li>
                     <li><span class="mono">[security]</span> Hybrid Post-Quantum Cryptography (ML-KEM-768)</li>
-                    <li><span class="mono">[fix]</span> eBPF session revocation latency reduced to &lt;1μs</li>
+                    <li><span class="mono">[fix]</span> In-kernel eBPF session revocation map updates</li>
                   </ul>
                 </div>
               </div>
