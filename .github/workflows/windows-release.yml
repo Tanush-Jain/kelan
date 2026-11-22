@@ -127,11 +127,11 @@ jobs:
 
       - name: Generate CycloneDX Software Bill of Materials (SBOM)
         run: |
-          cyclonedx-py environment --output-format json --outfile dist\kelan-sbom.cdx.json
+          cyclonedx-py environment --output-format json --output-file dist\kelan-sbom.cdx.json
 
       - name: Package portable ZIP bundle
         run: |
-          Compress-Archive -Path dist\kelan\* -DestinationPath dist\kelan-windows-x86_64.zip
+          Compress-Archive -Path dist\kelan\* -DestinationPath dist\kelan-windows-x86_64.zip -Force
 
       - name: Generate SHA-256 Checksum Manifest
         working-directory: dist
