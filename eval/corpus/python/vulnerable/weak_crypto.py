@@ -1,7 +1,7 @@
 import hashlib
 
 
-def hash_password(password):
+def compute_checksum(data):
     # Weak cryptographic hash (MD5)
-    return hashlib.md5(password.encode()).hexdigest()
+    return hashlib.md5(data.encode()).hexdigest()
 

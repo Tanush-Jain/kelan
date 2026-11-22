@@ -13,6 +13,7 @@ from kelan.intel.fetchers.ghsa import GhsaFetcher
 from kelan.intel.fetchers.nvd import NvdFetcher
 from kelan.intel.fetchers.osv import OsvFetcher
 from kelan.intel.models import SyncState
+from kelan.intel.sources import CustomSourceFetcher, SourcesManager, get_adapter
 
 
 class IntelUpdater:
@@ -21,6 +22,7 @@ class IntelUpdater:
         store: IntelStore,
         nvd_api_key: str | None = None,
         github_token: str | None = None,
+        sources_mgr: SourcesManager | None = None,
     ) -> None:
         self.store = store
         self.fetchers = {
@@ -30,6 +32,13 @@ class IntelUpdater:
             "ghsa": GhsaFetcher(token=github_token),
             "nvd": NvdFetcher(api_key=nvd_api_key),
         }
+        self.sources_mgr = sources_mgr if sources_mgr is not None else SourcesManager()
+        for src_cfg in self.sources_mgr.list_sources():
+            try:
+                adapter = get_adapter(src_cfg)
+                self.fetchers[src_cfg.name] = CustomSourceFetcher(adapter)
+            except Exception:
+                pass
 
     async def update(
         self,

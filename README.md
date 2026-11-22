@@ -61,7 +61,7 @@ kelan run . --show
 - [Key Features](#-key-features)
 - [Community Edition vs. Kelan Pro](#community-edition-vs-kelan-pro)
 - [Architecture Overview](#-architecture-overview)
-  - [1. SAST Engine (`kelan scan`)](#1-sast-engine-kelan-scan)
+  - [1. SAST Engine (`kelan sast`)](#1-sast-engine-kelan-sast)
   - [2. DAST Engine (`kelan dast`)](#2-dast-engine-kelan-dast)
   - [3. Zero-Trust & Post-Quantum Shield](#3-zero-trust--post-quantum-shield)
 - [Installation & Setup](#-installation--setup)
@@ -70,7 +70,7 @@ kelan run . --show
   - [Local LLM Models](#local-llm-models)
 - [CLI Reference & Usage](#-cli-reference--usage)
   - [Interactive Mode](#interactive-mode)
-  - [SAST Command (`kelan scan`)](#sast-command-kelan-scan)
+  - [SAST Command (`kelan sast`)](#sast-command-kelan-sast)
   - [DAST Command (`kelan dast`)](#dast-command-kelan-dast)
   - [CI/CD Integration](#cicd-integration)
 - [Repository Structure](#-repository-structure)
@@ -115,7 +115,7 @@ kelan run . --show
 ```
                                 +-----------------------------------+
                                 |            KELAN CLI              |
-                                |     (kelan scan / kelan dast)     |
+                                |     (kelan sast / kelan dast)     |
                                 +-----------------+-----------------+
                                                   |
                     +-----------------------------+-----------------------------+
@@ -142,7 +142,7 @@ kelan run . --show
                                                                                     +-------------------+
 ```
 
-### 1. SAST Engine (`kelan scan`)
+### 1. SAST Engine (`kelan sast`)
 * **Tree-Sitter Chunking**: Traverses codebases and extracts syntactically complete functions and classes instead of slicing raw lines.
 * **Prompt Schema Enforcement**: Formats requests into structured JSON schemas (`SCANNER_JSON_SCHEMA`) enforcing root cause analysis and CWE mapping.
 * **Strict Noise Reduction**: Instructs the model to dismiss code style or linting rules and focus exclusively on injection, state manipulation, logic bypass, and cryptographic flaws.
@@ -209,7 +209,7 @@ ollama pull gemma4:latest
 
 ### Running `kelan` CLI Commands
 
-If running `kelan scan` returns `zsh: command not found: kelan`, use one of the following methods:
+If running `kelan sast` returns `zsh: command not found: kelan`, use one of the following methods:
 
 #### Option 1: Activate the Virtual Environment (Recommended)
 Run this command in your terminal:
@@ -218,13 +218,13 @@ source .venv/bin/activate
 ```
 Once activated, your terminal prompt will show `(.venv)` and you can run `kelan` directly from anywhere:
 ```bash
-kelan scan
+kelan sast .
 ```
 
 #### Option 2: Run via Virtual Environment Path Directly
 Without activating `.venv`, call the executable using its relative path:
 ```bash
-.venv/bin/kelan scan
+.venv/bin/kelan sast .
 ```
 
 #### Optional: Make `kelan` Globally Available in Shell
@@ -233,7 +233,7 @@ If you want `kelan` to work anywhere without having to activate `.venv` every ti
 echo 'alias kelan="$(pwd)/.venv/bin/kelan"' >> ~/.zshrc
 source ~/.zshrc
 ```
-After doing this, typing `kelan scan` or `kelan dast` will work in any shell window!
+After doing this, typing `kelan sast` or `kelan dast` will work in any shell window!
 
 ---
 
@@ -241,70 +241,67 @@ After doing this, typing `kelan scan` or `kelan dast` will work in any shell win
 
 ### Interactive Mode
 
-Running `kelan scan` without arguments launches an interactive prompt guiding target, limit, and model selection:
+Run `kelan menu` for an interactive dispatcher, or `kelan sast <path> --show` to run directly with a target:
 
 ```bash
-kelan scan
+kelan menu
 ```
 
 ```text
-🎯 Enter target directory to scan [default: .]: kelan/api
-⚡ Enter chunk limit (0 for all) [default: 10]: 5
-
-🧠 Available local models:
-  1. qwen2.5-coder:latest  ← recommended
-  2. gemma4:latest
-
-Select a model (1-2) or type name [default: qwen2.5-coder:latest]: 1
+╭────────────────────────────────────────╮
+│ Kelan — AI-native security scanner     │
+│ sast | git | dast | recon | run | exit │
+╰────────────────────────────────────────╯
+Select [sast/recon/run/git/exit]: sast
+sast target (path | url | host): .
 ```
 
-### SAST Command (`kelan scan`)
+### SAST Command (`kelan sast`)
 
-| Flag | Type | Default | Description |
+| Argument / Flag | Type | Default | Description |
 |---|---|---|---|
-| `--target` | `path` | `.` | Target directory to scan |
-| `--limit` | `int` | `10` | Maximum AST chunks to analyze (`0` for all) |
-| `--model` | `string` | `qwen2.5-coder:latest` | Local Ollama model name |
-| `--concurrency` | `int` | `2` | Number of parallel chunk evaluations |
-| `--timeout` | `float` | `180.0` | Per-chunk timeout in seconds |
+| `target` | `path` | *Positional* | Target directory or file to scan |
+| `--show` | `flag` | `False` | Print formatted findings to terminal console |
+| `--model` | `string` | `qwen2.5-coder:latest` | Local Ollama model for LLM triage |
 | `--json` | `path` | `None` | Write full analysis results to a JSON file |
-| `--no-limit` | `flag` | `False` | Analyze every chunk in the target directory |
+| `--sarif` | `path` | `None` | Write findings report in standard SARIF format |
+| `--html` | `path` | `None` | Write interactive HTML findings report |
+| `--ci-gate` | `string` | `None` | Fail build if findings meet or exceed severity (`critical`, `high`, `medium`, `low`) |
+| `--allow-network` | `flag` | `False` | Allow plugins to make outbound network calls |
+| `--online` | `flag` | `False` | Allow online live queries to OSV |
 
 #### Examples
 ```bash
-# Scan production API directory with 20-chunk limit
-kelan scan --target kelan/api --limit 20 --model qwen2.5-coder:latest
+# Scan production API directory with Ollama model
+kelan sast kelan/api --model qwen2.5-coder:latest --show
 
 # Full repository scan with JSON report output
-kelan scan --target . --no-limit --json sast_report.json
+kelan sast . --json sast_report.json
 ```
 
 ### DAST Command (`kelan dast`)
 
-| Flag | Type | Default | Description |
+| Argument / Flag | Type | Default | Description |
 |---|---|---|---|
-| `--target` | `url` | *Required* | Target seed URL |
+| `target` | `url` | *Positional* | Target seed URL to probe |
+| `--show` | `flag` | `False` | Print formatted findings to terminal console |
 | `--model` | `string` | `qwen2.5-coder:latest` | Local Ollama model for narrative enrichment |
-| `--crawl` | `flag` | `False` | Spider origin-scoped pages before probing |
-| `--max-pages` | `int` | `15` | Maximum pages to spider when `--crawl` is enabled |
-| `--max-depth` | `int` | `3` | Maximum crawl depth |
-| `--bypass` | `flag` | `False` | Enable multi-family encoding bypass payloads (68+ probes) |
-| `--vectors` | `string` | `xss,sqli,cmdi,traversal,ssti` | Comma-separated list of vulnerability vectors |
-| `--delay` | `float` | `0.5` | Politeness delay between requests (seconds) |
 | `--json` | `path` | `None` | Path to save JSON report |
+| `--sarif` | `path` | `None` | Path to save SARIF report |
+| `--html` | `path` | `None` | Path to save HTML report |
 | `--ci-gate` | `string` | `None` | Threshold to fail build (`critical`, `high`, `medium`, `low`) |
-| `--no-llm` | `flag` | `False` | Run deterministic heuristic evaluation only (no LLM call) |
+| `--allow-network` | `flag` | `False` | Allow outbound network probes to target |
 
 #### Examples
 ```bash
 # Basic single-page endpoint audit
-kelan dast --target http://localhost:8080
+kelan dast http://localhost:8080
 
-# Comprehensive web crawl with bypass probes & JSON report
-kelan dast --target http://localhost:8080 --crawl --max-pages 20 --bypass --json dast_report.json
+# Web endpoint audit with JSON report output
+kelan dast http://localhost:8080 --json dast_report.json
 
 # CI Pipeline run: fail build if HIGH or CRITICAL flaws exist
-kelan dast --target http://staging.internal/ --crawl --bypass --ci-gate high
+kelan dast http://staging.internal/ --ci-gate high
 ```
 
 ### CI/CD Integration
@@ -348,12 +345,12 @@ jobs:
       - name: Run SAST Audit
         run: |
           source .venv/bin/activate
-          kelan scan --target kelan/api --no-limit --json sast_report.json
+          kelan sast kelan/api --json sast_report.json --ci-gate high
 
       - name: Run DAST Audit with CI Gate
         run: |
           source .venv/bin/activate
-          kelan dast --target http://localhost:8080 --crawl --bypass --json dast_report.json --ci-gate high
+          kelan dast http://localhost:8080 --json dast_report.json --ci-gate high
 
       - name: Upload Scan Artifacts
         uses: actions/upload-artifact@v4

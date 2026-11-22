@@ -26,6 +26,21 @@
   "eval/corpus/python/vulnerable/dangerous_eval.py": [
     { "cwe": "CWE-95", "line": 3, "title": "Dangerous Eval" }
   ],
+  "eval/corpus/python/vulnerable/xxe_parse.py": [
+    { "cwe": "CWE-611", "line": 6, "title": "XXE Injection" }
+  ],
+  "eval/corpus/python/vulnerable/insecure_random.py": [
+    { "cwe": "CWE-330", "line": 6, "title": "Insecure Randomness" }
+  ],
+  "eval/corpus/python/vulnerable/weak_password_hash.py": [
+    { "cwe": "CWE-759", "line": 6, "title": "Weak Password Hashing" }
+  ],
+  "eval/corpus/python/vulnerable/sensitive_log.py": [
+    { "cwe": "CWE-532", "line": 6, "title": "Sensitive Data in Logs" }
+  ],
+  "eval/corpus/python/vulnerable/missing_auth.py": [
+    { "cwe": "CWE-284", "line": 7, "title": "Missing Authorization" }
+  ],
   "eval/corpus/javascript/vulnerable/sqli_template.js": [
     { "cwe": "CWE-89", "line": 3, "title": "SQL Injection" }
   ],
@@ -42,6 +57,24 @@
   "eval/corpus/javascript/vulnerable/dangerous_eval.js": [
     { "cwe": "CWE-95", "line": 3, "title": "Dangerous Eval" }
   ],
+  "eval/corpus/javascript/vulnerable/nosql_injection.js": [
+    { "cwe": "CWE-943", "line": 5, "title": "NoSQL Injection" }
+  ],
+  "eval/corpus/javascript/vulnerable/prototype_pollution.js": [
+    { "cwe": "CWE-915", "line": 3, "title": "Prototype Pollution" }
+  ],
+  "eval/corpus/javascript/vulnerable/sensitive_log.js": [
+    { "cwe": "CWE-532", "line": 3, "title": "Sensitive Data in Logs" }
+  ],
+  "eval/corpus/javascript/vulnerable/insecure_cookie.js": [
+    { "cwe": "CWE-614", "line": 3, "title": "Insecure Cookie" }
+  ],
+  "eval/corpus/go/vulnerable/sqli_query.go": [
+    { "cwe": "CWE-89", "line": 10, "title": "SQL Injection" }
+  ],
+  "eval/corpus/go/vulnerable/cmd_injection.go": [
+    { "cwe": "CWE-78", "line": 8, "title": "Command Injection" }
+  ],
   "eval/corpus/heldout/heldout_py_app.py": [
     { "cwe": "CWE-89", "line": 16, "title": "SQL Injection", "reachability": "reachable" },
     { "cwe": "CWE-78", "line": 21, "title": "Command Injection", "reachability": "unreachable" }
@@ -55,9 +88,19 @@
   "eval/corpus/python/safe/safe_crypto.py": [],
   "eval/corpus/python/safe/safe_deser.py": [],
   "eval/corpus/python/safe/safe_path.py": [],
+  "eval/corpus/python/safe/safe_xml.py": [],
+  "eval/corpus/python/safe/safe_random.py": [],
+  "eval/corpus/python/safe/safe_password_hash.py": [],
+  "eval/corpus/python/safe/safe_log.py": [],
+  "eval/corpus/python/safe/safe_auth.py": [],
   "eval/corpus/javascript/safe/safe_query.js": [],
   "eval/corpus/javascript/safe/safe_dom.js": [],
   "eval/corpus/javascript/safe/safe_cmd.js": [],
-  "eval/corpus/javascript/safe/safe_hash.js": []
+  "eval/corpus/javascript/safe/safe_hash.js": [],
+  "eval/corpus/javascript/safe/safe_nosql.js": [],
+  "eval/corpus/javascript/safe/safe_proto.js": [],
+  "eval/corpus/javascript/safe/safe_console_log.js": [],
+  "eval/corpus/javascript/safe/safe_cookie.js": [],
+  "eval/corpus/go/safe/safe_query.go": [],
+  "eval/corpus/go/safe/safe_cmd.go": []
 }
-

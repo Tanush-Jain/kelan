@@ -90,7 +90,7 @@ def _usage(code: int = 0) -> int:
         "  setup          guided first-time environment setup\n"
         "  update         sync vulnerability intelligence feeds\n"
         "  export-bundle  export air-gapped signed intelligence bundle\n"
-        "  intel          threat trending & advisory search\n"
+        "  intel          threat trending, search & custom sources\n"
         "  --plugins      list registered plugins\n"
         "  --dashboard    launch local web dashboard"
         + ext_list

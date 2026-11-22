@@ -5,6 +5,12 @@ from typing import Any
 import tree_sitter_javascript as tsjs
 import tree_sitter_python as tspython
 import tree_sitter_typescript as tsts
+
+try:
+    import tree_sitter_go as tsgo
+except ImportError:
+    tsgo = None  # type: ignore[assignment]
+
 from tree_sitter import Language, Parser, Query, QueryCursor
 
 
@@ -25,6 +31,14 @@ class SemanticChunker:
         self.ts_query = Query(self.ts_lang,
             "(function_declaration) @func (class_declaration) @class (arrow_function) @arrow"
         )
+        if tsgo is not None:
+            self.go_lang = Language(tsgo.language())
+            self.go_query = Query(self.go_lang,
+                "(function_declaration) @func (method_declaration) @method"
+            )
+        else:
+            self.go_lang = None
+            self.go_query = None
 
     def extract_chunks(self, file_path: str, code_bytes: bytes) -> Iterator[dict[str, Any]]:
         ext = os.path.splitext(file_path)[1].lower()
@@ -38,6 +52,9 @@ class SemanticChunker:
         elif ext in (".ts", ".tsx"):
             lang = self.ts_lang
             query = self.ts_query
+        elif ext == ".go" and self.go_lang and self.go_query:
+            lang = self.go_lang
+            query = self.go_query
         else:
             return
 

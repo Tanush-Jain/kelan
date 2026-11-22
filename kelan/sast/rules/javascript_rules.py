@@ -456,6 +456,242 @@ class JSWeakCryptoRule(SastRule):
         return findings
 
 
+class JSNoSQLInjectionRule(SastRule):
+    rule_id = "KELAN-JS-NOSQLI-01"
+    cwe = "CWE-943"
+    title = "NoSQL Injection: Unsanitized Query Object in MongoDB/Mongoose"
+    severity = RuleSeverity.HIGH
+    confidence = RuleConfidence.HIGH
+    remediation = "Sanitize user input with mongo-sanitize or validate schemas to prevent operator injection (e.g. $where, $gt)."
+    languages = ("javascript", "typescript")
+
+    NOSQL_METHODS = {"find", "findOne", "findOneAndUpdate", "updateOne", "updateMany", "deleteMany", "deleteOne"}
+
+    def scan_file(self, file_path: str, code: str, root_node: Any) -> list[RuleFinding]:
+        findings: list[RuleFinding] = []
+        calls = _find_nodes_of_type(root_node, {"call_expression"})
+
+        for call in calls:
+            fn_node = call.child_by_field_name("function")
+            args_node = call.child_by_field_name("arguments")
+            if not fn_node or not args_node:
+                continue
+            fn_text = _node_text(fn_node, code)
+            is_method = any(fn_text.endswith("." + m) for m in self.NOSQL_METHODS)
+            if not is_method:
+                continue
+
+            args = [c for c in args_node.children if c.type not in ("(", ")", ",")]
+            if not args:
+                continue
+
+            first_arg = args[0]
+            arg_text = _node_text(first_arg, code)
+
+            is_nosqli = False
+            if "$where" in arg_text:
+                is_nosqli = True
+            elif re.search(r'''\b(req\.body|req\.query|req\.params)\b''', arg_text):
+                # If wrapped in String/Number/parseInt/sanitize, safe
+                if not re.search(r'''\b(String|Number|parseInt|sanitize)\s*\(''', arg_text):
+                    is_nosqli = True
+
+            if is_nosqli:
+                encl_fn = _get_enclosing_js_function(call, code)
+                findings.append(RuleFinding(
+                    rule_id=self.rule_id,
+                    cwe=self.cwe,
+                    title=self.title,
+                    description=f"Potential NoSQL injection: unsanitized input passed to '{fn_text}'.",
+                    severity=self.severity,
+                    confidence=self.confidence,
+                    file_path=file_path,
+                    line=call.start_point[0] + 1,
+                    end_line=call.end_point[0] + 1,
+                    snippet=_node_text(call, code),
+                    sink=fn_text,
+                    source_to_sink_evidence=f"Call to {fn_text} with unsanitized argument: {arg_text[:80]}",
+                    remediation=self.remediation,
+                    enclosing_function=encl_fn,
+                ))
+        return findings
+
+
+class JSPrototypePollutionRule(SastRule):
+    rule_id = "KELAN-JS-PROTO-01"
+    cwe = "CWE-915"
+    title = "Prototype Pollution: Unvalidated Key Assignment or Object Merging"
+    severity = RuleSeverity.HIGH
+    confidence = RuleConfidence.HIGH
+    remediation = "Reject keys matching '__proto__', 'constructor', or 'prototype', or freeze the Object prototype."
+    languages = ("javascript", "typescript")
+
+    def scan_file(self, file_path: str, code: str, root_node: Any) -> list[RuleFinding]:
+        findings: list[RuleFinding] = []
+        assignments = _find_nodes_of_type(root_node, {"assignment_expression"})
+        for asgn in assignments:
+            left = asgn.child_by_field_name("left")
+            right = asgn.child_by_field_name("right")
+            if not left or not right:
+                continue
+            left_text = _node_text(left, code)
+            if "__proto__" in left_text or "constructor.prototype" in left_text:
+                encl_fn = _get_enclosing_js_function(asgn, code)
+                findings.append(RuleFinding(
+                    rule_id=self.rule_id,
+                    cwe=self.cwe,
+                    title=self.title,
+                    description="Direct assignment to prototype property allows prototype pollution.",
+                    severity=self.severity,
+                    confidence=self.confidence,
+                    file_path=file_path,
+                    line=asgn.start_point[0] + 1,
+                    end_line=asgn.end_point[0] + 1,
+                    snippet=_node_text(asgn, code),
+                    sink="prototype_assignment",
+                    source_to_sink_evidence=f"Assignment to {left_text}",
+                    remediation=self.remediation,
+                    enclosing_function=encl_fn,
+                ))
+
+        calls = _find_nodes_of_type(root_node, {"call_expression"})
+        for call in calls:
+            fn_node = call.child_by_field_name("function")
+            args_node = call.child_by_field_name("arguments")
+            if not fn_node or not args_node:
+                continue
+            fn_text = _node_text(fn_node, code)
+            if fn_text in ("_.merge", "lodash.merge", "merge", "extend") or fn_text.endswith(".merge"):
+                args_text = _node_text(args_node, code)
+                if re.search(r'''\b(req\.body|req\.query|JSON\.parse)\b''', args_text):
+                    encl_fn = _get_enclosing_js_function(call, code)
+                    findings.append(RuleFinding(
+                        rule_id=self.rule_id,
+                        cwe=self.cwe,
+                        title=self.title,
+                        description=f"Recursive merge of untrusted data in '{fn_text}' can corrupt Object.prototype.",
+                        severity=self.severity,
+                        confidence=self.confidence,
+                        file_path=file_path,
+                        line=call.start_point[0] + 1,
+                        end_line=call.end_point[0] + 1,
+                        snippet=_node_text(call, code),
+                        sink=fn_text,
+                        source_to_sink_evidence=f"Call to {fn_text} with user input: {args_text[:80]}",
+                        remediation=self.remediation,
+                        enclosing_function=encl_fn,
+                    ))
+        return findings
+
+
+class JSSensitiveLoggingRule(SastRule):
+    rule_id = "KELAN-JS-LOG-01"
+    cwe = "CWE-532"
+    title = "Sensitive Data Exposure in Console Logging"
+    severity = RuleSeverity.LOW
+    confidence = RuleConfidence.MEDIUM
+    remediation = "Mask or remove sensitive fields (passwords, tokens, credentials) before outputting to console logs."
+    languages = ("javascript", "typescript")
+
+    SENSITIVE_WORDS = re.compile(r'''(?i)(password|passwd|secret|token|apiKey|api_key|auth|creditCard)''')
+
+    def scan_file(self, file_path: str, code: str, root_node: Any) -> list[RuleFinding]:
+        findings: list[RuleFinding] = []
+        calls = _find_nodes_of_type(root_node, {"call_expression"})
+
+        for call in calls:
+            fn_node = call.child_by_field_name("function")
+            args_node = call.child_by_field_name("arguments")
+            if not fn_node or not args_node:
+                continue
+            fn_text = _node_text(fn_node, code)
+            if fn_text in ("console.log", "console.warn", "console.info", "console.error"):
+                args_text = _node_text(args_node, code)
+                if self.SENSITIVE_WORDS.search(args_text) and not any(k in args_text.lower() for k in ("redacted", "masked", "***")):
+                    has_var = bool(re.search(r'''\$\{[^}]*(?:password|passwd|secret|key|token)[^}]*\}''', args_text, re.IGNORECASE))
+                    if not has_var:
+                        args = [c for c in args_node.children if c.type not in ("(", ")", ",")]
+                        has_var = any(a.type == "identifier" and self.SENSITIVE_WORDS.search(_node_text(a, code)) for a in args)
+
+                    if has_var:
+                        encl_fn = _get_enclosing_js_function(call, code)
+                        findings.append(RuleFinding(
+                            rule_id=self.rule_id,
+                            cwe=self.cwe,
+                            title=self.title,
+                            description=f"Sensitive variable logged via '{fn_text}'.",
+                            severity=self.severity,
+                            confidence=self.confidence,
+                            file_path=file_path,
+                            line=call.start_point[0] + 1,
+                            end_line=call.end_point[0] + 1,
+                            snippet=_node_text(call, code),
+                            sink=fn_text,
+                            source_to_sink_evidence=f"Call to {fn_text} with sensitive variable: {args_text[:80]}",
+                            remediation=self.remediation,
+                            enclosing_function=encl_fn,
+                        ))
+        return findings
+
+
+class JSMissingCookieSecurityRule(SastRule):
+    rule_id = "KELAN-JS-COOKIE-01"
+    cwe = "CWE-614"
+    title = "Insecure Cookie: Missing httpOnly or secure Flags"
+    severity = RuleSeverity.MEDIUM
+    confidence = RuleConfidence.HIGH
+    remediation = "Set 'httpOnly: true' and 'secure: true' in cookie options to protect session tokens from XSS and eavesdropping."
+    languages = ("javascript", "typescript")
+
+    def scan_file(self, file_path: str, code: str, root_node: Any) -> list[RuleFinding]:
+        findings: list[RuleFinding] = []
+        calls = _find_nodes_of_type(root_node, {"call_expression"})
+
+        for call in calls:
+            fn_node = call.child_by_field_name("function")
+            args_node = call.child_by_field_name("arguments")
+            if not fn_node or not args_node:
+                continue
+            fn_text = _node_text(fn_node, code)
+            if fn_text in ("res.cookie", "response.cookie") or fn_text.endswith(".cookie"):
+                args = [c for c in args_node.children if c.type not in ("(", ")", ",")]
+                is_insecure = False
+                detail = ""
+                if len(args) < 3:
+                    is_insecure = True
+                    detail = "Missing options object with httpOnly and secure flags."
+                else:
+                    opt_text = _node_text(args[2], code)
+                    missing_flags = []
+                    if "httpOnly: true" not in opt_text:
+                        missing_flags.append("httpOnly: true")
+                    if "secure: true" not in opt_text:
+                        missing_flags.append("secure: true")
+                    if missing_flags:
+                        is_insecure = True
+                        detail = f"Cookie options missing: {', '.join(missing_flags)}."
+
+                if is_insecure:
+                    encl_fn = _get_enclosing_js_function(call, code)
+                    findings.append(RuleFinding(
+                        rule_id=self.rule_id,
+                        cwe=self.cwe,
+                        title=self.title,
+                        description=f"Cookie set without necessary security attributes: {detail}",
+                        severity=self.severity,
+                        confidence=self.confidence,
+                        file_path=file_path,
+                        line=call.start_point[0] + 1,
+                        end_line=call.end_point[0] + 1,
+                        snippet=_node_text(call, code),
+                        sink=fn_text,
+                        source_to_sink_evidence=detail,
+                        remediation=self.remediation,
+                        enclosing_function=encl_fn,
+                    ))
+        return findings
+
+
 JAVASCRIPT_RULES: list[SastRule] = [
     JSSQLInjectionRule(),
     JSXSSSinkRule(),
@@ -465,4 +701,8 @@ JAVASCRIPT_RULES: list[SastRule] = [
     JSSSRFRule(),
     JSWeakCryptoRule(),
     GenericHardcodedSecretsRule(),
+    JSNoSQLInjectionRule(),
+    JSPrototypePollutionRule(),
+    JSSensitiveLoggingRule(),
+    JSMissingCookieSecurityRule(),
 ]

@@ -12,7 +12,7 @@ from kelan.scanner.chunker import SemanticChunker
 SEV_ORDER = {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3}
 IGNORE_DIRS = {".git", "node_modules", "venv", ".venv", "target",
                "dist", "build", "__pycache__"}
-SCAN_EXTS = {".py", ".js", ".ts", ".tsx"}
+SCAN_EXTS = {".py", ".js", ".ts", ".tsx", ".go"}
 DEFAULT_MODEL = "qwen2.5-coder:latest"
 DEFAULT_ENDPOINT = "http://127.0.0.1:11434"
 

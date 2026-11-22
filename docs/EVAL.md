@@ -1,6 +1,6 @@
 # Kelan SAST Evaluation & Benchmark Scoreboard
 
-**Generated Programmatically:** `2026-11-22T15:51:38.511162+00:00`  
+**Generated Programmatically:** `2026-11-22T18:51:39.229640+00:00`  
 **Harness Script:** `eval/run_eval.py` (Do not edit this document by hand)
 
 ---
@@ -25,9 +25,9 @@ Precision, Recall, and False-Positive Rate (FPR) evaluated across the intentiona
 
 | Layer | Precision | Recall | False Positive Rate (FPR) | TP | FP | FN | TN |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Layer 1: Deterministic AST Rules** | 100.0% | 100.0% | 0.0% | 21 | 0 | 0 | 9 |
-| **Layer 2: AST + Reachability Call Graph** | 100.0% | 100.0% | 0.0% | 21 | 0 | 0 | 9 |
-| **Layer 3: AST + Reachability + LLM Triage** | 100.0% | 100.0% | 0.0% | 21 | 0 | 0 | 9 |
+| **Layer 1: Deterministic AST Rules** | 100.0% | 100.0% | 0.0% | 32 | 0 | 0 | 20 |
+| **Layer 2: AST + Reachability Call Graph** | 100.0% | 100.0% | 0.0% | 32 | 0 | 0 | 20 |
+| **Layer 3: AST + Reachability + LLM Triage** | 100.0% | 100.0% | 0.0% | 32 | 0 | 0 | 20 |
 
 ---
 

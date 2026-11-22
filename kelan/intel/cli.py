@@ -12,6 +12,13 @@ from rich.console import Console
 
 from kelan.intel.bundle import BundleVerificationError, export_bundle, import_bundle
 from kelan.intel.db import IntelStore
+from kelan.intel.sources import (
+    ADAPTER_REGISTRY,
+    PRO_UPGRADE_MSG,
+    SourceConfig,
+    SourcesManager,
+    get_adapter,
+)
 from kelan.intel.trending import show_search, show_trending
 from kelan.intel.updater import IntelUpdater
 
@@ -187,6 +194,181 @@ def cmd_export_bundle(
         store.close()
 
 
+def cmd_sources(
+    argv: list[str] | None = None,
+    *,
+    console: Console | None = None,
+    db: str | None = None,
+    **kwargs: Any,
+) -> int:
+    """Manage custom intelligence sources (rss, json-feed, local-doc)."""
+    args_list = list(argv) if argv is not None else []
+    c = console or Console()
+
+    if not args_list or args_list[0] in ("-h", "--help", "help"):
+        print(
+            "usage: kelan intel sources <list | add <name> --type <type> --url <url> | remove <name> | test <name>>\n\n"
+            "subcommands:\n"
+            "  list                         list all configured custom intelligence sources\n"
+            "  add <name> --type <t> --url <u>  add a new custom source (types: rss, json-feed, local-doc)\n"
+            "  remove <name>                remove a configured custom source\n"
+            "  test <name>                  dry-run fetch & parse without writing to database\n\n"
+            "options:\n"
+            "  --schema-hint <path>         optional path to JSON schema/field mapping (json-feed)\n"
+            "  --allow-local                allow private/loopback IP ranges (SSRF bypass)"
+        )
+        return 0
+
+    action = args_list[0].lower()
+    rest = args_list[1:]
+    mgr = SourcesManager()
+
+    if action == "list":
+        sources = mgr.list_sources()
+        if not sources:
+            c.print(
+                "[dim]No custom intelligence sources configured.[/dim]\n"
+                "Add one using: [bold cyan]kelan intel sources add <name> --type <rss|json-feed|local-doc> --url <url>[/bold cyan]"
+            )
+            return 0
+
+        from rich.table import Table
+
+        table = Table(title="Custom Intelligence Sources (Community Edition)")
+        table.add_column("Name", style="bold cyan")
+        table.add_column("Type", style="magenta")
+        table.add_column("URL / Target", style="green")
+        table.add_column("Allow Local", justify="center")
+        table.add_column("Added At", style="dim")
+
+        for s in sources:
+            table.add_row(
+                s.name,
+                s.type,
+                s.url,
+                "✓" if s.allow_local else "✗",
+                s.added_at[:19] if s.added_at else "",
+            )
+        c.print(table)
+        return 0
+
+    elif action == "add":
+        if not rest:
+            print("usage: kelan intel sources add <name> --type <rss|json-feed|local-doc> --url <url> [--schema-hint <path>] [--allow-local]")
+            return 2
+
+        name = rest[0]
+        if name.startswith("-"):
+            print("kelan: source name required as first argument before flags.", file=sys.stderr)
+            return 2
+
+        import argparse
+
+        parser = argparse.ArgumentParser(prog="kelan intel sources add")
+        parser.add_argument("name")
+        parser.add_argument("--type", "-t", required=True, help="Source type: rss, json-feed, or local-doc")
+        parser.add_argument("--url", "-u", required=True, help="URL for feed or file path for local-doc")
+        parser.add_argument("--schema-hint", help="Path to JSON schema or field mapping hint")
+        parser.add_argument("--allow-local", action="store_true", help="Allow private/loopback IP ranges (SSRF bypass)")
+        parser.add_argument("--description", "-d", default="", help="Optional source description")
+
+        try:
+            parsed_args = parser.parse_args(rest)
+        except SystemExit:
+            return 2
+
+        src_type = parsed_args.type.lower()
+        if src_type in ("html", "web", "website", "scrape"):
+            c.print(f"[bold red]✗ {PRO_UPGRADE_MSG}[/bold red]")
+            return 1
+
+        if src_type not in ADAPTER_REGISTRY:
+            valid_types = ", ".join(sorted(ADAPTER_REGISTRY.keys()))
+            c.print(f"[bold red]✗ Unsupported source type '{parsed_args.type}'. Supported types: {valid_types}.[/bold red]")
+            return 2
+
+        config = SourceConfig(
+            name=parsed_args.name,
+            type=src_type,
+            url=parsed_args.url,
+            schema_hint=parsed_args.schema_hint,
+            allow_local=parsed_args.allow_local,
+            description=parsed_args.description,
+        )
+
+        try:
+            adapter = get_adapter(config)
+            val_ok, val_err = adapter.validate()
+            if not val_ok:
+                c.print(f"[bold red]✗ Validation failed:[/bold red] {val_err}")
+                return 1
+        except Exception as e:
+            c.print(f"[bold red]✗ Validation failed:[/bold red] {e}")
+            return 1
+
+        mgr.add_source(config)
+        c.print(f"[bold green]✓ Added intelligence source:[/bold green] [bold cyan]{config.name}[/bold cyan] ({config.type})")
+        return 0
+
+    elif action == "remove":
+        if not rest:
+            print("usage: kelan intel sources remove <name>")
+            return 2
+        name = rest[0]
+        if mgr.remove_source(name):
+            c.print(f"[bold green]✓ Removed intelligence source:[/bold green] {name}")
+            return 0
+        else:
+            c.print(f"[bold red]✗ Source '{name}' not found.[/bold red]")
+            return 1
+
+    elif action == "test":
+        if not rest:
+            print("usage: kelan intel sources test <name>")
+            return 2
+        name = rest[0]
+        test_config = mgr.get_source(name)
+        if not test_config:
+            c.print(f"[bold red]✗ Source '{name}' not found in configuration.[/bold red]")
+            return 1
+
+        c.print(f"[bold cyan]Testing intelligence source '{name}' (dry-run)...[/bold cyan]")
+        try:
+            adapter = get_adapter(test_config)
+            result = _run_async(adapter.test())
+            if result.get("status") == "success":
+                count = result.get("records_count", 0)
+                c.print(f"[bold green]✓ Dry-run succeeded:[/bold green] Parsed [bold]{count}[/bold] items from {test_config.url}")
+                samples = result.get("sample_items", [])
+                if samples:
+                    from rich.table import Table
+
+                    t = Table(title=f"Sample Items from '{name}'")
+                    t.add_column("ID", style="bold")
+                    t.add_column("Title", style="cyan")
+                    t.add_column("Severity")
+                    t.add_column("Published", style="dim")
+                    for s in samples:
+                        t.add_row(
+                            s.get("id", "")[:30],
+                            s.get("title", "")[:50],
+                            s.get("severity", ""),
+                            str(s.get("published_at", ""))[:19],
+                        )
+                    c.print(t)
+                c.print("[dim]Dry-run test complete. No items were written to the database.[/dim]")
+                return 0
+            else:
+                c.print(f"[bold red]✗ Dry-run failed:[/bold red] {result.get('error')}")
+                return 1
+        except Exception as e:
+            c.print(f"[bold red]✗ Dry-run failed:[/bold red] {e}")
+            return 1
+    else:
+        print(f"kelan intel sources: unknown action '{action}'. Choose 'list', 'add', 'remove', or 'test'.", file=sys.stderr)
+        return 2
+
+
 def cmd_intel(
     argv: list[str] | None = None,
     *,
@@ -207,19 +389,21 @@ def cmd_intel(
 
     if not args_list and not effective_subcmd and not effective_query:
         print(
-            "usage: kelan intel <trending | search <query>>\n\n"
+            "usage: kelan intel <trending | search <query> | sources <list|add|remove|test>>\n\n"
             "subcommands:\n"
             "  trending  display recently added KEVs, 7-day EPSS risers, and scan matches\n"
-            "  search    search advisories by CVE, GHSA, or package name"
+            "  search    search advisories by CVE, GHSA, or package name\n"
+            "  sources   manage custom intelligence sources (rss, json-feed, local-doc)"
         )
         return 0
 
     if args_list and args_list[0] in ("-h", "--help", "help"):
         print(
-            "usage: kelan intel <trending | search <query>>\n\n"
+            "usage: kelan intel <trending | search <query> | sources <list|add|remove|test>>\n\n"
             "subcommands:\n"
             "  trending  display recently added KEVs, 7-day EPSS risers, and scan matches\n"
-            "  search    search advisories by CVE, GHSA, or package name"
+            "  search    search advisories by CVE, GHSA, or package name\n"
+            "  sources   manage custom intelligence sources (rss, json-feed, local-doc)"
         )
         return 0
 
@@ -228,6 +412,9 @@ def cmd_intel(
         subargs = args_list[1:]
     else:
         subargs = args_list
+
+    if effective_subcmd == "sources":
+        return cmd_sources(subargs, console=console, db=db, **kwargs)
 
     if not effective_query and subargs:
         effective_query = " ".join(subargs)
@@ -246,7 +433,7 @@ def cmd_intel(
             show_search(store, effective_query, c)
             return 0
         else:
-            print(f"kelan intel: unknown subcommand '{effective_subcmd}'. Choose 'trending' or 'search'.", file=sys.stderr)
+            print(f"kelan intel: unknown subcommand '{effective_subcmd}'. Choose 'trending', 'search', or 'sources'.", file=sys.stderr)
             return 2
     finally:
         store.close()
@@ -272,6 +459,8 @@ def main(argv: list[str] | None = None, **kwargs: Any) -> int:
         return cmd_export_bundle(args_list[1:], **kwargs)
     elif first in ("intel", "trending", "search"):
         return cmd_intel(args_list, **kwargs)
+    elif first == "sources":
+        return cmd_sources(args_list[1:], **kwargs)
     else:
         return cmd_intel(args_list, **kwargs)
 

@@ -456,9 +456,17 @@ class PythonWeakCryptoRule(SastRule):
 
         for call in calls:
             fn_node = call.child_by_field_name("function")
+            args_node = call.child_by_field_name("arguments")
             if not fn_node:
                 continue
             fn_text = _node_text(fn_node, code)
+            args_text = _node_text(args_node, code) if args_node else ""
+            encl_fn = _get_enclosing_function_name(call, code)
+
+            # If used for password hashing, let PythonWeakPasswordHashRule (CWE-759) handle it
+            if re.search(r'''(?i)(password|passwd|pwd|passphrase)''', args_text) or re.search(r'''(?i)(password|passwd|pwd|passphrase)''', encl_fn):
+                continue
+
             is_weak = False
             alg = ""
 
@@ -474,6 +482,14 @@ class PythonWeakCryptoRule(SastRule):
             elif "MODE_ECB" in fn_text:
                 is_weak = True
                 alg = "AES-ECB"
+
+            # If used for password hashing, let PythonWeakPasswordHashRule (CWE-759) handle it
+            if is_weak and call.parent and re.search(r'''(?i)(password|passwd|pwd|passphrase)''', _node_text(call.parent, code)):
+                continue
+
+            # If used for password hashing, let PythonWeakPasswordHashRule (CWE-759) handle it
+            if is_weak and call.parent and re.search(r'''(?i)(password|passwd|pwd|passphrase)''', _node_text(call.parent, code)):
+                continue
 
             if is_weak:
                 encl_fn = _get_enclosing_function_name(call, code)
@@ -601,6 +617,291 @@ class GenericHardcodedSecretsRule(SastRule):
         return findings
 
 
+class PythonXXERule(SastRule):
+    rule_id = "KELAN-PY-XXE-01"
+    cwe = "CWE-611"
+    title = "XML External Entity (XXE) Injection: Insecure Entity Resolution"
+    severity = RuleSeverity.HIGH
+    confidence = RuleConfidence.HIGH
+    remediation = "Disable external entity resolution: use defusedxml or configure XMLParser(resolve_entities=False)."
+    languages = ("python",)
+
+    XXE_SINKS = {
+        "xml.etree.ElementTree.parse", "xml.etree.ElementTree.fromstring",
+        "ET.parse", "ET.fromstring",
+        "xml.dom.minidom.parse", "xml.dom.minidom.parseString",
+        "minidom.parse", "minidom.parseString",
+        "lxml.etree.parse", "lxml.etree.fromstring", "lxml.etree.XMLParser",
+    }
+
+    def scan_file(self, file_path: str, code: str, root_node: Any) -> list[RuleFinding]:
+        findings: list[RuleFinding] = []
+        calls = _find_nodes_of_type(root_node, {"call"})
+
+        for call in calls:
+            fn_node = call.child_by_field_name("function")
+            args_node = call.child_by_field_name("arguments")
+            if not fn_node or not args_node:
+                continue
+            fn_text = _node_text(fn_node, code)
+            matched = any(fn_text == s or fn_text.endswith("." + s.split(".")[-1]) for s in self.XXE_SINKS)
+            if not matched:
+                continue
+
+            args_text = _node_text(args_node, code)
+            # If lxml with resolve_entities=False, safe!
+            if "resolve_entities=False" in args_text:
+                continue
+
+            # If defusedxml is imported, safe!
+            if re.search(r'''\b(?:import\s+defusedxml|from\s+defusedxml)\b''', code):
+                continue
+
+            encl_fn = _get_enclosing_function_name(call, code)
+            findings.append(RuleFinding(
+                rule_id=self.rule_id,
+                cwe=self.cwe,
+                title=self.title,
+                description=f"Insecure XML parsing sink '{fn_text}' vulnerable to XXE external entity resolution.",
+                severity=self.severity,
+                confidence=self.confidence,
+                file_path=file_path,
+                line=call.start_point[0] + 1,
+                end_line=call.end_point[0] + 1,
+                snippet=_node_text(call, code),
+                sink=fn_text,
+                source_to_sink_evidence=f"Call to XML parser {fn_text} without defusedxml or resolve_entities=False",
+                remediation=self.remediation,
+                enclosing_function=encl_fn,
+            ))
+        return findings
+
+
+class PythonInsecureRandomRule(SastRule):
+    rule_id = "KELAN-PY-RAND-01"
+    cwe = "CWE-330"
+    title = "Insecure Randomness: Pseudo-Random Number Generator Used for Security Secrets"
+    severity = RuleSeverity.MEDIUM
+    confidence = RuleConfidence.HIGH
+    remediation = "Use the secrets module (e.g. secrets.token_hex(), secrets.token_urlsafe()) for cryptographic keys and tokens."
+    languages = ("python",)
+
+    RANDOM_CALLS = {
+        "random.random", "random.randint", "random.choice", "random.choices",
+        "random.randrange", "random.sample", "random.getrandbits"
+    }
+    SECURITY_WORDS = re.compile(r'''(?i)(token|secret|key|password|passwd|session|auth|nonce|csrf|salt|pin)''')
+
+    def scan_file(self, file_path: str, code: str, root_node: Any) -> list[RuleFinding]:
+        findings: list[RuleFinding] = []
+        assignments = _find_nodes_of_type(root_node, {"assignment"})
+
+        for asgn in assignments:
+            left = asgn.child_by_field_name("left")
+            right = asgn.child_by_field_name("right")
+            if not left or not right:
+                continue
+            left_txt = _node_text(left, code).strip()
+            right_txt = _node_text(right, code)
+
+            if self.SECURITY_WORDS.search(left_txt):
+                if any(rc in right_txt for rc in self.RANDOM_CALLS):
+                    encl_fn = _get_enclosing_function_name(asgn, code)
+                    findings.append(RuleFinding(
+                        rule_id=self.rule_id,
+                        cwe=self.cwe,
+                        title=self.title,
+                        description=f"Standard PRNG 'random' used to generate sensitive security value '{left_txt}'.",
+                        severity=self.severity,
+                        confidence=self.confidence,
+                        file_path=file_path,
+                        line=asgn.start_point[0] + 1,
+                        end_line=asgn.end_point[0] + 1,
+                        snippet=_node_text(asgn, code),
+                        sink=f"assignment:{left_txt}",
+                        source_to_sink_evidence=f"Variable '{left_txt}' assigned from random generator: {right_txt[:80]}",
+                        remediation=self.remediation,
+                        enclosing_function=encl_fn,
+                    ))
+        return findings
+
+
+class PythonWeakPasswordHashRule(SastRule):
+    rule_id = "KELAN-PY-PASSHASH-01"
+    cwe = "CWE-759"
+    title = "Weak Password Hashing: Fast or Non-Adaptive Digest Used for Passwords"
+    severity = RuleSeverity.HIGH
+    confidence = RuleConfidence.HIGH
+    remediation = "Use slow, adaptive password hashing algorithms like bcrypt, argon2id, or hashlib.pbkdf2_hmac with salt."
+    languages = ("python",)
+
+    HASH_FUNCS = {"hashlib.md5", "md5", "hashlib.sha1", "sha1"}
+    PWD_WORDS = re.compile(r'''(?i)(password|passwd|pwd|passphrase)''')
+
+    def scan_file(self, file_path: str, code: str, root_node: Any) -> list[RuleFinding]:
+        findings: list[RuleFinding] = []
+        calls = _find_nodes_of_type(root_node, {"call"})
+
+        for call in calls:
+            fn_node = call.child_by_field_name("function")
+            args_node = call.child_by_field_name("arguments")
+            if not fn_node or not args_node:
+                continue
+            fn_text = _node_text(fn_node, code)
+            if fn_text not in self.HASH_FUNCS:
+                continue
+
+            args_text = _node_text(args_node, code)
+            encl_fn = _get_enclosing_function_name(call, code)
+
+            is_pass_hash = bool(self.PWD_WORDS.search(args_text) or self.PWD_WORDS.search(encl_fn))
+            if not is_pass_hash and call.parent and call.parent.type == "assignment":
+                left = call.parent.child_by_field_name("left")
+                if left and self.PWD_WORDS.search(_node_text(left, code)):
+                    is_pass_hash = True
+
+            if is_pass_hash:
+                findings.append(RuleFinding(
+                    rule_id=self.rule_id,
+                    cwe=self.cwe,
+                    title=self.title,
+                    description=f"Fast hash function '{fn_text}' used for password hashing without salt or adaptive work factor.",
+                    severity=self.severity,
+                    confidence=self.confidence,
+                    file_path=file_path,
+                    line=call.start_point[0] + 1,
+                    end_line=call.end_point[0] + 1,
+                    snippet=_node_text(call, code),
+                    sink=fn_text,
+                    source_to_sink_evidence=f"Call to {fn_text} hashing password data: {args_text[:80]}",
+                    remediation=self.remediation,
+                    enclosing_function=encl_fn,
+                ))
+        return findings
+
+
+class PythonSensitiveLoggingRule(SastRule):
+    rule_id = "KELAN-PY-LOG-01"
+    cwe = "CWE-532"
+    title = "Sensitive Data Exposure in Logging or Output"
+    severity = RuleSeverity.LOW
+    confidence = RuleConfidence.MEDIUM
+    remediation = "Sanitize or mask credentials, tokens, and personal secrets before writing to logs."
+    languages = ("python",)
+
+    LOG_CALLS = {
+        "logging.info", "logging.debug", "logging.warning", "logging.error", "logging.critical",
+        "logger.info", "logger.debug", "logger.warning", "logger.error", "logger.critical",
+        "print"
+    }
+    SENSITIVE_WORDS = re.compile(r'''(?i)\b(password|passwd|secret|api_key|token|auth_token|access_token|private_key|credit_card)\b''')
+
+    def scan_file(self, file_path: str, code: str, root_node: Any) -> list[RuleFinding]:
+        findings: list[RuleFinding] = []
+        calls = _find_nodes_of_type(root_node, {"call"})
+
+        for call in calls:
+            fn_node = call.child_by_field_name("function")
+            args_node = call.child_by_field_name("arguments")
+            if not fn_node or not args_node:
+                continue
+            fn_text = _node_text(fn_node, code)
+            matched = any(fn_text == s or fn_text.endswith("." + s.split(".")[-1]) for s in self.LOG_CALLS)
+            if not matched:
+                continue
+
+            args_text = _node_text(args_node, code)
+            if self.SENSITIVE_WORDS.search(args_text) and not any(k in args_text.lower() for k in ("redacted", "masked", "***")):
+                has_var = bool(re.search(r'''\{[^}]*(?:password|passwd|secret|key|token)[^}]*\}''', args_text, re.IGNORECASE))
+                if not has_var:
+                    args = [c for c in args_node.children if c.type not in ("(", ")", ",")]
+                    has_var = any(a.type == "identifier" and self.SENSITIVE_WORDS.search(_node_text(a, code)) for a in args)
+
+                if has_var:
+                    encl_fn = _get_enclosing_function_name(call, code)
+                    findings.append(RuleFinding(
+                        rule_id=self.rule_id,
+                        cwe=self.cwe,
+                        title=self.title,
+                        description=f"Sensitive variable logged or printed via '{fn_text}'.",
+                        severity=self.severity,
+                        confidence=self.confidence,
+                        file_path=file_path,
+                        line=call.start_point[0] + 1,
+                        end_line=call.end_point[0] + 1,
+                        snippet=_node_text(call, code),
+                        sink=fn_text,
+                        source_to_sink_evidence=f"Sensitive data passed to logging sink: {args_text[:80]}",
+                        remediation=self.remediation,
+                        enclosing_function=encl_fn,
+                    ))
+        return findings
+
+
+class PythonMissingAuthRule(SastRule):
+    rule_id = "KELAN-PY-NOAUTH-01"
+    cwe = "CWE-284"
+    title = "Missing Authorization / Authentication Check on Sensitive Route (Advisory)"
+    severity = RuleSeverity.LOW
+    confidence = RuleConfidence.LOW
+    remediation = "Enforce authentication and role-based access checks (e.g., FastAPI Depends(get_current_user) or Flask @login_required)."
+    languages = ("python",)
+
+    ROUTE_DECORATORS = re.compile(r'''(?i)@(?:app|router|bp)\.(?:route|get|post|put|delete|patch)''')
+    SENSITIVE_NAMES = re.compile(r'''(?i)(admin|delete|update|role|manage|account|user_id|billing)''')
+    AUTH_INDICATORS = re.compile(r'''(?i)(login_required|jwt_required|auth_required|roles_accepted|Depends\(|permission)''')
+
+    def scan_file(self, file_path: str, code: str, root_node: Any) -> list[RuleFinding]:
+        findings: list[RuleFinding] = []
+        fn_defs = _find_nodes_of_type(root_node, {"function_definition", "async_function_definition"})
+
+        for fn_node in fn_defs:
+            name_node = fn_node.child_by_field_name("name")
+            if not name_node:
+                continue
+            fn_name = _node_text(name_node, code)
+
+            decorators: list[str] = []
+            parent = fn_node.parent
+            if parent and parent.type == "decorated_definition":
+                for child in parent.children:
+                    if child.type == "decorator":
+                        decorators.append(_node_text(child, code))
+
+            decor_text = " ".join(decorators)
+            if not self.ROUTE_DECORATORS.search(decor_text):
+                continue
+
+            params_node = fn_node.child_by_field_name("parameters")
+            params_text = _node_text(params_node, code) if params_node else ""
+            is_sensitive = bool(self.SENSITIVE_NAMES.search(fn_name) or self.SENSITIVE_NAMES.search(decor_text))
+            if not is_sensitive:
+                continue
+
+            has_auth = bool(self.AUTH_INDICATORS.search(decor_text) or self.AUTH_INDICATORS.search(params_text))
+            if not has_auth:
+                findings.append(RuleFinding(
+                    rule_id=self.rule_id,
+                    cwe=self.cwe,
+                    title=self.title,
+                    description=(
+                        f"Advisory: Sensitive endpoint '{fn_name}' appears to lack authentication or authorization checks. "
+                        "Note: This is a low-confidence advisory rule intended for manual review."
+                    ),
+                    severity=self.severity,
+                    confidence=self.confidence,
+                    file_path=file_path,
+                    line=fn_node.start_point[0] + 1,
+                    end_line=fn_node.end_point[0] + 1,
+                    snippet=_node_text(fn_node, code).split("\n")[0],
+                    sink="route_decorator",
+                    source_to_sink_evidence=f"Route '{decor_text}' has no detected auth dependency or decorator",
+                    remediation=self.remediation,
+                    enclosing_function=fn_name,
+                ))
+        return findings
+
+
 PYTHON_RULES: list[SastRule] = [
     PythonSQLInjectionRule(),
     PythonCommandInjectionRule(),
@@ -610,4 +911,9 @@ PYTHON_RULES: list[SastRule] = [
     PythonWeakCryptoRule(),
     PythonDangerousEvalRule(),
     GenericHardcodedSecretsRule(),
+    PythonXXERule(),
+    PythonInsecureRandomRule(),
+    PythonWeakPasswordHashRule(),
+    PythonSensitiveLoggingRule(),
+    PythonMissingAuthRule(),
 ]

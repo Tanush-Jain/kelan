@@ -23,6 +23,12 @@ from typing import Any
 import tree_sitter_javascript as tsjs
 import tree_sitter_python as tspython
 import tree_sitter_typescript as tsts
+
+try:
+    import tree_sitter_go as tsgo
+except ImportError:
+    tsgo = None  # type: ignore[assignment]
+
 from tree_sitter import Language, Parser
 
 from kelan.sast.rules.base import RuleFinding
@@ -94,6 +100,7 @@ class TreeSitterCallGraphBuilder:
         self.py_parser = Parser(Language(tspython.language()))
         self.js_parser = Parser(Language(tsjs.language()))
         self.ts_parser = Parser(Language(tsts.language_typescript()))
+        self.go_parser = Parser(Language(tsgo.language())) if tsgo is not None else None
 
     def parse(self, file_path: str, code: str | bytes) -> Any:
         code_bytes = code.encode("utf-8") if isinstance(code, str) else code
@@ -104,6 +111,8 @@ class TreeSitterCallGraphBuilder:
             return self.js_parser.parse(code_bytes)
         elif ext in (".ts", ".tsx"):
             return self.ts_parser.parse(code_bytes)
+        elif ext == ".go" and self.go_parser is not None:
+            return self.go_parser.parse(code_bytes)
         return None
 
     def build_call_graph(self, file_path: str, code: str, root_node: Any) -> CallGraph:
@@ -114,8 +123,61 @@ class TreeSitterCallGraphBuilder:
             self._build_python_graph(cg, file_path, code, root_node)
         elif ext in (".js", ".ts", ".tsx", ".mjs", ".cjs"):
             self._build_js_graph(cg, file_path, code, root_node)
+        elif ext == ".go":
+            self._build_go_graph(cg, file_path, code, root_node)
 
         return cg
+
+    def _build_go_graph(self, cg: CallGraph, file_path: str, code: str, root: Any) -> None:
+        code_bytes = code.encode("utf-8")
+
+        def collect_funcs(node: Any) -> None:
+            if node.type in ("function_declaration", "method_declaration"):
+                name_node = node.child_by_field_name("name")
+                name = code_bytes[name_node.start_byte:name_node.end_byte].decode("utf-8") if name_node else "<anon>"
+                start_line = node.start_point[0] + 1
+                end_line = node.end_point[0] + 1
+
+                is_ep = (name == "main")
+                ep_type = "cli_main" if is_ep else ""
+                if name.startswith("Test") or name.startswith("Benchmark"):
+                    is_ep = True
+                    ep_type = "test_entrypoint"
+
+                func_node = FunctionNode(
+                    name=name,
+                    file_path=file_path,
+                    start_line=start_line,
+                    end_line=end_line,
+                    is_entrypoint=is_ep,
+                    entrypoint_type=ep_type,
+                )
+                cg.nodes[name] = func_node
+                if is_ep:
+                    cg.entrypoints.add(name)
+
+            for child in node.children:
+                collect_funcs(child)
+
+        collect_funcs(root)
+
+        def collect_calls(node: Any, current_func: str | None) -> None:
+            fn = current_func
+            if node.type in ("function_declaration", "method_declaration"):
+                name_node = node.child_by_field_name("name")
+                fn = code_bytes[name_node.start_byte:name_node.end_byte].decode("utf-8") if name_node else None
+
+            if node.type == "call_expression" and fn:
+                target_node = node.child_by_field_name("function")
+                if target_node:
+                    target_txt = code_bytes[target_node.start_byte:target_node.end_byte].decode("utf-8")
+                    call_name = target_txt.split(".")[-1]
+                    cg.add_edge(fn, call_name)
+
+            for child in node.children:
+                collect_calls(child, fn)
+
+        collect_calls(root, None)
 
     def _build_python_graph(self, cg: CallGraph, file_path: str, code: str, root: Any) -> None:
         code_bytes = code.encode("utf-8")

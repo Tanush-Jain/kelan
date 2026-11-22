@@ -26,6 +26,9 @@ permissions:
 jobs:
   build-windows:
     runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
 
     steps:
       - name: Checkout repository
@@ -58,7 +61,10 @@ jobs:
 
           Write-Host "=== 2. Testing kelan doctor ==="
           # Doctor may exit non-zero if Ollama is not running in CI, so run with warning check
-          .\dist\kelan\kelan.exe doctor || Write-Warning "Doctor reported readiness warnings in clean CI runner"
+          .\dist\kelan\kelan.exe doctor
+          if ($LASTEXITCODE -ne 0) {
+              Write-Warning "Doctor reported readiness warnings in clean CI runner"
+          }
 
           Write-Host "=== 3. Testing scan of fixture codebase ==="
           New-Item -ItemType Directory -Path .\fixture -Force | Out-Null

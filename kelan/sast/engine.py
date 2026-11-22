@@ -20,6 +20,7 @@ from pathlib import Path
 from kelan.intel.db import IntelStore
 from kelan.sast.reachability import ReachabilityEvaluator, TreeSitterCallGraphBuilder
 from kelan.sast.rules.base import RuleFinding, SastRule
+from kelan.sast.rules.go_rules import GO_RULES
 from kelan.sast.rules.javascript_rules import JAVASCRIPT_RULES
 from kelan.sast.rules.python_rules import PYTHON_RULES
 from kelan.sast.triage import DEFAULT_SAST_MODEL, LLMTriageEngine
@@ -47,6 +48,7 @@ class SastEngine:
 
         self.python_rules: list[SastRule] = list(PYTHON_RULES)
         self.js_rules: list[SastRule] = list(JAVASCRIPT_RULES)
+        self.go_rules: list[SastRule] = list(GO_RULES)
 
     def scan_code_sync(
         self,
@@ -56,14 +58,19 @@ class SastEngine:
     ) -> list[RuleFinding]:
         """Synchronous scan executing Layer 1 (Deterministic AST) and optionally Layer 2 (Reachability)."""
         ext = Path(file_path).suffix.lower()
-        if ext not in (".py", ".js", ".ts", ".tsx", ".mjs", ".cjs"):
+        if ext not in (".py", ".js", ".ts", ".tsx", ".mjs", ".cjs", ".go"):
             return []
 
         tree = self.builder.parse(file_path, code)
         if tree is None:
             return []
 
-        rules = self.python_rules if ext == ".py" else self.js_rules
+        if ext == ".py":
+            rules = self.python_rules
+        elif ext == ".go":
+            rules = self.go_rules
+        else:
+            rules = self.js_rules
         findings: list[RuleFinding] = []
 
         # Layer 1: Deterministic AST rules
@@ -147,7 +154,7 @@ class SastEngine:
             p for p in root.rglob("*")
             if p.is_file()
             and not any(part in exclude_set for part in p.parts)
-            and p.suffix.lower() in (".py", ".js", ".ts", ".tsx", ".mjs", ".cjs")
+            and p.suffix.lower() in (".py", ".js", ".ts", ".tsx", ".mjs", ".cjs", ".go")
         ]
 
         sem = asyncio.Semaphore(concurrency)
