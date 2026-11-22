@@ -75,3 +75,4 @@ Static analysis in dynamic scripting languages faces inherent boundaries where s
 - `reachable` findings proceed to Layer 3 (LLM Triage) with call graph path evidence.
 - `unknown` findings proceed to Layer 3 (LLM Triage) marked with unknown reachability for human-in-the-loop review.
 - `unreachable` findings are preserved in reports as low-priority dead-code findings and skip LLM triage to minimize latency and token usage.
+

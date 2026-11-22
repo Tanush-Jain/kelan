@@ -6,3 +6,4 @@ function runGitStatus() {
         console.log(stdout);
     });
 }
+

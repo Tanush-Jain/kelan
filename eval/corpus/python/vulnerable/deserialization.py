@@ -10,3 +10,4 @@ def load_session(serialized_blob):
 def load_config(raw_yaml):
     # Insecure deserialization via unsafe yaml load
     return yaml.load(raw_yaml)
+

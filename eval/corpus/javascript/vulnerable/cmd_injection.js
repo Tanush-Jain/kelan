@@ -6,3 +6,4 @@ function cleanupDirectory(userPath) {
         console.log(stdout);
     });
 }
+

@@ -8,3 +8,4 @@ def search_users(username):
     query = "SELECT * FROM users WHERE username = '" + username + "'"
     cursor.execute(query)
     return cursor.fetchall()
+

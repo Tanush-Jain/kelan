@@ -3,3 +3,4 @@ function renderUserBioSafe(bioText) {
     // Safe textContent assignment prevents XSS
     el.textContent = bioText;
 }
+

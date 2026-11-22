@@ -8,3 +8,4 @@ function renderLegacyNotice(notice) {
     // Cross-site scripting (XSS) via document.write
     document.write("<div>" + notice + "</div>");
 }
+

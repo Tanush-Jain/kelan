@@ -37,6 +37,7 @@ from kelan.plugins.sca import ScaPlugin
 # 1. Version Comparison and Range Matching Tests
 # ============================================================================
 
+
 def test_compare_versions_ecosystems():
     assert compare_versions("1.2.3", "1.2.4") == -1
     assert compare_versions("1.2.4", "1.2.3") == 1
@@ -69,6 +70,7 @@ def test_is_version_vulnerable():
 # 2. Local SQLite Store and FTS5 Tests
 # ============================================================================
 
+
 def test_intel_store_crud_and_fts():
     store = IntelStore(":memory:")
     adv = AdvisoryRecord(
@@ -86,7 +88,12 @@ def test_intel_store_crud_and_fts():
         kev_date_added="2026-11-09",
         aliases=["GHSA-abcd-1234-wxyz"],
         packages=[
-            PackageRange(ecosystem="pypi", package_name="web-framework", introduced="1.0.0", fixed="1.4.2")
+            PackageRange(
+                ecosystem="pypi",
+                package_name="web-framework",
+                introduced="1.0.0",
+                fixed="1.4.2",
+            )
         ],
     )
     store.upsert_advisory(adv)
@@ -131,19 +138,27 @@ def test_intel_store_epss_and_kev_updates():
         id="CVE-2024-0001",
         source="nvd",
         title="Test Vuln",
-        packages=[PackageRange(ecosystem="npm", package_name="test-lib", introduced="0", fixed="1.0.0")],
+        packages=[
+            PackageRange(
+                ecosystem="npm", package_name="test-lib", introduced="0", fixed="1.0.0"
+            )
+        ],
     )
     store.upsert_advisory(adv)
 
     # Update EPSS score
-    store.record_epss_score("CVE-2024-0001", score=0.88, percentile=0.98, date_str="2026-11-09")
+    store.record_epss_score(
+        "CVE-2024-0001", score=0.88, percentile=0.98, date_str="2026-11-09"
+    )
     a = store.get_advisory("CVE-2024-0001")
+    assert a is not None
     assert a.epss_score == 0.88
     assert a.epss_percentile == 0.98
 
     # Update KEV status
     store.set_kev_status("CVE-2024-0001", is_kev=True, date_added="2026-11-10")
     a2 = store.get_advisory("CVE-2024-0001")
+    assert a2 is not None
     assert a2.is_kev is True
     assert a2.kev_date_added == "2026-11-10"
 
@@ -160,7 +175,11 @@ def test_intel_store_staleness():
     # Sync state within 2 days
     now = datetime.now(UTC)
     store.update_sync_state(
-        SyncState(source="nvd", last_sync_time=(now - timedelta(days=2)).isoformat(), status="success")
+        SyncState(
+            source="nvd",
+            last_sync_time=(now - timedelta(days=2)).isoformat(),
+            status="success",
+        )
     )
     store.upsert_advisory(AdvisoryRecord(id="CVE-1", source="nvd"))
     stale_fresh = store.get_staleness_info(max_age_days=7)
@@ -169,7 +188,11 @@ def test_intel_store_staleness():
 
     # Sync state older than 7 days
     store.update_sync_state(
-        SyncState(source="nvd", last_sync_time=(now - timedelta(days=10)).isoformat(), status="success")
+        SyncState(
+            source="nvd",
+            last_sync_time=(now - timedelta(days=10)).isoformat(),
+            status="success",
+        )
     )
     stale_old = store.get_staleness_info(max_age_days=7)
     assert stale_old["is_stale"] is True
@@ -181,6 +204,7 @@ def test_intel_store_staleness():
 # ============================================================================
 # 3. Recorded Offline Fixtures for Fetchers
 # ============================================================================
+
 
 @pytest.mark.asyncio
 async def test_cisa_kev_fetcher_with_fixture():
@@ -209,7 +233,10 @@ async def test_cisa_kev_fetcher_with_fixture():
     mock_resp = mock.MagicMock()
     mock_resp.status_code = 200
     mock_resp.json.return_value = fixture
-    mock_resp.headers = {"ETag": '"kev-etag-123"', "Last-Modified": "Mon, 09 Nov 2026 00:00:00 GMT"}
+    mock_resp.headers = {
+        "ETag": '"kev-etag-123"',
+        "Last-Modified": "Mon, 09 Nov 2026 00:00:00 GMT",
+    }
 
     with mock.patch.object(fetcher, "request_with_retry", return_value=mock_resp):
         res = await fetcher.fetch(store)
@@ -227,7 +254,9 @@ async def test_cisa_kev_fetcher_with_fixture():
     mock_304 = mock.MagicMock()
     mock_304.status_code = 304
     mock_304.headers = {}
-    store.update_sync_state(SyncState(source="cisa_kev", etag='"kev-etag-123"', records_count=1))
+    store.update_sync_state(
+        SyncState(source="cisa_kev", etag='"kev-etag-123"', records_count=1)
+    )
 
     with mock.patch.object(fetcher, "request_with_retry", return_value=mock_304):
         res304 = await fetcher.fetch(store)
@@ -263,6 +292,7 @@ async def test_epss_fetcher_with_fixture():
         assert res.records_count == 2
 
     adv = store.get_advisory("CVE-2021-44228")
+    assert adv is not None
     assert adv.epss_score == pytest.approx(0.97541)
     assert adv.epss_percentile == pytest.approx(0.99980)
 
@@ -332,7 +362,10 @@ async def test_ghsa_fetcher_with_fixture():
             "summary": "Prototype pollution in lodash",
             "description": "lodash versions prior to 4.17.21 are vulnerable to prototype pollution.",
             "severity": "critical",
-            "cvss": {"score": 9.8, "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"},
+            "cvss": {
+                "score": 9.8,
+                "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+            },
             "published_at": "2024-01-01T00:00:00Z",
             "updated_at": "2024-02-01T00:00:00Z",
             "vulnerabilities": [
@@ -378,7 +411,9 @@ async def test_nvd_fetcher_with_fixture():
             {
                 "cve": {
                     "id": "CVE-2023-38545",
-                    "descriptions": [{"lang": "en", "value": "SOCKS5 heap buffer overflow in curl"}],
+                    "descriptions": [
+                        {"lang": "en", "value": "SOCKS5 heap buffer overflow in curl"}
+                    ],
                     "published": "2023-10-11T00:00:00",
                     "lastModified": "2023-10-15T00:00:00",
                     "metrics": {
@@ -450,15 +485,19 @@ async def test_updater_error_handling_and_summary():
     with mock.patch.object(
         updater.fetchers["cisa_kev"],
         "request_with_retry",
-        side_effect=httpx.HTTPStatusError("403 Forbidden", request=mock.MagicMock(), response=mock_resp),
+        side_effect=httpx.HTTPStatusError(
+            "403 Forbidden", request=mock.MagicMock(), response=mock_resp
+        ),
     ):
         results = await updater.update(sources=["cisa_kev"])
         assert len(results) == 1
         assert results[0].status == "error"
+        assert results[0].error_message is not None
         assert "403 Forbidden" in results[0].error_message
 
     # Verify sync_state recorded
     sync = store.get_sync_state("cisa_kev")
+    assert sync is not None
     assert "error" in sync.status
 
     store.close()
@@ -467,6 +506,7 @@ async def test_updater_error_handling_and_summary():
 # ============================================================================
 # 4. Air-Gapped Offline Bundle Export & Import Tests
 # ============================================================================
+
 
 def test_bundle_export_import_and_signature_verification():
     with tempfile.TemporaryDirectory() as tmp_dir:
@@ -486,10 +526,24 @@ def test_bundle_export_import_and_signature_verification():
             epss_score=0.92,
             is_kev=True,
             aliases=["GHSA-5555-6666"],
-            packages=[PackageRange(ecosystem="pypi", package_name="request-lib", introduced="1.0", fixed="2.0")],
+            packages=[
+                PackageRange(
+                    ecosystem="pypi",
+                    package_name="request-lib",
+                    introduced="1.0",
+                    fixed="2.0",
+                )
+            ],
         )
         s1.upsert_advisory(adv)
-        s1.update_sync_state(SyncState(source="ghsa", last_sync_time="2026-11-09T00:00:00Z", records_count=1, status="success"))
+        s1.update_sync_state(
+            SyncState(
+                source="ghsa",
+                last_sync_time="2026-11-09T00:00:00Z",
+                records_count=1,
+                status="success",
+            )
+        )
 
         # Export bundle
         out_file = export_bundle(bundle_zip, s1)
@@ -524,7 +578,10 @@ def test_bundle_rejects_tampered_manifest_and_data():
 
         # 1. Tamper manifest.json -> fails Ed25519 signature
         tampered_manifest_zip = tmp_path / "tampered_manifest.zip"
-        with zipfile.ZipFile(bundle_zip, "r") as zin, zipfile.ZipFile(tampered_manifest_zip, "w") as zout:
+        with (
+            zipfile.ZipFile(bundle_zip, "r") as zin,
+            zipfile.ZipFile(tampered_manifest_zip, "w") as zout,
+        ):
             for item in zin.infolist():
                 data = zin.read(item.filename)
                 if item.filename == "manifest.json":
@@ -532,13 +589,18 @@ def test_bundle_rejects_tampered_manifest_and_data():
                 zout.writestr(item, data)
 
         s_test1 = IntelStore(tmp_path / "test1.db")
-        with pytest.raises(BundleVerificationError, match="Ed25519 signature verification failed"):
+        with pytest.raises(
+            BundleVerificationError, match="Ed25519 signature verification failed"
+        ):
             import_bundle(tampered_manifest_zip, s_test1)
         s_test1.close()
 
         # 2. Tamper intel.db -> fails SHA-256
         tampered_db_zip = tmp_path / "tampered_db.zip"
-        with zipfile.ZipFile(bundle_zip, "r") as zin, zipfile.ZipFile(tampered_db_zip, "w") as zout:
+        with (
+            zipfile.ZipFile(bundle_zip, "r") as zin,
+            zipfile.ZipFile(tampered_db_zip, "w") as zout,
+        ):
             for item in zin.infolist():
                 data = zin.read(item.filename)
                 if item.filename == "intel.db":
@@ -546,7 +608,9 @@ def test_bundle_rejects_tampered_manifest_and_data():
                 zout.writestr(item, data)
 
         s_test2 = IntelStore(tmp_path / "test2.db")
-        with pytest.raises(BundleVerificationError, match="Checksum mismatch for intel.db"):
+        with pytest.raises(
+            BundleVerificationError, match="Checksum mismatch for intel.db"
+        ):
             import_bundle(tampered_db_zip, s_test2)
         s_test2.close()
 
@@ -554,6 +618,7 @@ def test_bundle_rejects_tampered_manifest_and_data():
 # ============================================================================
 # 5. Trending & Search Tests
 # ============================================================================
+
 
 def test_trending_and_search_methods():
     store = IntelStore(":memory:")
@@ -566,7 +631,9 @@ def test_trending_and_search_methods():
         epss_score=0.91,
         is_kev=True,
         kev_date_added="2026-11-09",
-        packages=[PackageRange(ecosystem="pypi", package_name="vuln-lib", fixed="2.0.0")],
+        packages=[
+            PackageRange(ecosystem="pypi", package_name="vuln-lib", fixed="2.0.0")
+        ],
     )
     store.upsert_advisory(adv1)
 
@@ -577,7 +644,9 @@ def test_trending_and_search_methods():
     store.record_epss_score("CVE-2024-9001", score=0.91, date_str=d2)
 
     # Record scanned packages
-    store.record_scanned_packages([PackageSpec(name="vuln-lib", version="1.5.0", ecosystem="pypi")])
+    store.record_scanned_packages(
+        [PackageSpec(name="vuln-lib", version="1.5.0", ecosystem="pypi")]
+    )
 
     # 1. Trending KEV
     kevs = store.get_trending_kev()
@@ -612,17 +681,20 @@ def test_trending_and_search_methods():
 # 6. SCA Plugin Manifest & Lockfile Parsing Across All Ecosystems
 # ============================================================================
 
+
 @pytest.mark.asyncio
 async def test_sca_manifest_parsers_all_ecosystems(tmp_path):
     sca = ScaPlugin()
 
     # 1. requirements.txt
-    (tmp_path / "requirements.txt").write_text("flask==2.3.2\nwerkzeug===2.3.0\n# comment")
+    (tmp_path / "requirements.txt").write_text(
+        "flask==2.3.2\nwerkzeug===2.3.0\n# comment"
+    )
 
     # 2. Pipfile.lock
-    (tmp_path / "Pipfile.lock").write_text(json.dumps({
-        "default": {"jinja2": {"version": "==3.1.2"}}
-    }))
+    (tmp_path / "Pipfile.lock").write_text(
+        json.dumps({"default": {"jinja2": {"version": "==3.1.2"}}})
+    )
 
     # 3. poetry.lock
     (tmp_path / "poetry.lock").write_text(
@@ -630,22 +702,22 @@ async def test_sca_manifest_parsers_all_ecosystems(tmp_path):
     )
 
     # 4. package.json
-    (tmp_path / "package.json").write_text(json.dumps({
-        "dependencies": {"express": "^4.18.2"},
-        "devDependencies": {"mocha": "~10.2.0"},
-    }))
+    (tmp_path / "package.json").write_text(
+        json.dumps(
+            {
+                "dependencies": {"express": "^4.18.2"},
+                "devDependencies": {"mocha": "~10.2.0"},
+            }
+        )
+    )
 
     # 5. package-lock.json
-    (tmp_path / "package-lock.json").write_text(json.dumps({
-        "packages": {
-            "node_modules/body-parser": {"version": "1.20.1"}
-        }
-    }))
+    (tmp_path / "package-lock.json").write_text(
+        json.dumps({"packages": {"node_modules/body-parser": {"version": "1.20.1"}}})
+    )
 
     # 6. yarn.lock
-    (tmp_path / "yarn.lock").write_text(
-        '"cors@^2.8.5":\n  version "2.8.5"\n'
-    )
+    (tmp_path / "yarn.lock").write_text('"cors@^2.8.5":\n  version "2.8.5"\n')
 
     # 7. pnpm-lock.yaml
     (tmp_path / "pnpm-lock.yaml").write_text(
@@ -658,9 +730,7 @@ async def test_sca_manifest_parsers_all_ecosystems(tmp_path):
     )
 
     # 9. Cargo.toml
-    (tmp_path / "Cargo.toml").write_text(
-        '[dependencies]\nserde = "1.0.193"\n'
-    )
+    (tmp_path / "Cargo.toml").write_text('[dependencies]\nserde = "1.0.193"\n')
 
     # 10. go.mod
     (tmp_path / "go.mod").write_text(
@@ -668,9 +738,7 @@ async def test_sca_manifest_parsers_all_ecosystems(tmp_path):
     )
 
     # 11. go.sum
-    (tmp_path / "go.sum").write_text(
-        "golang.org/x/crypto v0.14.0 h1:abc=\n"
-    )
+    (tmp_path / "go.sum").write_text("golang.org/x/crypto v0.14.0 h1:abc=\n")
 
     # 12. pom.xml
     (tmp_path / "pom.xml").write_text(
@@ -714,6 +782,7 @@ async def test_sca_manifest_parsers_all_ecosystems(tmp_path):
 # 7. SCA Plugin Offline Matching, EPSS/KEV Enrichment & Staleness
 # ============================================================================
 
+
 @pytest.mark.asyncio
 async def test_sca_local_matching_and_enrichment(tmp_path):
     # Setup test repo with requirements.txt
@@ -735,13 +804,20 @@ async def test_sca_local_matching_and_enrichment(tmp_path):
             kev_date_added="2026-11-08",
             aliases=["GHSA-7777-8888"],
             packages=[
-                PackageRange(ecosystem="pypi", package_name="vulnerable-pkg", introduced="1.0.0", fixed="1.5.0")
+                PackageRange(
+                    ecosystem="pypi",
+                    package_name="vulnerable-pkg",
+                    introduced="1.0.0",
+                    fixed="1.5.0",
+                )
             ],
         )
     )
     # Record sync state so it's not stale
     store.update_sync_state(
-        SyncState(source="nvd", last_sync_time=datetime.now(UTC).isoformat(), status="success")
+        SyncState(
+            source="nvd", last_sync_time=datetime.now(UTC).isoformat(), status="success"
+        )
     )
     store.close()
 
@@ -788,7 +864,9 @@ async def test_sca_staleness_warning_and_report_timestamp(tmp_path):
     store = IntelStore(db_file)
     # Stale sync timestamp (20 days ago)
     old_time = (datetime.now(UTC) - timedelta(days=20)).isoformat()
-    store.update_sync_state(SyncState(source="nvd", last_sync_time=old_time, status="success"))
+    store.update_sync_state(
+        SyncState(source="nvd", last_sync_time=old_time, status="success")
+    )
     store.close()
 
     target = ScanTarget(ScopeKind.CODEBASE, str(tmp_path))
@@ -824,6 +902,7 @@ async def test_sca_staleness_warning_and_report_timestamp(tmp_path):
 # ============================================================================
 # 8. CLI Command Integration Tests
 # ============================================================================
+
 
 def test_cli_update_export_intel(tmp_path, monkeypatch):
     db_path = tmp_path / "cli_intel.db"

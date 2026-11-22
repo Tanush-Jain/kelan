@@ -105,10 +105,12 @@ def cmd_update(
                 )
                 return 0
             except BundleVerificationError as e:
-                c.print(f"[bold red]✗ Bundle verification failed:[/bold red] {e}", file=sys.stderr)
+                err_console = Console(stderr=True)
+                err_console.print(f"[bold red]✗ Bundle verification failed:[/bold red] {e}")
                 return 1
             except Exception as e:
-                c.print(f"[bold red]✗ Failed to import bundle:[/bold red] {e}", file=sys.stderr)
+                err_console = Console(stderr=True)
+                err_console.print(f"[bold red]✗ Failed to import bundle:[/bold red] {e}")
                 return 1
 
         # Online incremental sync
@@ -178,7 +180,8 @@ def cmd_export_bundle(
         )
         return 0
     except Exception as e:
-        c.print(f"[bold red]✗ Export failed:[/bold red] {e}", file=sys.stderr)
+        err_console = Console(stderr=True)
+        err_console.print(f"[bold red]✗ Export failed:[/bold red] {e}")
         return 1
     finally:
         store.close()

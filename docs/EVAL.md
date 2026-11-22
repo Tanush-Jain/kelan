@@ -1,6 +1,6 @@
 # Kelan SAST Evaluation & Benchmark Scoreboard
 
-**Generated Programmatically:** `2026-11-10T11:03:00.744783+00:00`  
+**Generated Programmatically:** `2026-11-22T15:51:38.511162+00:00`  
 **Harness Script:** `eval/run_eval.py` (Do not edit this document by hand)
 
 ---

@@ -7,3 +7,4 @@ def search_users_safe(username):
     # Safe parameterized query
     cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
     return cursor.fetchall()
+

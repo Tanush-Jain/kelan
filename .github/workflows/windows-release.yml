@@ -20,12 +20,12 @@ on:
       - '.github/workflows/windows-release.yml'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build-windows:
     runs-on: windows-latest
-    defaults:
-      run:
-        shell: pwsh
 
     steps:
       - name: Checkout repository
@@ -40,7 +40,6 @@ jobs:
       - name: Install build tools and dependencies
         run: |
           python -m pip install --upgrade pip setuptools wheel
-          pip install -r requirements.txt
           pip install -e .
           pip install pyinstaller cyclonedx-bom
 
@@ -58,22 +57,14 @@ jobs:
           .\dist\kelan\kelan.exe --plugins
 
           Write-Host "=== 2. Testing kelan doctor ==="
-          # Doctor reports readiness warnings in clean CI runner where Ollama is not local
-          .\dist\kelan\kelan.exe doctor
-          if ($LASTEXITCODE -ne 0) {
-              Write-Warning "Doctor reported readiness warnings in clean CI runner (exit code: $LASTEXITCODE)"
-              $global:LASTEXITCODE = 0
-          }
+          # Doctor may exit non-zero if Ollama is not running in CI, so run with warning check
+          .\dist\kelan\kelan.exe doctor || Write-Warning "Doctor reported readiness warnings in clean CI runner"
 
           Write-Host "=== 3. Testing scan of fixture codebase ==="
           New-Item -ItemType Directory -Path .\fixture -Force | Out-Null
           Set-Content -Path .\fixture\requirements.txt -Value "requests==2.31.0`n"
           Set-Content -Path .\fixture\app.py -Value "import os`nprint('fixture app')`n"
           .\dist\kelan\kelan.exe run .\fixture --show
-          if ($LASTEXITCODE -ne 0) {
-              Write-Host "Fixture scan completed with exit code: $LASTEXITCODE"
-              $global:LASTEXITCODE = 0
-          }
 
       - name: Sign kelan.exe binary (if certificate provided)
         env:
@@ -83,9 +74,7 @@ jobs:
           if ($env:CERT_BASE64 -and $env:CERT_PASSWORD) {
               Write-Host "Decoding certificate for binary signing..."
               [System.IO.File]::WriteAllBytes("$env:TEMP\cert.pfx", [System.Convert]::FromBase64String($env:CERT_BASE64))
-              $signtool = (Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits\10\bin" -Filter "signtool.exe" -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.FullName -like "*\x64\signtool.exe" } | Select-Object -First 1).FullName
-              if (-not $signtool) { $signtool = "signtool.exe" }
-              & $signtool sign `
+              & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64\signtool.exe" sign `
                   /f "$env:TEMP\cert.pfx" `
                   /p $env:CERT_PASSWORD `
                   /fd SHA256 `
@@ -100,9 +89,7 @@ jobs:
 
       - name: Build Inno Setup Installer
         run: |
-          $iscc = (Get-Command ISCC.exe -ErrorAction SilentlyContinue).Source
-          if (-not $iscc) { $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" }
-          & $iscc packaging\windows\installer.iss
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" packaging\windows\installer.iss
 
       - name: Sign KelanSetup.exe installer (if certificate provided)
         env:
@@ -112,9 +99,7 @@ jobs:
           if ($env:CERT_BASE64 -and $env:CERT_PASSWORD) {
               Write-Host "Signing Inno Setup installer..."
               [System.IO.File]::WriteAllBytes("$env:TEMP\cert.pfx", [System.Convert]::FromBase64String($env:CERT_BASE64))
-              $signtool = (Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits\10\bin" -Filter "signtool.exe" -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.FullName -like "*\x64\signtool.exe" } | Select-Object -First 1).FullName
-              if (-not $signtool) { $signtool = "signtool.exe" }
-              & $signtool sign `
+              & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64\signtool.exe" sign `
                   /f "$env:TEMP\cert.pfx" `
                   /p $env:CERT_PASSWORD `
                   /fd SHA256 `
@@ -127,7 +112,7 @@ jobs:
 
       - name: Generate CycloneDX Software Bill of Materials (SBOM)
         run: |
-          cyclonedx-py environment --output-format json --output-file dist\kelan-sbom.cdx.json
+          cyclonedx-py environment --output-format json --outfile dist\kelan-sbom.cdx.json
 
       - name: Package portable ZIP bundle
         run: |
@@ -156,4 +141,16 @@ jobs:
             dist/kelan-sbom.cdx.json
             dist/SHA256SUMS.txt
           retention-days: 14
+
+      - name: Publish Windows Assets to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/KelanSetup.exe
+            dist/kelan-windows-x86_64.zip
+            dist/kelan-sbom.cdx.json
+            dist/SHA256SUMS.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

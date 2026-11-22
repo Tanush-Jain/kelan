@@ -6,3 +6,4 @@ function serveFile(userFilename) {
     const fullPath = path.join("/var/data", userFilename);
     return fs.readFileSync(fullPath, "utf-8");
 }
+
