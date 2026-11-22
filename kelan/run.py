@@ -105,7 +105,7 @@ def main(argv: list[str] | None = None) -> int:
             if intel_updated:
                 console.print(f"[dim]Vulnerability Intelligence Last Updated: {intel_updated}[/dim]")
             if staleness_warn:
-                console.print(f"[yellow]⚠️  {staleness_warn}[/yellow]")
+                console.print(f"[yellow][!] {staleness_warn}[/yellow]")
             
             table = Table(title="Findings Summary")
             table.add_column("Severity", justify="left")
@@ -126,7 +126,7 @@ def main(argv: list[str] | None = None) -> int:
             console.print(table)
             
             for f in findings:
-                console.print(f"\n[bold]{f.title}[/bold] ({f.cwe}) — {f.plugin}")
+                console.print(f"\n[bold]{f.title}[/bold] ({f.cwe}) - {f.plugin}")
                 console.print(f"  [dim]Severity:[/dim] {f.severity.value}  [dim]Confidence:[/dim] {f.confidence.value}")
                 console.print(f"  [dim]Location:[/dim] {f.location}")
                 if f.remediation:
@@ -145,7 +145,7 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"[WARNING] {staleness_warn}")
             print("=" * width)
             for f in findings:
-                print(f"[{f.severity.value}] {f.cwe} — {f.title} ({f.plugin})")
+                print(f"[{f.severity.value}] {f.cwe} - {f.title} ({f.plugin})")
                 print(f"  Location: {f.location}")
                 for ev in f.evidence:
                     print(f"  Evidence [{ev.kind}]: {ev.detail}")
@@ -169,7 +169,7 @@ def main(argv: list[str] | None = None) -> int:
     
     if args.ci_gate:
         code = findings.gate(args.ci_gate)
-        print(f"🧪 CI gate ({args.ci_gate}): {'FAIL' if code else 'PASS'}")
+        print(f"[CI] CI gate ({args.ci_gate}): {'FAIL' if code else 'PASS'}")
         return code
         
     return 0

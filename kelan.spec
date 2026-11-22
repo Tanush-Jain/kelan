@@ -23,6 +23,8 @@ hiddenimports = [
     "tree_sitter_python",
     "tree_sitter_javascript",
     "tree_sitter_typescript",
+    "tree_sitter_go",
+    "feedparser",
     "cryptography",
     "cryptography.hazmat.primitives.asymmetric.ed25519",
     "sqlite3",
@@ -71,12 +73,14 @@ hiddenimports = [
     "kelan.intel.fetchers.ghsa",
     "kelan.intel.fetchers.nvd",
     "kelan.intel.fetchers.osv",
+    "kelan.intel.sources",
+    "kelan.sast.rules.go_rules",
 ]
 
 # Collect tree-sitter grammars if available via hook helpers
 try:
     from PyInstaller.utils.hooks import collect_all
-    for ts_mod in ("tree_sitter_python", "tree_sitter_javascript", "tree_sitter_typescript"):
+    for ts_mod in ("tree_sitter_python", "tree_sitter_javascript", "tree_sitter_typescript", "tree_sitter_go"):
         try:
             d, b, h = collect_all(ts_mod)
             datas.extend(d)

@@ -29,6 +29,9 @@ jobs:
     defaults:
       run:
         shell: pwsh
+    env:
+      PYTHONIOENCODING: utf-8
+      PYTHONUTF8: "1"
 
     steps:
       - name: Checkout repository
@@ -55,7 +58,13 @@ jobs:
           pyinstaller kelan.spec --clean --noconfirm
 
       - name: Verify kelan.exe functionality on Windows runner
+        env:
+          PYTHONIOENCODING: utf-8
+          PYTHONUTF8: "1"
         run: |
+          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+          [Console]::InputEncoding  = [System.Text.Encoding]::UTF8
+
           Write-Host "=== 1. Testing plugin registry ==="
           .\dist\kelan\kelan.exe --plugins
 
