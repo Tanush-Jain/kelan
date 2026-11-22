@@ -83,7 +83,7 @@ github.com/YOUR_ORG/kelan-core
 - [ ] Ensure `curl .../install.sh | bash` actually works end-to-end on a clean Ubuntu VM
 - [ ] Set up free Formspree account → get form ID → replace `REPLACE_WITH_FORMSPREE_ID` in `index.html`
 - [ ] Create free Calendly account → replace the link in `index.html`
-- [ ] Confirm `https://demo.kelan.dev/api/stats` responds (or update the URL)
+- [ ] Confirm demo API stats endpoint responds (or update the URL)
 
 ### HN tips:
 - Post on a **Tuesday–Thursday**, between **8–10 AM US Eastern** for max HN traffic

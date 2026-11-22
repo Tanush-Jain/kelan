@@ -33,7 +33,7 @@ services:
       GF_SECURITY_ADMIN_USER:       admin
       GF_SECURITY_ADMIN_PASSWORD:   "${GRAFANA_PASSWORD:-kelan_grafana_admin}"
       GF_USERS_ALLOW_SIGN_UP:       "false"
-      GF_SERVER_ROOT_URL:           "https://metrics.kelan.io"
+      GF_SERVER_ROOT_URL:           "https://metrics.example.com"
       GF_SMTP_ENABLED:              "true"
       GF_SMTP_HOST:                 "smtp.gmail.com:587"
       GF_SMTP_USER:                 "${ALERT_EMAIL}"

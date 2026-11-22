@@ -1,0 +1,5 @@
+Contact: mailto:kelansecurity@gmail.com
+Expires: 2027-12-31T23:59:59.000Z
+Preferred-Languages: en
+Policy: https://github.com/Tanush-Jain/kelan/blob/main/SECURITY.md
+Canonical: https://raw.githubusercontent.com/Tanush-Jain/kelan/main/.well-known/security.txt

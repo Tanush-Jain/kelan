@@ -29,7 +29,7 @@ echo ""
 
 # ── Auth (Create account and get token) ──────────────────────────────────────
 UNIQUE_ID=$(date +%s)
-EMAIL="sim_${UNIQUE_ID}@kelan.io"
+EMAIL="sim_${UNIQUE_ID}@example.com"
 PASS="SimPass123!"
 
 echo -e "${BLUE}[AUTH]${NC} Registering as $EMAIL..."

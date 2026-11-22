@@ -26,7 +26,7 @@ echo -e "${BOLD}AITP Attack Simulation Suite (Throttled for Free Tier)${NC}"
 
 # ── Auth (Create account and get token) ──────────────────────────────────────
 UNIQUE_ID=$(date +%s)
-EMAIL="sim_throttled_${UNIQUE_ID}@kelan.io"
+EMAIL="sim_throttled_${UNIQUE_ID}@example.com"
 PASS="SimPass123!"
 
 echo -e "${BLUE}[AUTH]${NC} Registering as $EMAIL..."

@@ -114,7 +114,7 @@ KELAN_LOG_LEVEL=info
 KELAN_XDP_IFACE=wlan0
 
 # Test Credentials for APIs
-TEST_EMAIL=test@kelan.dev
+TEST_EMAIL=test@example.com
 TEST_PASSWORD=KelanTest#2024!
 
 # Agentic verdict synchronization setup (macOS server ↔ Kali Linux enforcement client)

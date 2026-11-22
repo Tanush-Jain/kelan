@@ -1,6 +1,6 @@
 global:
   resolve_timeout: 5m
-  smtp_from:        'kelan-alerts@kelan.io'
+  smtp_from:        'kelansecurity@gmail.com'
   smtp_smarthost:   'smtp.gmail.com:587'
   smtp_auth_username: '${ALERT_EMAIL}'
   smtp_auth_password: '${ALERT_EMAIL_PASSWORD}'
@@ -28,7 +28,7 @@ route:
 receivers:
   - name: default
     email_configs:
-      - to: 'tanush@kelan.io'
+      - to: 'kelansecurity@gmail.com'
         subject: '[Kelan] Alert: {{ .GroupLabels.alertname }}'
         body: |
           {{ range .Alerts }}
@@ -39,7 +39,7 @@ receivers:
 
   - name: critical
     email_configs:
-      - to: 'tanush@kelan.io'
+      - to: 'kelansecurity@gmail.com'
         subject: '[CRITICAL] Kelan: {{ .GroupLabels.alertname }}'
     slack_configs:
       - api_url: '${SLACK_WEBHOOK_URL}'

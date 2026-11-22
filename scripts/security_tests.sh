@@ -182,7 +182,7 @@ for i in $(seq 1 80); do
     CODE=$(curl -s -o /dev/null -w "%{http_code}" \
         -X POST "$KELAN_URL/api/auth/signin" \
         -H "Content-Type: application/json" \
-        -d '{"email":"ratetest@kelan.io","password":"wrong"}' 2>/dev/null)
+        -d '{"email":"ratetest@example.com","password":"wrong"}' 2>/dev/null)
     if [[ "$CODE" == "429" ]]; then
         RATE_LIMITED=true
         pass "Rate limiting fires (429 at request #$i)"

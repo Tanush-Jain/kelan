@@ -8,4 +8,4 @@ Commercial use of AITP (defined as use for direct or indirect commercial advanta
 ## Enterprise Support
 We offer enterprise-grade support, custom feature development, and implementation consulting.
 
-For more information, contact: commercial@aitp.dev
+For more information, contact: kelansecurity@gmail.com

@@ -499,6 +499,14 @@ Kelan Community is free and will stay free. If it's useful to you or your team, 
 
 ---
 
+## 📬 Contact & Inquiries
+
+For general questions, security disclosures, or enterprise inquiries:
+- **Email:** [kelansecurity@gmail.com](mailto:kelansecurity@gmail.com)
+- **Security Policy & Disclosures:** See [`SECURITY.md`](SECURITY.md)
+
+---
+
 ## 📜 License
 
 Distributed under the **MIT License**. See `LICENSE` for details.

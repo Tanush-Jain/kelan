@@ -17,8 +17,7 @@ enforcement, see Kelan Pro.
 
 **Please do not open a public GitHub issue for a security vulnerability.**
 
-Email **security@kelansecurity.dev** (PGP key: see `/.well-known/security.txt`
-once published) with:
+Email **kelansecurity@gmail.com** with:
 
 - A description of the vulnerability and its impact.
 - Steps to reproduce, or a proof of concept.
